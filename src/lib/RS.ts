@@ -112,6 +112,7 @@ export namespace RS1 {
 	export async function ReqTiles () : Promise<string[]> {
 		let BP = await RS1.ReqStr ('SELECT name from sqlite_master;');
 		sleep (1);
+		console.log (BP.desc);
 		
 		let SQStr = "sqlite_";
 		let SQLen = SQStr.length;
