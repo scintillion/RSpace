@@ -98,7 +98,7 @@ declare module '$env/static/private' {
 	export const PUBLIC: string;
 	export const QTDIR: string;
 	export const QtMsBuild: string;
-	export const RIAHELPER_JAVA_HOME: string;
+	export const REV_JAVA_HOME: string;
 	export const SESSIONNAME: string;
 	export const SystemDrive: string;
 	export const SystemRoot: string;
@@ -214,7 +214,7 @@ declare module '$env/dynamic/private' {
 		PUBLIC: string;
 		QTDIR: string;
 		QtMsBuild: string;
-		RIAHELPER_JAVA_HOME: string;
+		REV_JAVA_HOME: string;
 		SESSIONNAME: string;
 		SystemDrive: string;
 		SystemRoot: string;
