@@ -88,7 +88,7 @@ export namespace RS1 {
 		if (_ReqAB) {
 			let response = await _ReqAB (AB);
 			sleep (3);
-			console.log ('ReqAB.response bytes = ' + response.byteLength.toString ());
+			// console.log ('ReqAB.response bytes = ' + response.byteLength.toString ());
 			return response;
 		}
 		else {
@@ -101,7 +101,7 @@ export namespace RS1 {
 	  if (_ReqPack) {
 		  let returnBP = await _ReqPack (BP);
 		  sleep (3);
-		  console.log ('ReqPack.BP = ' + BP.desc);
+		  // console.log ('ReqPack.BP = ' + BP.desc);
 		  return returnBP;
 	  }
 	  else {
@@ -133,7 +133,7 @@ export namespace RS1 {
 		// console.log ('BP.BufOut length = ' + BP.BufOut ().byteLength.toString ());
 	
 		let BPReply = await ReqPack (BP);
-	
+		sleep (3);
 		return BPReply;
 	}
 
@@ -174,7 +174,7 @@ export namespace RS1 {
 		
 		let BP = await ReqStr  (QStr);
 		sleep (3); 
-		console.log ('BP Promised!' + BP.desc);
+		// console.log ('BP Promised!' + BP.desc);
 		
 		if (!BP.multi)
 			return [];
@@ -192,14 +192,14 @@ export namespace RS1 {
 		{
 			let D = new RSData ();
 
-			console.log ('  P.name = ' + P.str ('name'));
+			// console.log ('  P.name = ' + P.str ('name'));
 
 			D.LoadPack (P);
 			Data[i++] = D;
 			// console.log ('  ReqName:' + D.ID.toString () + '  ' + D.Name + '  '					 + D.Desc);
 		}
 
-		console.log ('  ' + i.toString () + ' names.');
+		// console.log ('  ' + i.toString () + ' names.');
 
 		return Data;
 	}
