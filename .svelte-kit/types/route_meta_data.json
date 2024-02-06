@@ -6,6 +6,7 @@
 	"/api/query": [
 		"src/routes/api/query/+server.ts"
 	],
+	"/dbeditor": [],
 	"/editor": [],
 	"/loleditor": [],
 	"/plotter": [],

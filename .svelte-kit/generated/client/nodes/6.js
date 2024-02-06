@@ -1,1 +1,1 @@
-export { default as component } from "../../../../src/routes/plotter/+page.svelte";
+export { default as component } from "../../../../src/routes/loleditor/+page.svelte";
