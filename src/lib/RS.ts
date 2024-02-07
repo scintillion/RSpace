@@ -127,6 +127,7 @@ export namespace RS1 {
 		else StrType = '!Q';
 
 		let BP = new BufPack ();
+		console.log ('StrType=' + StrType + ',Query=' + Query + '.');
 		BP.add ([StrType,Query]);
 	
 		// console.log ('strRequest BP on client:\n' + BP.Desc ());
@@ -138,22 +139,28 @@ export namespace RS1 {
 	}
 
 	export async function ReqTiles () : Promise<string[]> {
-		let BP = await RS1.ReqStr ('SELECT name from sqlite_master;');
-		sleep (1);
-		console.log (BP.desc);
+		let BP = await ReqStr ('SELECT name from sqlite_master;');
+		let TestBP = BP.copy ();
+		// console.log (BP.desc);	// <----- my code/data works if THIS LINE IS running!
 		
 		let SQStr = "sqlite_";
 		let SQLen = SQStr.length;
 
 		let BPs = BP.unpack ();
 		let Names : string[] = [];
+
 		for (const P of BPs) {
 			let Name = P.str ('name');
+			// console.log ('Name:' + Name);
+
 			if (Name.slice (0,SQLen) !== SQStr) {
 				Names.push (Name);
-				console.log ('  ' + Name);
+				// console.log ('  ' + Name);
 			}
 		}
+
+		// console.log ('After BP Ds= ' + BP.Ds.length.toString () + ' = ' + BP.desc);
+		console.log ('ReqTiles=' + Names);
 		return Names;
 	}
 	
@@ -2734,6 +2741,7 @@ export namespace RS1 {
 			if (Bytes < PAB.byteLength)
 				throw 'BufOUT';
 
+			/*
 			// console.log ('BufOut Prefix:' + Prefix);
 			let TestBP = new BufPack ('?');
 			TestBP.bufIn (AB);
@@ -2741,6 +2749,7 @@ export namespace RS1 {
 			// console.log (' BufIn Prefix:' + TestPrefix);
 			if (Prefix.slice (4) !== TestPrefix.slice (4))
 				throw "Prefix Mismatch!";
+			*/
 
 			return AB;
 		}
@@ -2881,8 +2890,8 @@ export namespace RS1 {
 			if (!this.multi)
 				return [];
 
-			let BPs = Array<BufPack> ();
-			BPs.length = this.Ds.length;
+			let BPs = new Array<BufPack> (this.Ds.length);
+			//let BPs = Array<BufPack> ();
 			let count = 0;
 
 			for (const F of this.Ds) {
@@ -2891,7 +2900,6 @@ export namespace RS1 {
 					BPs[count++] = NewBP;
 			}
 
-			BPs.length = count;
 			this.Type1 = this.Type1.slice (1);	// result is NOT a multipack...
 			this.Ds.length = 0;
 
