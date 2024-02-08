@@ -39,10 +39,14 @@ declare module '$env/static/private' {
 	export const ComSpec: string;
 	export const DriverData: string;
 	export const EDITOR: string;
+<<<<<<< HEAD
 	export const FPS_BROWSER_APP_PROFILE_STRING: string;
 	export const FPS_BROWSER_USER_PROFILE_STRING: string;
 	export const FP_NO_HOST_CHECK: string;
 	export const FSHARPINSTALLDIR: string;
+=======
+	export const GIT_ASKPASS: string;
+>>>>>>> 8fce280e200d567a27c3bb366503be100962b57b
 	export const HOME: string;
 	export const HOMEDRIVE: string;
 	export const HOMEPATH: string;
@@ -155,10 +159,14 @@ declare module '$env/dynamic/private' {
 		ComSpec: string;
 		DriverData: string;
 		EDITOR: string;
+<<<<<<< HEAD
 		FPS_BROWSER_APP_PROFILE_STRING: string;
 		FPS_BROWSER_USER_PROFILE_STRING: string;
 		FP_NO_HOST_CHECK: string;
 		FSHARPINSTALLDIR: string;
+=======
+		GIT_ASKPASS: string;
+>>>>>>> 8fce280e200d567a27c3bb366503be100962b57b
 		HOME: string;
 		HOMEDRIVE: string;
 		HOMEPATH: string;
