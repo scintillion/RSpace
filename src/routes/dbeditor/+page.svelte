@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { RS1 } from '$lib/RS';
-   
+  import { InitClient } from '$lib/API/client/request';
+
+  InitClient ();
+
   let tableNames: string[] = [];
   let result: any[] = [];
   let selectedTableName: string;
