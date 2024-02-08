@@ -140,7 +140,7 @@ export namespace RS1 {
 
 	export async function ReqTiles () : Promise<string[]> {
 		let BP = await ReqStr ('SELECT name from sqlite_master;');
-		let TestBP = BP.copy ();
+		// let TestBP = BP.copy ();
 		// console.log (BP.desc);	// <----- my code/data works if THIS LINE IS running!
 		
 		let SQStr = "sqlite_";
@@ -2361,7 +2361,7 @@ export namespace RS1 {
 			switch (this._type) {
 				case tNum : AB = num2ab (this.Num); break;
 				case tStr : AB = str2ab (this.Str); break;
-				case tAB : return this._AB;
+				case tAB : return this._AB.slice (0);
 				case tPack : AB = (this._data as BufPack).bufOut (); break;
 				default : AB = NILAB; this._error = 'toArray Error, Type =' + this.Type + '.';
 			}
@@ -2371,10 +2371,9 @@ export namespace RS1 {
 
 		setData (D : PFData) {
 			let Type;
-			this._data = D;
 			switch (typeof (D)) {
-				case 'string' : Type = tStr; break;
-				case 'number' : Type = tNum; break;
+				case 'string' : Type = tStr; this._data = D; break;
+				case 'number' : Type = tNum; this._data = D; break;
 				default :
 					if (!D) {
 						this._data = NILAB;
@@ -2382,11 +2381,13 @@ export namespace RS1 {
 					} else
 					{
 						let CName = D.constructor.name;
-						if (CName === 'BufPack')
+						if (CName === 'BufPack') {
 							Type = tPack;
+							this._data = (D as BufPack).copy ();
+						}
 						else {
 							Type = tAB;
-							this._AB = (CName === 'ArrayBuffer') ? (D as ArrayBuffer) : NILAB;
+							this._AB = (CName === 'ArrayBuffer') ? (D as ArrayBuffer).slice (0) : NILAB;
 							this._data = NILAB;
 						}
 					}
@@ -2400,7 +2401,7 @@ export namespace RS1 {
 				case tStr : D = ab2str (AB); break;
 				case tNum : D = ab2num (AB); break;
 				case tPack : let Pack = new BufPack (); Pack.bufIn (AB); D = Pack; break;
-				case tAB : D = AB; break;
+				case tAB : D = AB.slice (0); break;
 				default : this._error = 'constructor error Type =' + Type1 + ', converted to NILAB.';
 					Type1 = tAB;
 					D = NILAB;
@@ -2911,10 +2912,8 @@ export namespace RS1 {
 		pack is passed in	*/
 
 		pack (BPs : BufPack[]) {
-			let NewFields : PackField[] = [];
-			NewFields.length = BPs.length;
+			let NewFields = new Array<PackField> (BPs.length);
 			let count = 0;
-			let newF : PackField;
 
 			let limit = BPs.length;
 			for (let i = 0; i < limit; ++i) {
@@ -2957,8 +2956,8 @@ export namespace RS1 {
 				switch (F.Type) {
 					case tNum : Object.assign (o,{ N : F.Num }); break;
 					case tStr : Object.assign (o,{ N : F.Str }); break;
-					case tPack : Object.assign (o, {N : F.Pack }); break;
-					default : Object.assign (o,{ N : F.AB }); break;
+					case tPack : Object.assign (o, {N : F.Pack.copy () }); break;
+					default : Object.assign (o,{ N : F.AB.slice(0) }); break;
 				}
 			}
 
