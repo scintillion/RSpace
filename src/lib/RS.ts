@@ -165,7 +165,8 @@ export namespace RS1 {
 	}
 	
 	export async function ReqNames (Tile = 'S', Type = '', Sub = '') : Promise<RSData[]> {
-		let QStr = 'SELECT id,name,desc FROM ' + Tile + ' ';
+//		let QStr = 'SELECT id,name,desc FROM ' + Tile + ' ';
+		let QStr = 'SELECT * FROM ' + Tile + ' ';
 		let TypeXP = Type ? ('type=\'' + Type + '\'') : '';
 		let SubXP = Sub ? ('sub=\'' + Sub + '\'') : '';
 		let WhereXP = ';';
@@ -223,7 +224,7 @@ export namespace RS1 {
 
 	export function isDigit(ch: string): boolean {
 		ch = ch[0];
-		if ((ch <= '9')  &&  ch.length)
+		if ((ch <= '9')  &&  ch)
 				return ((ch >= '0') || (ch === '-') || (ch === '.'));
 
 		return false;
@@ -626,6 +627,8 @@ export namespace RS1 {
 		}
 
 		async toDB () {
+			if (!this.Tile)
+				this.Tile = 'S';
 			let P = this.SavePack ();
 			P.add (['!Q',this.ID ? 'U' : 'I']);
 			P = await RS1.ReqPack (P);
