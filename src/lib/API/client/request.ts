@@ -32,7 +32,9 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 
   BP.bufIn (recvAB);
 
-  console.log (' Received Server reply #' + BP.num ('#').toString ());
+  console.log (' Received Server reply #' + BP.num ('#').toString () + '\n' + BP.desc);
+  if (BP.num('#') === 20)
+      AB = RS1.NILAB;
 
   return BP;
 }

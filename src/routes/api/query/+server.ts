@@ -88,14 +88,14 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 	let Serial = InPack.num ('#');
 	if (!Serial)
 		throw "No Client Serial!";
-	console.log ('Receive Client Request #' + Serial.toString ());
+	console.log ('Server Receives Client Request #' + Serial.toString ());
 
 	let Params = RS1.sql.buildQ (InPack);
 	let OutPack = DBK.execQ (InPack, Params);
 
 	OutPack.add (['#',Serial]);
 
-	console.log ('ServerResult BP:\n' + OutPack.desc);
+	console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
 	return OutPack;
 }
 
