@@ -13,7 +13,7 @@
   const selectTable = async (event: Event) => {
      const selectElement = event.target as HTMLSelectElement;
      selectedTableName = selectElement.value;
-     result = await RS1.ReqNames(selectedTableName);
+     result = await RS1.ReqNames1(selectedTableName);
   };
    
   const startEditing = (index: number) => {
@@ -36,7 +36,7 @@
        selectedTableName = tableNames[0];
        
        // fetch data for the  table
-       result = await RS1.ReqNames(selectedTableName);
+       result = await RS1.ReqNames1(selectedTableName);
      } catch (error) {
        console.error('Error fetching table names:', error);
      }
@@ -64,11 +64,14 @@
                 <input type="text" bind:value={row.Desc} placeholder="Description" />
                 <input type="text" bind:value={row.Type} placeholder="Type" />
                 <input type="text" bind:value={row.Tile} placeholder="Tile" />
+                <input type="text" bind:value={row.Str} placeholder="String" />
                 <input type="text" bind:value={row.Sub} placeholder="Sub" />
+                <input type="text" bind:value={row.Details} placeholder="Details" />
+                <input type="text" bind:value={row.Data} placeholder="Data" />
                 <button type="submit">Save</button>
               </form>
             {:else}
-              Name: {row.Name}, Description: {row.Desc}, Type: {row.Type}, Tile: {row.Tile}, Sub: {row.Sub}
+              ID: {row.ID}, Name: {row.Name}, Description: {row.Desc}, Type: {row.Type}, Tile: {row.Tile}, Sub: {row.Sub}, Details: {row.Details}, Data: {row.Data}
               <button on:click={() => startEditing(index)}>Edit</button>
             {/if}
           </li>

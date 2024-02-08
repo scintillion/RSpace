@@ -211,6 +211,53 @@ export namespace RS1 {
 		return Data;
 	}
 
+	export async function ReqNames1 (Tile = 'S', Type = '', Sub = '') : Promise<RSData[]> {
+		let QStr = 'SELECT * FROM ' + Tile + ' ';
+		let TypeXP = Type ? ('type=\'' + Type + '\'') : '';
+		let SubXP = Sub ? ('sub=\'' + Sub + '\'') : '';
+		let WhereXP = ';';
+
+		if (TypeXP && SubXP)
+			WhereXP = 'WHERE ' + TypeXP + ' AND ' + SubXP + ';';
+		else if (TypeXP)
+			WhereXP = 'WHERE ' + TypeXP + ';'
+		else if (SubXP)
+			WhereXP = 'WHERE ' + SubXP + ';'
+
+		QStr += WhereXP;
+		
+		let BP = await ReqStr  (QStr);
+		sleep (3); 
+		// console.log ('BP Promised!' + BP.desc);
+		
+		if (!BP.multi)
+			return [];
+		sleep (3); 
+
+		let BPs = BP.unpack ();
+
+		sleep (3);
+
+		// console.log ('ReqNames/BP=' + BP.expand ());
+
+		let Data = new Array<RSData> (BPs.length);
+		let i = 0;
+		for (const P of BPs)
+		{
+			let D = new RSData ();
+
+			// console.log ('  P.name = ' + P.str ('name'));
+
+			D.LoadPack (P);
+			Data[i++] = D;
+			// console.log ('  ReqName:' + D.ID.toString () + '  ' + D.Name + '  '					 + D.Desc);
+		}
+
+		// console.log ('  ' + i.toString () + ' names.');
+
+		return Data;
+	}
+
 	
 
 	export function Download(filename: string, text: string) {
@@ -625,7 +672,7 @@ export namespace RS1 {
 			return undefined;
 		}
 
-		async toDB () {
+		async toDB () {if (!this.Tile) this.Tile = 'S';
 			let P = this.SavePack ();
 			P.add (['!Q',this.ID ? 'U' : 'I']);
 			P = await RS1.ReqPack (P);
