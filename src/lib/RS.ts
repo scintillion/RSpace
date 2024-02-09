@@ -163,21 +163,33 @@ export namespace RS1 {
 		console.log ('ReqTiles=' + Names);
 		return Names;
 	}
+
+	export class ReqInfo {
+		Tile = 'S';
+		Name = '';
+		Type = '';
+		Sub = '';
+		Fields = '*';
+		ID = 0;
+	}
 	
-	export async function ReqNames (Tile = 'S', Type = '', Sub = '') : Promise<RSData[]> {
-		let QStr = 'SELECT id,name,desc FROM ' + Tile + ' ';
-		let TypeXP = Type ? ('type=\'' + Type + '\'') : '';
-		let SubXP = Sub ? ('sub=\'' + Sub + '\'') : '';
-		let WhereXP = ';';
+	export async function ReqByInfo (R : ReqInfo) : Promise<RSData[]> {
+		let QStr = 'SELECT ' + R.Fields + ' FROM ' + R.Tile;
+		let TypeXP = R.Type ? ('type=\'' + R.Type + '\'') : '';
+		let SubXP = R.Sub ? ('sub=\'' + R.Sub + '\'') : '';
+		let WhereXP = '';
 
 		if (TypeXP && SubXP)
-			WhereXP = 'WHERE ' + TypeXP + ' AND ' + SubXP + ';';
+			WhereXP = ' WHERE ' + TypeXP + ' AND ' + SubXP;
 		else if (TypeXP)
-			WhereXP = 'WHERE ' + TypeXP + ';'
+			WhereXP = ' WHERE ' + TypeXP;
 		else if (SubXP)
-			WhereXP = 'WHERE ' + SubXP + ';'
+			WhereXP = ' WHERE ' + SubXP;
 
-		QStr += WhereXP;
+		if (R.ID)
+			WhereXP += WhereXP? (' AND id=' + R.ID.toString ()) : (' WHERE id=' + R.ID.toString ());
+
+		QStr += WhereXP + ';';
 		
 		let BP = await ReqStr  (QStr);
 		sleep (3); 
@@ -193,7 +205,7 @@ export namespace RS1 {
 
 		// console.log ('ReqNames/BP=' + BP.expand ());
 
-		let Data = new Array<RSData> (BPs.length);
+		let Datas = new Array<RSData> (BPs.length);
 		let i = 0;
 		for (const P of BPs)
 		{
@@ -202,16 +214,52 @@ export namespace RS1 {
 			// console.log ('  P.name = ' + P.str ('name'));
 
 			D.LoadPack (P);
-			Data[i++] = D;
+			Datas[i++] = D;
 			// console.log ('  ReqName:' + D.ID.toString () + '  ' + D.Name + '  '					 + D.Desc);
 		}
 
 		// console.log ('  ' + i.toString () + ' names.');
 
-		return Data;
+		return Datas;
 	}
 
-	export async function ReqNames1 (Tile = 'S', Type = '', Sub = '') : Promise<RSData[]> {
+	export async function ReqRecs (Tile = 'S', Type = '', Sub = '', Name = '') : Promise<RSData[]>
+	{
+		let Info = new ReqInfo ();
+		Info.Tile = Tile;
+		Info.Type = Type;
+		Info.Sub  = Sub;
+		Info.Name = Name;
+		return await ReqByInfo (Info);
+	}
+
+	export async function ReqData (Tile = 'S', ID : number|string) : Promise<RSData>
+	{
+		let Info = new ReqInfo ();
+		Info.Tile = Tile;
+		let Type = typeof ID;
+		if (Type === 'string')
+			Info.Name = ID as string;
+		else Info.ID = ID as number;
+
+		let Datas = await ReqByInfo (Info);
+		if (Datas.length === 1)
+			return Datas[0];
+
+		return NILData;		// found NONE, or TOO MANY!
+	}
+
+	export async function ReqNames (Tile = 'S', Type = '', Sub = '') : Promise<RSData[]>
+	{
+		let Info = new ReqInfo ();
+		Info.Tile = Tile;
+		Info.Type = Type;
+		Info.Sub  = Sub;
+		Info.Fields = 'name,desc,id';
+		return await ReqByInfo (Info);
+	}
+
+	export async function ReqNames2 (Tile = 'S', Type = '', Sub = '') : Promise<RSData[]> {
 		let QStr = 'SELECT * FROM ' + Tile + ' ';
 		let TypeXP = Type ? ('type=\'' + Type + '\'') : '';
 		let SubXP = Sub ? ('sub=\'' + Sub + '\'') : '';
@@ -707,6 +755,8 @@ export namespace RS1 {
 		}
 		*/
 	}
+
+	export const NILData = new RSData ();
 
 	export function PackToData (P : BufPack) : RSData {
 		let Type = P.str ('type');

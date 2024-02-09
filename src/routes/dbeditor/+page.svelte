@@ -13,7 +13,7 @@
   const selectTable = async (event: Event) => {
      const selectElement = event.target as HTMLSelectElement;
      selectedTableName = selectElement.value;
-     result = await RS1.ReqNames1(selectedTableName);
+     result = await RS1.ReqRecs(selectedTableName);
   };
    
   const startEditing = (index: number) => {
@@ -36,7 +36,7 @@
        selectedTableName = tableNames[0];
        
        // fetch data for the  table
-       result = await RS1.ReqNames1(selectedTableName);
+       result = await RS1.ReqRecs (selectedTableName);
      } catch (error) {
        console.error('Error fetching table names:', error);
      }
