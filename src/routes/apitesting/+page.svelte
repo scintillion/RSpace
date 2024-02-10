@@ -22,6 +22,11 @@
 		let Tables = await RS1.ReqTiles ();
 
 		let Names = await RS1.ReqNames ('S','List');
+
+		let Info = new RS1.ReqInfo ();
+		Info.Type = 'List';
+		let Lists = await RS1.ReqByInfo (Info);
+		console.log (Lists.length.toString () + ' Lists returned!');
 	});
 
 

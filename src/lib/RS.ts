@@ -73,6 +73,7 @@ export namespace RS1 {
 	}
 
 	interface PackFunc { (Pack : BufPack) : BufPack }
+	interface PackToDataFunc { (P:BufPack) : RSData }
 	function NullPackFunc (P : BufPack) { return P; }
 
 	interface ABReq { (AB : ArrayBuffer) : Promise<ArrayBuffer> }
@@ -173,37 +174,53 @@ export namespace RS1 {
 		ID = 0;
 	}
 	
+	export async function ReqPacks (R : ReqInfo) : Promise<BufPack[]> {
+		let QStr = 'SELECT ' + R.Fields + ' FROM ' + R.Tile;
+		let Condits = [];
+		
+		if (R.Type)
+			Condits.push ('type=\'' + R.Type + '\'');
+		if (R.Sub)
+			Condits.push ('sub=\'' + R.Sub + '\'');
+		if (R.Name)
+			Condits.push ('name=\'' + R.Name + '\'');
+		if (R.ID)
+			Condits.push ('id='+R.ID.toString ());
+
+		if (Condits.length) 
+			QStr += ' WHERE ' + Condits.join (' AND ') + ';';
+		else QStr += ';';
+
+		let BP = await ReqStr  (QStr);
+
+		if (BP.multi)
+			return BP.unpack ();
+		else return [];
+	}
+
 	export async function ReqByInfo (R : ReqInfo) : Promise<RSData[]> {
 		let QStr = 'SELECT ' + R.Fields + ' FROM ' + R.Tile;
-		let TypeXP = R.Type ? ('type=\'' + R.Type + '\'') : '';
-		let SubXP = R.Sub ? ('sub=\'' + R.Sub + '\'') : '';
-		let WhereXP = '';
-
-		if (TypeXP && SubXP)
-			WhereXP = ' WHERE ' + TypeXP + ' AND ' + SubXP;
-		else if (TypeXP)
-			WhereXP = ' WHERE ' + TypeXP;
-		else if (SubXP)
-			WhereXP = ' WHERE ' + SubXP;
-
-		if (R.ID)
-			WhereXP += WhereXP? (' AND id=' + R.ID.toString ()) : (' WHERE id=' + R.ID.toString ());
-
-		QStr += WhereXP + ';';
+		let Condits = [];
 		
+		if (R.Type)
+			Condits.push ('type=\'' + R.Type + '\'');
+		if (R.Sub)
+			Condits.push ('sub=\'' + R.Sub + '\'');
+		if (R.Name)
+			Condits.push ('name=\'' + R.Name + '\'');
+		if (R.ID)
+			Condits.push ('id='+R.ID.toString ());
+
+		if (Condits.length) 
+			QStr += ' WHERE ' + Condits.join (' AND ') + ';';
+		else QStr += ';';
+
 		let BP = await ReqStr  (QStr);
-		sleep (3); 
-		// console.log ('BP Promised!' + BP.desc);
 		
 		if (!BP.multi)
 			return [];
-		sleep (3); 
 
 		let BPs = BP.unpack ();
-
-		sleep (3);
-
-		// console.log ('ReqNames/BP=' + BP.expand ());
 
 		let Datas = new Array<RSData> (BPs.length);
 		let i = 0;
@@ -211,15 +228,9 @@ export namespace RS1 {
 		{
 			let D = new RSData ();
 
-			// console.log ('  P.name = ' + P.str ('name'));
-
 			D.LoadPack (P);
 			Datas[i++] = D;
-			// console.log ('  ReqName:' + D.ID.toString () + '  ' + D.Name + '  '					 + D.Desc);
 		}
-
-		// console.log ('  ' + i.toString () + ' names.');
-
 		return Datas;
 	}
 
@@ -758,13 +769,32 @@ export namespace RS1 {
 
 	export const NILData = new RSData ();
 
+	export class RSDataType {
+		Type : string;
+		Func : Function;
+
+		constructor (Type1 : string, Func1 : Function) {
+			this.Type = Type1;
+			this.Func = Func1;
+			if (!(Func1 instanceof RSData))
+				throw 'NOT RSData!'
+		}
+	}
+
 	export function PackToData (P : BufPack) : RSData {
 		let Type = P.str ('type');
 
 		switch (Type) {
 			case 'List' : return new vList (P);
 		}
-		return new RSData (P);
+		return NILData;
+	}
+
+	var _Types : string[] = [];
+	var _Classes = new Array<Function> ();
+
+	export function RegPackToData (PTD : PackToDataFunc) {
+
 	}
 
 	export function DataToSelect(Data: RSData[], Select: SelectArgs) {}
@@ -3199,6 +3229,21 @@ export namespace RS1 {
 	}	// RS1
 
 	export const sql = new SQL ();
+
+	(() => {
+		// Immediately Invoked Function Expression IIFE
+		// Code that runs in your function
+
+		let Q = ['List', vList, '', RSData];
+		// let RSDT = new RSDataType ('List',vList);
+		// let QDT = new RSDataType ('ABC',PackToData);
+
+		RegPackToData (PackToData);
+		_Classes.push (vList);
+		// let List = new _Classes[0];
+
+		console.log ('NILData TEST!');
+	})()	
 
 	/*	Defines for vLists	*/
 
