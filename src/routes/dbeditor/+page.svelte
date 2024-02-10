@@ -9,8 +9,7 @@
   let summaryResult: any[] = []; // Results from ReqNames
   let detailedResult: any = {}; // Single record from ReqData
   let selectedTableName = 'S';
-  let expandedRecordId: string | null = null; 
-  let editingRecordId: string | null = null; 
+  let editingRecordId: string | null = null;
 
   const selectTable = async (event: Event) => {
     const selectElement = event.target as HTMLSelectElement;
@@ -18,24 +17,17 @@
     summaryResult = await RS1.ReqNames(selectedTableName);
   };
 
-  const expandRecord = async (id: string) => {
-    expandedRecordId = id;
+  const startEditing = async (id: string) => {
+    editingRecordId = id;
     detailedResult = await RS1.ReqData(selectedTableName, id);
   };
 
-  const collapseRecord = () => {
-    expandedRecordId = null;
-    detailedResult = {}; 
-  };
-
-  const startEditing = (id: string) => {
-    editingRecordId = id;
-  };
-
-  const saveChanges = async (id: string) => {
-    const writeResult = await detailedResult.toDB();
-    console.log(`Write result: ${writeResult}`);
-    editingRecordId = null;
+  const saveChanges = async () => {
+    if (editingRecordId) {
+      const writeResult = await detailedResult.toDB();
+      console.log(`Write result: ${writeResult}`);
+      editingRecordId = null;
+    }
   };
 
   onMount(async () => {
@@ -44,7 +36,7 @@
       tableNames = await RS1.ReqTiles();
       console.log(tableNames);
 
-      // fetch summary data 
+      // fetch summary data
       summaryResult = await RS1.ReqNames(selectedTableName);
     } catch (error) {
       console.error('Error fetching table names:', error);
@@ -57,41 +49,131 @@
 
   <select value={selectedTableName} on:change={selectTable}>
     {#each tableNames as tableName (tableName)}
-      <option value={tableName}>{tableName}</option>
+    <option value={tableName}>{tableName}</option>
     {/each}
   </select>
 
-  {#if summaryResult.length >  0}
-    <ul>
-      {#each summaryResult as row (row)}
-        <li>
-          ID: {row.ID}, Name: {row.Name}, Description: {row.Desc}
-          <button on:click={() => expandRecord(row.ID)}>Expand</button>
-          {#if expandedRecordId === row.ID && Object.keys(detailedResult).length >  0}
-            <div>
-              {#if editingRecordId === row.ID}
-                <form on:submit|preventDefault={() => saveChanges(row.ID)}>
-                  <input type="text" bind:value={detailedResult.Name} placeholder="Name" />
-                  <input type="text" bind:value={detailedResult.Desc} placeholder="Description" />
-                  <input type="text" bind:value={detailedResult.Type} placeholder="Type" />
-                  <input type="text" bind:value={detailedResult.Tile} placeholder="Tile" />
-                  <input type="text" bind:value={detailedResult.Str} placeholder="String" />
-                  <input type="text" bind:value={detailedResult.Sub} placeholder="Sub" />
-                  <input type="text" bind:value={detailedResult.Details} placeholder="Details" />
-                  <input type="text" bind:value={detailedResult.Data} placeholder="Data" />
-                  <button type="submit">Save</button>
-                </form>
-              {:else}
-              ID: {detailedResult.ID}, Name: {detailedResult.Name}, Description: {detailedResult.Desc}, Type: {detailedResult.Type}, Tile: {detailedResult.Tile}, Sub: {detailedResult.Sub}, Details: {detailedResult.Details}, Data: {detailedResult.Data}
-                <button on:click={() => startEditing(row.ID)}>Edit</button>
-              {/if}
-            </div>
-            <button on:click={collapseRecord}>Collapse</button>
-          {/if}
-        </li>
-      {/each}
-    </ul>
-  {:else}
-    <p>No data available for '{selectedTableName}'.</p>
-  {/if}
+  <div class="dbeditor">
+    
+      <div class="selectContainer">
+        {#each summaryResult as row (row)}
+          <div on:click={() => startEditing(row.ID)}>
+            <span id="id">ID: {row.ID}</span> Name: {row.Name} Description: {row.Desc}
+          </div>
+        {/each}
+      </div>
+      
+        <div class="fields" id="Line1">
+          <label for="name">Name: </label>
+          <input type="text" id="name" name="name" bind:value={detailedResult.Name} placeholder="Name" />
+          <label for="desc">Desc: </label>
+          <input type="text" id="desc" name="desc" bind:value={detailedResult.Desc} placeholder="Description" />
+          <label for="type">Type: </label>
+          <input type="text" id="type" name="type" bind:value={detailedResult.Type} placeholder="Type" />
+          <label for="tile">Tile: </label>
+          <input type="text" id="tile" name="tile" bind:value={detailedResult.Tile} placeholder="Tile" />
+          <label for="sub">Sub: </label>
+          <input type="text" id="sub" name="sub" bind:value={detailedResult.Sub} placeholder="Sub" />
+          <label for="details">Details: </label>
+          <input type="text" id="details" name="details" bind:value={detailedResult.Details} placeholder="Details" />
+          <label for="data">Data: </label>
+          <input type="text" id="data" name="data" bind:value={detailedResult.Data} placeholder="Data" />
+        </div>
+        <div class="buttons">
+          <button id="save" on:click={saveChanges}>Save</button>
+        </div>
+      
+    
+  </div>
+
+ 
 </main>
+
+<style lang="scss">
+ .dbeditor {
+  width: 100%;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem; // Adjust font size
+}
+
+.fields {
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  padding: 5px; 
+}
+
+input,
+select {
+  width: 160px; 
+  height: 32px; 
+  border-radius: 8px;
+  font-family: inherit;
+  outline: none;
+  border: none;
+  padding-left: 5px; 
+  transition: 0.3s linear;
+}
+
+button {
+  margin-top: 10px;
+  width: 80px; 
+  height: 32px; 
+  border-radius: 8px;
+  font-family: inherit;
+  background: black;
+  outline: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+  transition: 0.3s linear;
+}
+
+.selectContainer {
+  width: 100%;
+  height: auto;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.selectContainer div {
+  cursor: pointer;
+  padding: 2px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+ 
+  transition: background-color 0.3s ease;
+}
+
+.selectContainer div:hover {
+  background-color: #3297FD;
+}
+
+.buttons {
+  display: flex;
+  justify-content: center;
+  margin-top:  10px;
+  
+}
+
+#id {
+  display: inline-block;
+  background-color: black;
+  color: white;
+  padding:  2px  4px;
+  border-radius:  4px;
+  margin-right:  5px;
+  vertical-align: middle;
+}
+</style>
