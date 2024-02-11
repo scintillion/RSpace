@@ -892,198 +892,19 @@ export namespace RS1 {
 					this.Childs.forEach((Child) => {
 						if (Child.Name === 'a') {
 							this.aList = Child;
-							console.log('\taList =' + Child.Str);
+							console.log('\taList =' + Child.LStr);
 						} else if (Child.Name === 's') {
 							this.sList = Child;
-							console.log('\tsList =' + Child.Str);
+							console.log('\tsList =' + Child.LStr);
 						} else if (Child.Name === 'v') this.vList = Child;
 						else if (Child.Name === 'j') this.jList = Child;
 
-						console.log('   TDE Child[' + Child.Name + ']=' + Child.Str + '.');
+						console.log('   TDE Child[' + Child.Name + ']=' + Child.LStr + '.');
 					});
 				}
 
 				this.level = List1.Indent;
 				this.tileID = new TileID(List1.Name);
-			}
-		}
-	}
-
-	export class TileList extends RSData {
-		tiles: TDE[] = [];
-
-		constructor(Str: string[] | string, List: vList | undefined = undefined) {
-			let limit, count = 0;
-
-			super();
-
-			if (List) {
-				if (List.LType != CLType.Pack || !List.Childs) {
-					this.tiles = [];
-					return;
-				}
-
-				limit = List.Childs.length;
-				this.tiles = Array(++limit);
-				for (let i = 0; i < limit; ) {
-					this.tiles[++count] = new TDE('', List.Childs[i++]);
-					// console.log('Handling Child ' + count.toString());
-				}
-			} else {
-				let Strs: string[] = Array.isArray(Str) ? Str : FromString(Str); // Str.split (LineDelim);
-
-				this.tiles = Array((limit = Strs.length + 1));
-				for (let i = 0; ++i < limit; ) {
-					console.log(i.toString() + '=' + Strs[i - 1]);
-
-					if (Strs[i - 1][0] !== '!') {
-						//						let TabPos = Strs[i-1].indexOf (TabDelim);
-						//						if (TabPos >= 0)
-						//							Strs[i-1] = Strs[i-1].slice (0,TabPos).trimEnd ();
-
-						// console.log('Line==' + Strs[i - 1] + '.');
-
-						let newTDE = new TDE(Strs[i - 1]);
-						if (newTDE) {
-							this.tiles[++count] = newTDE;
-						}
-					}
-				}
-			}
-			/*
-} else {
-	let Strs: string[] = Array.isArray(Str) ? Str : FromString(Str);
-
-	limit = Strs.length + 1;
-
-	this.tiles = Array(limit);
-	for (let i = 0; ++i < limit; ) {
-		console.log(i.toString() + '=' + Strs[i - 1]);
-
-		if (Strs[i - 1][0] !== '!') {
-			console.log ('Line==' + Strs[i-1] + '.');
-			let newTDE = new TDE(Strs[i - 1]);
-			if (newTDE) {
-				this.tiles[++count] = newTDE;
-			}
-		}
-	}
-}
-*/
-			this.tiles.length = count + 1;
-			this.Links();
-		}
-
-		Links() {
-			// calculate relations   for the TDEs
-			let Tiles: TDE[] = this.tiles;
-			let limit = Tiles.length;
-
-			for (let tnum = 0; ++tnum < limit; ) {
-				// each TDE/tile
-				let i;
-
-				let me = Tiles[tnum];
-				let mylev = me.level;
-				let parentlev = mylev - 1;
-				let childlev = mylev + 1;
-				let lev;
-
-				me.first = me.next = me.parent = me.prev = 0;
-
-				for (i = tnum; --i > 0; )
-					if ((lev = Tiles[i].level) >= parentlev) {
-						if (lev == parentlev) {
-							me.parent = i;
-							break;
-						} else if (lev == mylev && !me.prev) me.prev = i;
-					}
-
-				for (i = me.last = tnum; ++i < limit; )
-					if ((lev = Tiles[i].level) >= mylev) {
-						if (lev === mylev) {
-							me.next = i;
-							break;
-						}
-						me.last = i;
-						if (i > 10) console.log('i = ' + i.toString() + ':' + i);
-						if (lev == childlev && !me.first) me.first = i; // first child
-					} else break;
-			} // for each TDE/tile
-		}
-
-		ToString(): string {
-			let Tiles = this.tiles;
-			let limit = Tiles.length;
-			let Str = '';
-
-			for (let i = 0; ++i < limit; ) {
-				let me = Tiles[i];
-
-				let NewStr =
-					(me.List ? me.List.Str : '@NOLIST@') +
-					'\t' +
-					i.toString() +
-					'.level=' +
-					me.level.toString() +
-					' parent=' +
-					me.parent.toString() +
-					' prev=' +
-					me.prev.toString() +
-					' next=' +
-					me.next.toString() +
-					' first=' +
-					me.first.toString() +
-					' last=' +
-					me.last.toString() +
-					' #=' +
-					(me.last - i + 1).toString() +
-					' TileID=';
-
-				if (me.tileID) NewStr += me.tileID.ToString();
-				else NewStr += 'NONE';
-
-				Str += NewStr + '\n';
-
-				if (me.Childs) {
-					for (let c = 0; c < me.Childs.length; ) {
-						let List = me.Childs[c++];
-						NewStr = '\t\t List.Name=' + List.Name + '=' + List.Str;
-						Str += NewStr + '\n';
-					}
-				}
-			}
-			return Str;
-		}
-
-		ToSelect(Select1: HTMLSelectElement | HTMLOListElement | HTMLUListElement | undefined) {
-			let Tiles = this.tiles;
-			let limit = Tiles.length;
-
-			let Select = Select1 as HTMLSelectElement;
-
-			Select.options.length = 0;
-
-			for (let i = 0; ++i < limit; ) {
-				let Option: HTMLOptionElement = document.createElement('option') as HTMLOptionElement;
-
-				let Tile = Tiles[i];
-				let List = Tile.List;
-				if (Tile && List && Tile.tileID) {
-					let Str = '-----------------------------------------------------';
-					Str = Str.slice(0, Tile.level * 3);
-					Option.text = Str + i.toString() + '.' + Tile.tileID.ToString();
-					//                  Option.value = this.ToExtraStr ();
-
-					Option.setAttribute('name', 'N' + i.toString());
-					let NameStr = Option.getAttribute('name');
-					Option.style.color = 'pink';
-					let ColorStr = Option.style.color;
-					console.log('Option Name = ' + NameStr);
-					console.log('Color = ', ColorStr);
-
-					Select.options.add(Option);
-				}
 			}
 		}
 	}
@@ -1240,6 +1061,7 @@ export namespace RS1 {
 
 	export class vList extends RSData {
 		Type = 'List';
+		LStr = '';
 		protected _Delim = PrimeDelim;
 		private _FirstDelim = 0;
 		protected _Count = 0;
@@ -1259,22 +1081,22 @@ export namespace RS1 {
 		}
 
 		get getStr() {
-			if (this.LType != CLType.Pack) return this.Str;
+			if (this.LType != CLType.Pack) return this.LStr;
 
 			if (!this.Childs) return '';
 
-			let Strs = [this.Str.slice(0, this.Str.length - 1)];
+			let Strs = [this.LStr.slice(0, this.LStr.length - 1)];
 			let limit = Strs.length;
 			for (let i = 0; i < limit; ) {
 				let Child = this.Childs[i++];
-				if (Child) Strs.push(Child.Str);
+				if (Child) Strs.push(Child.LStr);
 			}
 
 			return Strs.join(this._Delim) + this._Delim;
 		}
 
 		PostSave (P : BufPack) { P.add (['data', this.getStr]); console.log ('PostSave vList'); }
-		PostLoad (P : BufPack) { this.Str = P.str ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
+		PostLoad (P : BufPack) { this.LStr = P.str ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
 
 
 		get Indent() {
@@ -1295,7 +1117,7 @@ export namespace RS1 {
 		}
 
 		Merge(AddList: vList | undefined): boolean {
-			let DestStrs = this.Str.split(this._Delim);
+			let DestStrs = this.LStr.split(this._Delim);
 			DestStrs.length = DestStrs.length - 1;
 			let Destlimit = DestStrs.length;
 			let Appended = 0, Replaced = 0;
@@ -1306,7 +1128,7 @@ export namespace RS1 {
 
 			if (!AddList) return false;
 
-			let AddStrs = AddList.Str.split(AddList._Delim);
+			let AddStrs = AddList.LStr.split(AddList._Delim);
 
 			let Addlimit = AddStrs.length - 1; // don't use last!
 			console.log('Adding List');
@@ -1362,7 +1184,7 @@ export namespace RS1 {
 			if (!NewDelim || NewDelim.length != 1 || NewDelim == OldDelim || isDigit(NewDelim))
 				return false;
 
-			this.Str.replace(OldDelim, NewDelim);
+			this.LStr.replace(OldDelim, NewDelim);
 			this._Delim = NewDelim;
 			return true;
 		}
@@ -1370,10 +1192,10 @@ export namespace RS1 {
 		private VIDByPos(Pos1: number): vID | undefined {
 			if (Pos1 < 0) return undefined;
 
-			let EndPos = this.Str.indexOf(this._Delim, Pos1);
+			let EndPos = this.LStr.indexOf(this._Delim, Pos1);
 			if (EndPos < 0) return undefined;
 
-			let FoundStr = this.Str.slice(Pos1, EndPos);
+			let FoundStr = this.LStr.slice(Pos1, EndPos);
 			return new vID(FoundStr, this);
 		}
 
@@ -1414,7 +1236,7 @@ export namespace RS1 {
 		NameList(UseList = 1): string {
 			if (UseList && this._NameIDs) return this._NameIDs;
 
-			let Str1 = this.Str;
+			let Str1 = this.LStr;
 			let Start = this._FirstDelim - 1;
 			let Delim1 = this._Delim;
 			let ID = 0;
@@ -1486,7 +1308,7 @@ export namespace RS1 {
 						' #C =' +
 						this.Childs
 						? this.Childs?.length.toString()
-						: '0' + ' Count = ' + this.Count.toString() + ' Str=' + this.Str
+						: '0' + ' Count = ' + this.Count.toString() + ' Str=' + this.LStr
 				);
 
 			if (this._Childs) {
@@ -1595,7 +1417,7 @@ export namespace RS1 {
 
 			console.log('InitList (' + this.Name + '), NameStr =' + NameStr + '.');
 
-			this.Str = Str1;
+			this.LStr = Str1;
 
 			//			console.log ('InitList ' + this._Name + ' Indent = ' + this._Indent.toString () + ' #C =' +
 			//				this.ChildCount.toString () + ' Count = ' + this.Count.toString () + ' Str=' + this._Str);
@@ -1656,12 +1478,12 @@ export namespace RS1 {
 
 		GetDesc(Name: string): string | undefined {
 			let SearchStr = this._Delim + Name + NameDelim; // e.g. '|NameXYZ:''
-			let Pos1 = this.Str.indexOf(SearchStr, this._FirstDelim);
+			let Pos1 = this.LStr.indexOf(SearchStr, this._FirstDelim);
 			if (Pos1 >= 0) {
 				let StartPos = Pos1 + SearchStr.length;
-				let EndPos = this.Str.indexOf(this._Delim, StartPos);
+				let EndPos = this.LStr.indexOf(this._Delim, StartPos);
 
-				if (EndPos > 0) return this.Str.slice(StartPos, EndPos);
+				if (EndPos > 0) return this.LStr.slice(StartPos, EndPos);
 			}
 			return undefined;
 		}
@@ -1690,7 +1512,7 @@ export namespace RS1 {
 			if (!VID) return;
 
 			let Delim = this._Delim;
-			let Str = this.Str;
+			let Str = this.LStr;
 
 			let SearchStr = Delim + VID.Name;
 			let Pos = Str.indexOf(SearchStr + Delim, this._FirstDelim);
@@ -1727,10 +1549,10 @@ export namespace RS1 {
 		GetNamePos(Name: string): number {
 			let SearchStr = this._Delim + Name; // e.g. '|NameXYZ:''
 
-			let Pos1 = this.Str.indexOf(SearchStr + NameDelim, this._FirstDelim);
+			let Pos1 = this.LStr.indexOf(SearchStr + NameDelim, this._FirstDelim);
 			if (Pos1 >= 0) return Pos1;
 
-			return this.Str.indexOf(SearchStr + this._Delim, this._FirstDelim);
+			return this.LStr.indexOf(SearchStr + this._Delim, this._FirstDelim);
 		}
 
 		Bubble(Name: string, dir: number) {
@@ -1770,36 +1592,36 @@ export namespace RS1 {
 
 			if (dir <= 0) {
 				// bubble up
-				for (StartPos = Pos; --StartPos >= 0; ) if (this.Str[StartPos] == this._Delim) break;
+				for (StartPos = Pos; --StartPos >= 0; ) if (this.LStr[StartPos] == this._Delim) break;
 
 				if (StartPos < 0) return -1; // cannot find previous
 
-				EndPos = this.Str.indexOf(this._Delim, Pos + 1);
+				EndPos = this.LStr.indexOf(this._Delim, Pos + 1);
 				if (EndPos < 0) return -1;
 
-				Second = this.Str.slice(Pos, EndPos);
-				First = this.Str.slice(StartPos, Pos);
+				Second = this.LStr.slice(Pos, EndPos);
+				First = this.LStr.slice(StartPos, Pos);
 			} else {
 				// bubble down
 				StartPos = Pos;
-				EndPos = this.Str.indexOf(this._Delim, Pos + 1);
+				EndPos = this.LStr.indexOf(this._Delim, Pos + 1);
 				let NextEnd;
 
 				if (EndPos >= 0) {
 					// found end of first
-					First = this.Str.slice(Pos, EndPos);
-					NextEnd = this.Str.indexOf(this._Delim, EndPos + 1);
+					First = this.LStr.slice(Pos, EndPos);
+					NextEnd = this.LStr.indexOf(this._Delim, EndPos + 1);
 
 					if (NextEnd < 0) return; // cannot find next
 
-					Second = this.Str.slice(EndPos, NextEnd);
+					Second = this.LStr.slice(EndPos, NextEnd);
 					EndPos = NextEnd;
 				} else return;
 			}
 
 			if (!First || !Second) return -1;
 
-			let NewStr = this.Str.slice(0, StartPos) + Second + First + this.Str.slice(EndPos);
+			let NewStr = this.LStr.slice(0, StartPos) + Second + First + this.LStr.slice(EndPos);
 			this.InitList(NewStr);
 		}
 
@@ -1818,10 +1640,10 @@ export namespace RS1 {
 		ByDesc(Desc: string) {
 			let SearchStr = NameDelim + Desc + this._Delim;
 
-			let Pos1 = this.Str.indexOf(SearchStr, this._FirstDelim);
+			let Pos1 = this.LStr.indexOf(SearchStr, this._FirstDelim);
 			if (Pos1 >= 0) {
 				for (let i = Pos1; --i > 0; ) {
-					if (this.Str[i] === this._Delim) return this.VIDByPos(i + 1);
+					if (this.LStr[i] === this._Delim) return this.VIDByPos(i + 1);
 				}
 
 				return undefined;
@@ -1831,10 +1653,10 @@ export namespace RS1 {
 		NameByDesc(Desc: string) {
 			let SearchStr = NameDelim + Desc + this._Delim;
 
-			let Pos1 = this.Str.indexOf(SearchStr, this._FirstDelim);
+			let Pos1 = this.LStr.indexOf(SearchStr, this._FirstDelim);
 			if (Pos1 >= 0) {
 				for (let i = Pos1; --i > 0; ) {
-					if (this.Str[i] === this._Delim) return this.Str.slice(i + 1, Pos1);
+					if (this.LStr[i] === this._Delim) return this.LStr.slice(i + 1, Pos1);
 				}
 
 				return '';
@@ -1939,7 +1761,7 @@ export namespace RS1 {
 			let VIDs = this.ToSortedVIDs();
 			let limit = VIDs.length, FmtStr = '';
 
-			let LineStr = '// ' + this.Name + NameDelim + this.Desc + '="' + this.Str + '"\n';
+			let LineStr = '// ' + this.Name + NameDelim + this.Desc + '="' + this.LStr + '"\n';
 			let Line = 'export const ';
 			for (let i = 0; i < limit; ++i) {
 				Line += VIDs[i].ToDC(this.Name) + ',';
@@ -1986,6 +1808,185 @@ export namespace RS1 {
 			}
 		}
 	} // vList
+
+	export class TileList extends vList {
+		tiles: TDE[] = [];
+
+		constructor(Str1: string[] | string, List: vList | undefined = undefined) {
+			let limit, count = 0;
+
+			super(Str1 as string);
+
+			if (List) {
+				if (List.LType != CLType.Pack || !List.Childs) {
+					this.tiles = [];
+					return;
+				}
+
+				limit = List.Childs.length;
+				this.tiles = Array(++limit);
+				for (let i = 0; i < limit; ) {
+					this.tiles[++count] = new TDE('', List.Childs[i++]);
+					// console.log('Handling Child ' + count.toString());
+				}
+			} else {
+				let Strs: string[] = Array.isArray(Str1) ? Str1 : FromString(Str1); // Str.split (LineDelim);
+
+				this.tiles = Array((limit = Strs.length + 1));
+				for (let i = 0; ++i < limit; ) {
+					console.log(i.toString() + '=' + Strs[i - 1]);
+
+					if (Strs[i - 1][0] !== '!') {
+						//						let TabPos = Strs[i-1].indexOf (TabDelim);
+						//						if (TabPos >= 0)
+						//							Strs[i-1] = Strs[i-1].slice (0,TabPos).trimEnd ();
+
+						// console.log('Line==' + Strs[i - 1] + '.');
+
+						let newTDE = new TDE(Strs[i - 1]);
+						if (newTDE) {
+							this.tiles[++count] = newTDE;
+						}
+					}
+				}
+			}
+			/*
+} else {
+	let Strs: string[] = Array.isArray(Str) ? Str : FromString(Str);
+
+	limit = Strs.length + 1;
+
+	this.tiles = Array(limit);
+	for (let i = 0; ++i < limit; ) {
+		console.log(i.toString() + '=' + Strs[i - 1]);
+
+		if (Strs[i - 1][0] !== '!') {
+			console.log ('Line==' + Strs[i-1] + '.');
+			let newTDE = new TDE(Strs[i - 1]);
+			if (newTDE) {
+				this.tiles[++count] = newTDE;
+			}
+		}
+	}
+}
+*/
+			this.tiles.length = count + 1;
+			this.Links();
+		}
+
+		Links() {
+			// calculate relations   for the TDEs
+			let Tiles: TDE[] = this.tiles;
+			let limit = Tiles.length;
+
+			for (let tnum = 0; ++tnum < limit; ) {
+				// each TDE/tile
+				let i;
+
+				let me = Tiles[tnum];
+				let mylev = me.level;
+				let parentlev = mylev - 1;
+				let childlev = mylev + 1;
+				let lev;
+
+				me.first = me.next = me.parent = me.prev = 0;
+
+				for (i = tnum; --i > 0; )
+					if ((lev = Tiles[i].level) >= parentlev) {
+						if (lev == parentlev) {
+							me.parent = i;
+							break;
+						} else if (lev == mylev && !me.prev) me.prev = i;
+					}
+
+				for (i = me.last = tnum; ++i < limit; )
+					if ((lev = Tiles[i].level) >= mylev) {
+						if (lev === mylev) {
+							me.next = i;
+							break;
+						}
+						me.last = i;
+						if (i > 10) console.log('i = ' + i.toString() + ':' + i);
+						if (lev == childlev && !me.first) me.first = i; // first child
+					} else break;
+			} // for each TDE/tile
+		}
+
+		ToString(): string {
+			let Tiles = this.tiles;
+			let limit = Tiles.length;
+			let Str = '';
+
+			for (let i = 0; ++i < limit; ) {
+				let me = Tiles[i];
+
+				let NewStr =
+					(me.List ? me.List.LStr : '@NOLIST@') +
+					'\t' +
+					i.toString() +
+					'.level=' +
+					me.level.toString() +
+					' parent=' +
+					me.parent.toString() +
+					' prev=' +
+					me.prev.toString() +
+					' next=' +
+					me.next.toString() +
+					' first=' +
+					me.first.toString() +
+					' last=' +
+					me.last.toString() +
+					' #=' +
+					(me.last - i + 1).toString() +
+					' TileID=';
+
+				if (me.tileID) NewStr += me.tileID.ToString();
+				else NewStr += 'NONE';
+
+				Str += NewStr + '\n';
+
+				if (me.Childs) {
+					for (let c = 0; c < me.Childs.length; ) {
+						let List = me.Childs[c++];
+						NewStr = '\t\t List.Name=' + List.Name + '=' + List.LStr;
+						Str += NewStr + '\n';
+					}
+				}
+			}
+			return Str;
+		}
+
+		ToSelect(Select1: HTMLSelectElement | HTMLOListElement | HTMLUListElement | undefined) {
+			let Tiles = this.tiles;
+			let limit = Tiles.length;
+
+			let Select = Select1 as HTMLSelectElement;
+
+			Select.options.length = 0;
+
+			for (let i = 0; ++i < limit; ) {
+				let Option: HTMLOptionElement = document.createElement('option') as HTMLOptionElement;
+
+				let Tile = Tiles[i];
+				let List = Tile.List;
+				if (Tile && List && Tile.tileID) {
+					let Str = '-----------------------------------------------------';
+					Str = Str.slice(0, Tile.level * 3);
+					Option.text = Str + i.toString() + '.' + Tile.tileID.ToString();
+					//                  Option.value = this.ToExtraStr ();
+
+					Option.setAttribute('name', 'N' + i.toString());
+					let NameStr = Option.getAttribute('name');
+					Option.style.color = 'pink';
+					let ColorStr = Option.style.color;
+					console.log('Option Name = ' + NameStr);
+					console.log('Color = ', ColorStr);
+
+					Select.options.add(Option);
+				}
+			}
+		}
+	}
 
 	export class IOType {
 		type: number = 0;
@@ -2055,7 +2056,7 @@ export namespace RS1 {
 				let List = this.Lists[q];
 
 				DefineStr += List.ToDC();
-				DocStr += '\n\nList ' + List.Name + '(' + List.Desc + ')\t' + List.Str + '\n';
+				DocStr += '\n\nList ' + List.Name + '(' + List.Desc + ')\t' + List.LStr + '\n';
 				let VIDs = List.ToSortedVIDs();
 				for (let i = 0; i < VIDs.length; ++i) {
 					let VID = VIDs[i];
@@ -2090,7 +2091,7 @@ export namespace RS1 {
 
 			if (RS1.LstEdit.TileSelect) TL.ToSelect(RS1.LstEdit.TileSelect);
 
-			let TString = TL.Str;
+			let TString = TL.LStr;
 
 			if (RS1.CL.LT && RS1.CL.AC) RS1.CL.LT.Merge(RS1.CL.AC);
 
