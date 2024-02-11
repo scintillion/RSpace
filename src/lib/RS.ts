@@ -73,7 +73,7 @@ export namespace RS1 {
 	}
 
 	interface PackFunc { (Pack : BufPack) : BufPack }
-	interface PackToDataFunc { (P:BufPack) : RSData }
+	interface PackToDataFunc { (P:BufPack,Type:string) : RSData }
 	function NullPackFunc (P : BufPack) { return P; }
 
 	interface ABReq { (AB : ArrayBuffer) : Promise<ArrayBuffer> }
@@ -88,7 +88,6 @@ export namespace RS1 {
 	export async function ReqAB (AB : ArrayBuffer): Promise<ArrayBuffer> {
 		if (_ReqAB) {
 			let response = await _ReqAB (AB);
-			sleep (3);
 			// console.log ('ReqAB.response bytes = ' + response.byteLength.toString ());
 			return response;
 		}
@@ -101,7 +100,6 @@ export namespace RS1 {
 	export async function ReqPack (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 	  if (_ReqPack) {
 		  let returnBP = await _ReqPack (BP);
-		  sleep (3);
 		  // console.log ('ReqPack.BP = ' + BP.desc);
 		  return returnBP;
 	  }
@@ -135,7 +133,6 @@ export namespace RS1 {
 		// console.log ('BP.BufOut length = ' + BP.BufOut ().byteLength.toString ());
 	
 		let BPReply = await ReqPack (BP);
-		sleep (3);
 		return BPReply;
 	}
 
@@ -199,36 +196,13 @@ export namespace RS1 {
 	}
 
 	export async function ReqByInfo (R : ReqInfo) : Promise<RSData[]> {
-		let QStr = 'SELECT ' + R.Fields + ' FROM ' + R.Tile;
-		let Condits = [];
-		
-		if (R.Type)
-			Condits.push ('type=\'' + R.Type + '\'');
-		if (R.Sub)
-			Condits.push ('sub=\'' + R.Sub + '\'');
-		if (R.Name)
-			Condits.push ('name=\'' + R.Name + '\'');
-		if (R.ID)
-			Condits.push ('id='+R.ID.toString ());
-
-		if (Condits.length) 
-			QStr += ' WHERE ' + Condits.join (' AND ') + ';';
-		else QStr += ';';
-
-		let BP = await ReqStr  (QStr);
-		
-		if (!BP.multi)
-			return [];
-
-		let BPs = BP.unpack ();
+		let BPs = await ReqPacks (R);
 
 		let Datas = new Array<RSData> (BPs.length);
 		let i = 0;
 		for (const P of BPs)
 		{
-			let D = new RSData ();
-
-			D.LoadPack (P);
+			let D = new RSData (P);
 			Datas[i++] = D;
 		}
 		return Datas;
@@ -244,20 +218,25 @@ export namespace RS1 {
 		return await ReqByInfo (Info);
 	}
 
-	export async function ReqData (Tile = 'S', ID : number|string) : Promise<RSData>
+	export async function ReqBufPack (Tile = 'S', ID : number|string) : Promise<BufPack>
 	{
 		let Info = new ReqInfo ();
 		Info.Tile = Tile;
-		let Type = typeof ID;
-		if (Type === 'string')
+		if ((typeof ID) === 'string')
 			Info.Name = ID as string;
 		else Info.ID = ID as number;
 
-		let Datas = await ReqByInfo (Info);
+		let Datas = await ReqPacks (Info);
 		if (Datas.length === 1)
 			return Datas[0];
 
-		return NILData;		// found NONE, or TOO MANY!
+		return NILPack;		// found NONE, or TOO MANY!
+	}
+
+	export async function ReqData (Tile = 'S', ID : number|string) : Promise<RSData>
+	{
+		let P = await ReqBufPack (Tile, ID);
+		return (P !== NILPack) ? new RSData (P) : NILData;
 	}
 
 	export async function ReqNames (Tile = 'S', Type = '', Sub = '') : Promise<RSData[]>
@@ -286,18 +265,12 @@ export namespace RS1 {
 		QStr += WhereXP;
 		
 		let BP = await ReqStr  (QStr);
-		sleep (3); 
 		// console.log ('BP Promised!' + BP.desc);
 		
 		if (!BP.multi)
 			return [];
-		sleep (3); 
 
 		let BPs = BP.unpack ();
-
-		sleep (3);
-
-		// console.log ('ReqNames/BP=' + BP.expand ());
 
 		let Data = new Array<RSData> (BPs.length);
 		let i = 0;
@@ -305,14 +278,9 @@ export namespace RS1 {
 		{
 			let D = new RSData ();
 
-			// console.log ('  P.name = ' + P.str ('name'));
-
 			D.LoadPack (P);
 			Data[i++] = D;
-			// console.log ('  ReqName:' + D.ID.toString () + '  ' + D.Name + '  '					 + D.Desc);
 		}
-
-		// console.log ('  ' + i.toString () + ' names.');
 
 		return Data;
 	}
@@ -321,6 +289,7 @@ export namespace RS1 {
 
 	export function Download(filename: string, text: string) {
 		var e = document.createElement('a');
+
 		e.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
 		e.setAttribute('download', filename);
 		e.style.display = 'none';
@@ -781,12 +750,21 @@ export namespace RS1 {
 		}
 	}
 
+	var PTDs = new Array<PackToDataFunc> ();
+
 	export function PackToData (P : BufPack) : RSData {
 		let Type = P.str ('type');
 
 		switch (Type) {
 			case 'List' : return new vList (P);
 		}
+
+		for (const PTD of PTDs) {
+			let D = PTD (P, Type);
+			if (D != NILData)
+				return D;
+			}
+
 		return NILData;
 	}
 
@@ -2868,16 +2846,6 @@ export namespace RS1 {
 
 			if (Bytes < PAB.byteLength)
 				throw 'BufOUT';
-
-			/*
-			// console.log ('BufOut Prefix:' + Prefix);
-			let TestBP = new BufPack ('?');
-			TestBP.bufIn (AB);
-			let TestPrefix = TestBP.getPrefix ();
-			// console.log (' BufIn Prefix:' + TestPrefix);
-			if (Prefix.slice (4) !== TestPrefix.slice (4))
-				throw "Prefix Mismatch!";
-			*/
 
 			return AB;
 		}
