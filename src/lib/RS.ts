@@ -1274,7 +1274,7 @@ export namespace RS1 {
 		}
 
 		PostSave (P : BufPack) { P.add (['data', this.getStr]); console.log ('PostSave vList'); }
-		PostLoad (P : BufPack) { this.Data = P.str ('data'); console.log ('PostLoad vList'); }
+		PostLoad (P : BufPack) { this.Str = P.str ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
 
 
 		get Indent() {
