@@ -13,6 +13,7 @@
   let editingRecordId: string | null = null;
   let selectedItemId: string | null = null;
   let addingNewRecord = false; 
+  let selectedrecordId: number | null;
 
   const selectTable = async (event: Event) => {
     const selectElement = event.target as HTMLSelectElement;
@@ -26,14 +27,21 @@
     selectedItemId = id;
   };
 
-  const addNewRecord = async () => {
+  // const addNewRecord = async () => {
+  //   editingRecordId = null;
+  //   selectedItemId = null;
+  //   newRecord = new RS1.RSData();
+  //   addingNewRecord = true; 
+  //   summaryResult = await RS1.ReqNames(selectedTableName);
+
+  // };
+
+  const toggleAddRecord = () => {
+    addingNewRecord = !addingNewRecord;
     editingRecordId = null;
     selectedItemId = null;
-    newRecord = new RS1.RSData();
-    addingNewRecord = true; 
-    summaryResult = await RS1.ReqNames(selectedTableName);
-
   };
+  
 
   const saveChanges = async () => {
     const writeResult = await currentRecord.toDB();
@@ -43,6 +51,14 @@
     newRecord = new RS1.RSData();
     summaryResult = await RS1.ReqNames(selectedTableName);
     addingNewRecord = false; 
+  };
+
+  const deleteRecord = async (id: string) => {
+    selectedrecordId = Number(id);
+    let Pack = RS1.sql.bSelDel(selectedTableName, selectedrecordId, 'D');
+    let Reply = await RS1.ReqPack(Pack);
+    console.log('DelReply:\n' + Reply.desc);
+    summaryResult = await RS1.ReqNames(selectedTableName);
   };
 
   onMount(async () => {
@@ -60,6 +76,7 @@
 
   // handle conditional binding
   $: currentRecord = editingRecordId ? detailedResult : newRecord;
+  
 </script>
 
 <main>
@@ -106,7 +123,14 @@
     
     <div class="buttons">
       <button id="save" on:click={saveChanges}>Save</button>
-      <button id="add" on:click={addNewRecord}>Add</button>
+      <button class:buttons={addingNewRecord} class:green={!addingNewRecord} on:click={toggleAddRecord}>
+        {#if addingNewRecord}
+          Cancel
+        {:else}
+          Add
+        {/if}
+      </button>
+      <button class="red" on:click={() => selectedItemId && deleteRecord(selectedItemId)}>Delete</button>
     </div>
     
   </div>
@@ -165,9 +189,14 @@
    transition:   0.3s linear;
  }
  
- #add {
+ .green {
    margin-left:   10px; 
    background-color: green; 
+ }
+
+ .red {
+   margin-left:   10px; 
+   background-color: red; 
  }
  
  .selectContainer {
@@ -176,6 +205,8 @@
    padding:   10px;
    border-radius:   8px;
    box-shadow:   0   2px   4px rgba(0,   0,   0,   0.1);
+   max-height: 500px; 
+   overflow-y: auto; 
  }
  
  .selectContainer div {
