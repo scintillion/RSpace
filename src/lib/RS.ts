@@ -62,7 +62,7 @@ export namespace RS1 {
 
 	export const NameDelim = ':',PrimeDelim = '|',TabDelim = '\t',LineDelim = '\n',FormDelim = '\f';
 	export const FormatStart = '[',FormatEnd = ']';
-	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&';
+	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@';
 
 	export enum CLType {
 		None,
@@ -696,44 +696,12 @@ export namespace RS1 {
 			}
 		}
 
-		Copy(): Function | undefined {
-			return undefined;
-		}
-
 		async toDB () {if (!this.Tile) this.Tile = 'S';
 			let P = this.SavePack ();
 			P.add (['!Q',this.ID ? 'U' : 'I']);
 			P = await RS1.ReqPack (P);
 			return P.num ('changes') > 0;
 		}
-
-		/*
-		SetBuffer(Name: string, DType: string, Buf: IOArgs) {
-			let Bufs = this.NameBufs;
-			if (!Bufs) {
-				Bufs = this.NameBufs = [];
-			}
-
-			for (let i = Bufs.length; --i >= 0; )
-				if (Bufs[i].Name === Name) {
-					Bufs[i].Buffer = Buf;
-					Bufs[i].Type = DType;
-					Bufs[i].Data = undefined;
-					return;
-				}
-
-			Bufs.push(new NameBuffer(Name, DType, Buf));
-		}
-
-		GetBuffer(Name: string): IOArgs {
-			let Bufs = this.NameBufs;
-			if (Bufs) {
-				for (let i = Bufs.length; --i >= 0; ) {
-					if (Bufs[i].Name === Name) return Bufs[i].Buffer;
-				}
-			}
-		}
-		*/
 	}
 
 	export const NILData = new RSData ();
@@ -942,15 +910,12 @@ export namespace RS1 {
 
 		constructor(Str: string, List1: vList) {
 			super();
-			let Desc1, NameEnd = Str.indexOf(NameDelim);
+			let Desc1 = '', NameEnd = Str.indexOf(NameDelim);
 
 			if (NameEnd >= 0) {
 				this.Name = Str.slice(0, NameEnd);
 				Desc1 = Str.slice(NameEnd + 1);
-			} else {
-				this.Name = Str;
-				Desc1 = '';
-			}
+			} else	this.Name = Str;
 
 			if (Desc1) {
 				let FmtStr = FmtStrFromDesc(Desc1);
@@ -998,18 +963,6 @@ export namespace RS1 {
 
 			return RetStr + this.Desc;
 		}
-
-		/*		
-
-		Copy(List1: vList): vID {
-			if (!List1) {
-				List1 = this.List;
-			}
-
-			if (this.Fmt) return new vID(this.Name, this.Fmt.ToStr() + this.Desc, List1);
-			return new vID(this.Name, this.Desc, List1);
-		}
-*/
 
 		ToValueStr(): string {
 			if (this.Fmt) {
@@ -1809,6 +1762,8 @@ export namespace RS1 {
 		}
 	} // vList
 
+	const NILList = new vList ('');
+
 	export class TileList extends vList {
 		tiles: TDE[] = [];
 
@@ -2443,12 +2398,12 @@ export namespace RS1 {
 		return Num;
 	}
 
-	export type PFData=string|number|ArrayBuffer|BufPack;
+	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData;
 
 	export class PackField {
 		private _name = '';
 		private _type = ' ';
-		private _data : PFData = NILAB;
+		private _data : any = NILAB;
 		private _error = '';
 		private _AB = NILAB;
 
@@ -2459,6 +2414,8 @@ export namespace RS1 {
 
 		get AB () { return this._AB; }
 		get Pack () { return (this._type == tPack) ? this._data as BufPack : NILPack; }
+		get List () { return (this._type == tList) ? this._data as vList : NILList; }
+
 		get Error () { return this._error; }
 		get Data () { return this._data; }
 
@@ -2487,14 +2444,22 @@ export namespace RS1 {
 					} else
 					{
 						let CName = D.constructor.name;
-						if (CName === 'BufPack') {
-							Type = tPack;
-							this._data = (D as BufPack).copy ();
-						}
-						else {
-							Type = tAB;
-							this._AB = (CName === 'ArrayBuffer') ? (D as ArrayBuffer).slice (0) : NILAB;
-							this._data = NILAB;
+						switch (CName) {
+							case 'BufPack' :
+								Type = tPack;
+								this._data = (D as BufPack).copy ();
+								break;
+							case 'vList' :
+								Type = tList;
+								this._data = new vList ((D as vList).getStr);
+								break;
+							case 'ArrayBuffer' :
+								Type = tAB;
+								this._AB = (D as ArrayBuffer).slice (0);
+								break;
+							default :
+								Type = tNone;
+								this._data = NILAB;
 						}
 					}
 			}
@@ -2508,6 +2473,7 @@ export namespace RS1 {
 				case tNum : D = ab2num (AB); break;
 				case tPack : let Pack = new BufPack (); Pack.bufIn (AB); D = Pack; break;
 				case tAB : D = AB.slice (0); break;
+				case tList : D = new vList (ab2str (AB)); break;
 				default : this._error = 'constructor error Type =' + Type1 + ', converted to NILAB.';
 					Type1 = tAB;
 					D = NILAB;
@@ -2556,6 +2522,9 @@ export namespace RS1 {
 			switch (this._type) {
 				case tNum : Str += this.Num.toString (); break;
 				case tStr : Str += this.Str; break;
+				case tList : let L = this.List;
+					Str += 'LIST=' + L.Name + ' Desc:' + L.Desc + ' Count=' + L.Count;
+					break;
 				case tPack : case tAB :
 					 Str += '(' ;
 					 if (this._type === tPack) {
@@ -2603,6 +2572,7 @@ export namespace RS1 {
 			switch (this._type) {
 				case tNum : break; // Str += '= ' + this._num.toString (); break;
 				case tStr : break; // Str += '= ' + this._str; break;
+				case tList : break;
 				case tPack : 
 					let Pack = this.Pack;
 					for (const F of Pack.Ds)
@@ -3053,12 +3023,14 @@ export namespace RS1 {
 					case tNum : Object.assign (o,{ N : F.Num }); break;
 					case tStr : Object.assign (o,{ N : F.Str }); break;
 					case tPack : Object.assign (o, {N : F.Pack.copy () }); break;
+					case tList : Object.assign (o, {N : new vList (F.List.getStr)}); break;
+						
 					default : Object.assign (o,{ N : F.AB.slice(0) }); break;
 				}
 			}
 
 			console.log ('New Object = ' + o);
-			return o;
+			return o; 
 		}
 	}
 
