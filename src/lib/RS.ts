@@ -705,6 +705,7 @@ export namespace RS1 {
 	}
 
 	export const NILData = new RSData ();
+	export const NILIDs = new Array<number>();
 
 	export class RSDataType {
 		Type : string;
