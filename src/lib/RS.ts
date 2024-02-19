@@ -62,7 +62,7 @@ export namespace RS1 {
 
 	export const NameDelim = ':',PrimeDelim = '|',TabDelim = '\t',LineDelim = '\n',FormDelim = '\f';
 	export const FormatStart = '[',FormatEnd = ']';
-	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@';
+	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='&';
 
 	export enum CLType {
 		None,
@@ -71,6 +71,8 @@ export namespace RS1 {
 		ID,
 		Pack
 	}
+
+	type SpecArgs=string|BufPack|RSData;
 
 	interface PackFunc { (Pack : BufPack) : BufPack }
 	interface PackToDataFunc { (P:BufPack,Type:string) : RSData }
@@ -702,10 +704,75 @@ export namespace RS1 {
 			P = await RS1.ReqPack (P);
 			return P.num ('changes') > 0;
 		}
+
+		NewThis () : RSData { return new RSData (); }
+
+		copy () {
+			let P = this.SavePack ();
+			return new RSData (P);
+		}
 	}
 
 	export const NILData = new RSData ();
 	export const NILIDs = new Array<number>();
+
+	const SiNew='$', SiLoad='B', SiEdit='D';
+
+	class SpecInfo {
+		type:string;
+		pack=NILPack;
+		rsData=NILData;
+
+		cName='';
+		dType='';
+
+		constructor (Data : SpecArgs) {
+			if (typeof (Data) === 'string')
+			{
+				this.type = Data as string;
+				if (this.type) {
+					this.cName = 'String';
+					this.dType = SiNew;
+				}
+			}
+			else {
+				this.cName = Data.constructor.name;
+				if (this.cName === 'BufPack') {
+					this.type = (this.pack = (Data as BufPack)).str ('type');
+					this.dType = SiLoad;
+				}
+				else {
+					this.type = (this.rsData = (Data as RSData)).Type;
+					this.dType = SiEdit;
+				}
+			}
+		}
+	}
+
+	export function SpecData (Data : SpecArgs) : RSData {
+		let SI=new SpecInfo(Data);
+
+		if (!SI.dType)
+			return NILData;		// abort, illegal
+
+		switch (SI.type) {
+			case 'List' : switch (SI.dType) {
+				case SiNew : return new vList (NILList.getStr);
+				case SiLoad : return new vList (SI.pack.str('data'));
+				case SiEdit : return new vList (SI.rsData.Data as string);
+				}
+				break;
+
+			case '' : switch (SI.dType) {
+				case SiNew : return new RSData ();
+				case SiLoad : return new RSData (SI.pack);
+				case SiEdit : return SI.rsData;	
+				}
+				break;
+		}
+
+		return NILData;
+	}
 
 	export class RSDataType {
 		Type : string;
@@ -1761,6 +1828,12 @@ export namespace RS1 {
 				for (let i = 0; i < VIDLen; ) VIDs[i++].ToList(Select);
 			}
 		}
+
+		NewThis () : RSData { return new vList (this.getStr); }
+
+		copy () {
+			return new vList (this.getStr);
+		}
 	} // vList
 
 	const NILList = new vList ('');
@@ -2415,6 +2488,7 @@ export namespace RS1 {
 
 		get AB () { return this._AB; }
 		get Pack () { return (this._type == tPack) ? this._data as BufPack : NILPack; }
+		get rsPack () { return (this._type == tData) ? this._data as BufPack : NILPack; }
 		get List () { return (this._type == tList) ? this._data as vList : NILList; }
 
 		get Error () { return this._error; }
@@ -2426,7 +2500,7 @@ export namespace RS1 {
 				case tNum : AB = num2ab (this.Num); break;
 				case tStr : AB = str2ab (this.Str); break;
 				case tAB : return this._AB.slice (0);
-				case tPack : AB = (this._data as BufPack).bufOut (); break;
+				case tPack : case tData : AB = (this._data as BufPack).bufOut (); break;
 				default : AB = NILAB; this._error = 'toArray Error, Type =' + this.Type + '.';
 			}
 
@@ -2459,10 +2533,15 @@ export namespace RS1 {
 								this._AB = (D as ArrayBuffer).slice (0);
 								break;
 							default :
-								Type = tNone;
-								this._data = NILAB;
+								if (D instanceof RSData) {
+									Type = tData;
+									this._data = (D as RSData).SavePack ();
+								}
+								else
+									Type = tNone;
+									this._data = NILAB;
+								}
 						}
-					}
 			}
 			this._type = Type;
 		}
@@ -2472,7 +2551,7 @@ export namespace RS1 {
 			switch (Type1) {
 				case tStr : D = ab2str (AB); break;
 				case tNum : D = ab2num (AB); break;
-				case tPack : let Pack = new BufPack (); Pack.bufIn (AB); D = Pack; break;
+				case tPack : case tData : let Pack = new BufPack (); Pack.bufIn (AB); D = Pack; break;
 				case tAB : D = AB.slice (0); break;
 				case tList : D = new vList (ab2str (AB)); break;
 				default : this._error = 'constructor error Type =' + Type1 + ', converted to NILAB.';
@@ -2526,16 +2605,18 @@ export namespace RS1 {
 				case tList : let L = this.List;
 					Str += 'LIST=' + L.Name + ' Desc:' + L.Desc + ' Count=' + L.Count;
 					break;
-				case tPack : case tAB :
+				case tPack : case tData : case tAB :
 					 Str += '(' ;
-					 if (this._type === tPack) {
-						let Pack = this.Pack;
-
-						Str += 'C:'+Pack.Cs.length.toString() + ' D:' + Pack.Ds.length.toString () + ')';
+					 if (this._type === tAB) {
+							Str += this._AB.byteLength.toString () + ')';
+							break;
 					 }
-					 else	Str += this._AB.byteLength.toString () + ')';
 
-					 break;
+					let Pack = this.Pack;
+
+					Str += 'C:'+Pack.Cs.length.toString() + ' D:' + Pack.Ds.length.toString () + ')';
+					break;
+
 				default : Str += 'BADTYPE=' + this._type + ' ' + this.AB.byteLength.toString () + ' bytes';
 			}
 
@@ -2574,7 +2655,7 @@ export namespace RS1 {
 				case tNum : break; // Str += '= ' + this._num.toString (); break;
 				case tStr : break; // Str += '= ' + this._str; break;
 				case tList : break;
-				case tPack : 
+				case tPack : case tData :  
 					let Pack = this.Pack;
 					for (const F of Pack.Ds)
 						Str += ' ' + F.NameVal;
@@ -3023,7 +3104,7 @@ export namespace RS1 {
 				switch (F.Type) {
 					case tNum : Object.assign (o,{ N : F.Num }); break;
 					case tStr : Object.assign (o,{ N : F.Str }); break;
-					case tPack : Object.assign (o, {N : F.Pack.copy () }); break;
+					case tPack : case tData : Object.assign (o, {N : F.Pack.copy () }); break;
 					case tList : Object.assign (o, {N : new vList (F.List.getStr)}); break;
 						
 					default : Object.assign (o,{ N : F.AB.slice(0) }); break;
