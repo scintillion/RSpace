@@ -74,18 +74,27 @@ export namespace RS1 {
 
 	type SpecArgs=string|BufPack|RSData;
 
+	interface NewData { () : RSData }
+
 	interface PackFunc { (Pack : BufPack) : BufPack }
 	interface PackToDataFunc { (P:BufPack,Type:string) : RSData }
-	function NullPackFunc (P : BufPack) { return P; }
+	function NILPackFunc (P : BufPack) { return P; }
 
 	interface ABReq { (AB : ArrayBuffer) : Promise<ArrayBuffer> }
 	interface StrReq { (Query : string) : Promise<RS1.BufPack> }
 	interface PackReq { (Pack : BufPack) : Promise<BufPack> }
-	
+	interface DataReq { (D : RSData) : Promise<RSData> }
+
+	export async function NILDataReq (D:RSData) : Promise<RSData>
+		{ throw "NILDataReq"; return D; }
+	export function NILNew () { throw 'NILNew'; return NILData; }
+
 	export var _ReqAB : ABReq;
 	var _ReqPack : PackReq;
 
 	const InitStr = 'InitReq must be called before Request Operations!';
+
+	function NData () { return new RSData () }
 
 	export async function ReqAB (AB : ArrayBuffer): Promise<ArrayBuffer> {
 		if (_ReqAB) {
@@ -96,6 +105,44 @@ export namespace RS1 {
 		else {
 			throw InitStr;
 			return NILAB;
+		}
+
+		let Q : any;
+		Q = ()=>new RSData;
+		let RP : NewData = Q as NewData;
+
+		Reg (['List',()=>new vList (),NILDataReq])
+	}
+
+	var tNames=new Array<string>, tNews=new Array<NewData>,tEdits=new Array<DataReq>;
+
+	export function Reg (A:any[]=[]) {
+		// Args: NameStr, New(RSData)Func, Edit(RSData)Func
+		let count = A.length;
+
+		if (count % 3) {
+			throw 'Reg requires triplets';
+			return;
+		}
+		if (!count) { //clearing previous}
+			tNames = [];  tNews = [];  tEdits = [];
+		}
+
+		if (!tNames.length)	// Need to add default system list
+			Reg (['List',NILNew,NILDataReq]);	
+
+		for (let i = 0; i < count; i += 3) {
+			let Name = A[i] as string;
+
+			if (!Name)
+				throw ('NULL Name in Reg!');
+
+			let NewFunc = A[i+1] as NewData, EditFunc=A[i+2] as DataReq;
+			let f = tNames.indexOf (Name);
+			if (f >= 0) {	//	replacing
+				tNames[f] = Name; tNews[f] = NewFunc; tEdits[f]=EditFunc;
+			}
+			else { tNames.push (Name); tNews.push (NewFunc); tEdits.push (EditFunc); }
 		}
 	}
 	
@@ -385,7 +432,7 @@ export namespace RS1 {
 		List: vList | undefined;
 		Arr: number[] | undefined;
 
-		/*  Input Formats, defined by ]FormatStr[
+		/*  Input Formats, defined by [FormatStr]
 
             FormatStr starts with first character which defines its nature,
             followed by additional characters in some cases
@@ -582,7 +629,7 @@ export namespace RS1 {
 		}
 	}
 
-	export const NullFmt = new IFmt ('');
+	export const NILFmt = new IFmt ('');
 
 	export class RSData {
 		Name = '';
@@ -596,8 +643,6 @@ export namespace RS1 {
 		Data: any;
 
 		NameBufs: NameBuffer[] | undefined;
-
-		Fmt: IFmt | undefined;
 
 		PostLoad (P : BufPack) {}
 
@@ -646,9 +691,6 @@ export namespace RS1 {
 
 		ToValue() {
 			let ValStr = '';
-			if (this.Fmt) {
-				if (this.Fmt.Value && this.Fmt.Value.Str) ValStr = '=' + this.Fmt.Value.Str;
-			}
 			return this.Name + ',' + this.Type + ',' + this.ID.toString() + ValStr;
 		}
 
@@ -673,29 +715,6 @@ export namespace RS1 {
 		static ToFrom(In: IOArgs): IOArgs {
 			// Should raise exception!
 			return undefined;
-		}
-
-		ToSelect(Select: SelectArgs) {
-			if (Select && Select instanceof HTMLSelectElement) {
-				let Option: HTMLOptionElement = Select.ownerDocument.createElement(
-					'option'
-				) as HTMLOptionElement;
-
-				let Desc = this.Desc ? this.Desc : this.Name;
-				let Value = '';
-				if (Desc[0] === FormatStart) {
-					let Pos = Desc.indexOf('=');
-					if (Pos >= 0) {
-						Value = Desc.slice(Pos + 1);
-						let EndPos = Value.indexOf(FormatEnd);
-						if (EndPos >= 0) Value = Value.slice(0, EndPos);
-					}
-				}
-
-				Option.text = Desc;
-				Option.value = this.Name;
-				Select.options.add(Option);
-			}
 		}
 
 		async toDB () {if (!this.Tile) this.Tile = 'S';
@@ -770,6 +789,9 @@ export namespace RS1 {
 				}
 				break;
 		}
+
+		// Move these into standard functions in the RSData class which 
+		// can be overwritten by descendants!!
 
 		return NILData;
 	}
@@ -967,17 +989,20 @@ export namespace RS1 {
 		}
 	}
 
-	export class vID extends RSData {
+	export class vID  {
 		// often abbreviated as VID
 		List: vList;
 		Values: number[] = [];
+		Name='';
+		Desc='';
+		ID=0;
+		Fmt: IFmt | undefined;
 
 		get IDByName () {
 			return this.List ? this.List.IDByName(this.Name) : 0;
 		}
 
 		constructor(Str: string, List1: vList) {
-			super();
 			let Desc1 = '', NameEnd = Str.indexOf(NameDelim);
 
 			if (NameEnd >= 0) {
@@ -1061,6 +1086,29 @@ export namespace RS1 {
 			return this.ToFmtStr() + this.Name + ':' + this.ID.toString();
 		}
 
+		ToSelect(Select: SelectArgs) {
+			if (Select && Select instanceof HTMLSelectElement) {
+				let Option: HTMLOptionElement = Select.ownerDocument.createElement(
+					'option'
+				) as HTMLOptionElement;
+
+				let Desc = this.Desc ? this.Desc : this.Name;
+				let Value = '';
+				if (Desc[0] === FormatStart) {
+					let Pos = Desc.indexOf('=');
+					if (Pos >= 0) {
+						Value = Desc.slice(Pos + 1);
+						let EndPos = Value.indexOf(FormatEnd);
+						if (EndPos >= 0) Value = Value.slice(0, EndPos);
+					}
+				}
+
+				Option.text = Desc;
+				Option.value = this.Name;
+				Select.options.add(Option);
+			}
+		}
+
 		ToList(Select: HTMLOListElement | HTMLUListElement | null) {
 			if (!Select) {
 				return;
@@ -1079,6 +1127,7 @@ export namespace RS1 {
 			return undefined;
 		}
 	} // class vID
+
 
 	export class vList extends RSData {
 		Type = 'List';
@@ -1468,20 +1517,21 @@ export namespace RS1 {
 			this.NameList();
 		}
 
-		constructor(Str1: string | string[] | BufPack, First: vList | undefined = undefined) {
+		constructor(Str1: string | string[] | BufPack = '', First: vList | undefined = undefined) {
 			let Str, Strs, BP;
 			
+			super ();
 			if ((typeof Str1) === 'string') {
-				super ();
-				this.InitList (Str1 as string);
+				let S = Str1 as string;
+				if (S)
+					this.InitList (S);
+				else return;
 			}
 			else if (Array.isArray (Str1)) {
-				super ();
 				this.InitList (Str1 as string[]);
 			}
 			else {
 				let BP = Str1 as BufPack;
-				super (BP);
 				this.InitList (BP.str ('data'));
 			}
 
@@ -1837,6 +1887,7 @@ export namespace RS1 {
 	} // vList
 
 	const NILList = new vList ('');
+	const NILVID = new vID ('',NILList);
 
 	export class TileList extends vList {
 		tiles: TDE[] = [];
