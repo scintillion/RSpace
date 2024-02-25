@@ -605,6 +605,9 @@ export namespace RS1 {
 		}
 	}
 
+	export const NILFmt = new IFmt ('');
+
+
 	export class NameData {
 		Name: string;
 		DataType: string;
@@ -629,7 +632,36 @@ export namespace RS1 {
 		}
 	}
 
-	export const NILFmt = new IFmt ('');
+	var _myVilla = '';
+
+	export function ME() { }
+
+	export function setVilla (V : string) {
+		if (!V) return;
+
+		if (V === ('-' + _myVilla))
+			_myVilla = '';
+
+		else if (!_myVilla)
+			_myVilla = V;
+	}
+
+
+
+	export class RID {		// Relational ID, used for all RSData records
+		_villa='';
+		_tile='';
+		_ID=NaN;
+		
+		constructor (Str='') {
+			// VillaName,TileName:ID(#) * means ALL
+			// if VillaName absent, use ME (myVilla)
+
+		}
+
+
+
+	}
 
 	export class RSData {
 		Name = '';
@@ -1776,7 +1808,7 @@ export namespace RS1 {
 			} else return undefined;
 		}
 
-		IDsToVIDs(IDs: number[] | undefined): vID[] {
+		IDsToVIDs(IDs: number[] | undefined=undefined): vID[] {
 			if (!IDs) {
 				// if undefined, use every element (IDs 1..N)
 				let limit = this._Count;
@@ -1888,6 +1920,128 @@ export namespace RS1 {
 
 	const NILList = new vList ('');
 	const NILVID = new vID ('',NILList);
+
+	export class vFast {
+		Names : Array<string>=[];
+		Values : Array<string>=[];
+
+		constructor (Str1 : string|vList='') {
+			let List = ((typeof Str1) === 'string') ? new vList (Str1 as string) : Str1 as vList;
+
+			let VIDs = List.IDsToVIDs ();
+			let count = VIDs.length;
+			if (count) {
+				this.Names.length = count;
+				this.Values.length = count;
+
+				let i = 0;
+				for (const ID of VIDs) {
+					this.Names[i] = ID.Name;
+					this.Values[i++] = ID.Desc;
+				}
+			}
+		}
+
+		indexByName (name:string) {
+			return this.Names.indexOf (name);
+		}
+
+		indexByValue (value : string) {
+			return this.Values.indexOf (value);
+		}
+
+		indexByNum (num = 0) {
+			return this.indexByValue (num ? num.toString () : '');
+		}
+
+		name (value : string) {
+			let i = this.indexByValue (value);
+			return (i >= 0) ? this.Names[i] : '';
+		}
+
+		value (name : string) {
+			let i = this.indexByName (name);
+			return (i >= 0) ? this.Values[i] : '';
+		}
+
+		add (NVs : Array<any>) {
+			let Old = this.Names.length;
+			let len = NVs.length
+			if (len & 1)
+				throw "Must be name/value pairs!";
+
+			for (let i = 0; i < len;) {
+				let name = NVs[i++];
+				let value = NVs[i++];
+
+				if (!name)
+					throw 'Name must be set!';
+
+				if (Old) {	// try to replace existing
+					let found = this.Names.indexOf (name);
+					if (found >= 0) {
+						this.Values[found]=value;
+						continue;
+					}
+				}
+
+				this.Names.push (name);
+				this.Values.push (value);
+			}
+		}
+
+		del (name : string) {
+			if (!name)
+				throw "Cannot delete NULL name";
+
+			let found = this.Names.indexOf (name);
+			if (found >= 0) {
+				this.Names[found]='';
+				this.Values[found]='';
+				return true;
+			}
+			else return false;
+		}
+
+		toList () {
+			let LStr = PrimeDelim;
+			let len = this.Names.length;
+
+			for (let i = 0; i < len;++i) {
+				let name = this.Names[i];
+				if (name)
+					LStr += name + NameDelim + this.Values[i] + PrimeDelim;
+			}
+
+			return new vList ((LStr.length > 1)?LStr : '');
+		}
+
+		clear () {
+			this.Names=[];
+			this.Values=[];
+		}
+
+		get empty () { 
+			for (const N of this.Names) {
+				if (N)
+					return false;
+			}
+
+			return true;
+		}
+
+		get count () {
+			let C = 0; 
+			for (const N of this.Names) {
+				if (N)
+					++C;
+			}
+
+			return C;
+		}
+	}
+
+
 
 	export class TileList extends vList {
 		tiles: TDE[] = [];
