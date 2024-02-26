@@ -635,6 +635,7 @@ export namespace RS1 {
 	var _myVilla = '';
 
 	export function ME() { }
+	export function dVilla() { }	// default villa, based on includes (ME vs. system villa)
 
 	export function setVilla (V : string) {
 		if (!V) return;
@@ -649,14 +650,80 @@ export namespace RS1 {
 
 
 	export class RID {		// Relational ID, used for all RSData records
-		_villa='';
-		_tile='';
-		_ID=NaN;
+		villa='';
+		tile='';
+		ID=NaN;
+		multi:number[]|string|undefined;
 		
-		constructor (Str='') {
-			// VillaName,TileName:ID(#) * means ALL
+		fromStr (Str='') {
+			// String format: VillaName , TileName : ID(s separated by ,)
+			// VillaName,	if '', assume ME()
+			// TileName		must ALWAYS be set
+			//	ID(#)  * means ALL (0)
 			// if VillaName absent, use ME (myVilla)
+			if (!Str) return;
 
+			let NPos = Str.indexOf (NameDelim);
+			if (NPos < 0)
+				throw (NameDelim + ' required!');
+
+			let numStr = Str.slice(NPos + 1), vStr = Str.slice (0,NPos);
+			let CPos = Str.indexOf (',');
+			if (CPos >= 0) {
+				this.villa = vStr.slice (0,CPos);
+				this.tile = vStr.slice (CPos+1);
+			}
+			else {
+				this.tile = vStr;
+			}
+
+			if (numStr[0] === '=') {
+				this.multi = numStr.slice (1);	// query string
+			}
+			else if (numStr.indexOf (',') >= 0)	{	// multiple number IDs!
+				let Nums = numStr.split (',');
+				let i = 0, count = Nums.length;
+				let Ns=Array<number>(count);
+				for (const N of Nums) {
+					Ns[i]=Number (Nums[i]);
+					++i;
+					}
+				this.multi=Ns;
+			}
+			else {	// single ID, no comma
+				this.multi=undefined;
+			}
+		}
+
+		constructor (Str='') { this.fromStr (Str); }
+
+		toStr () {
+			let Str = (this.villa ? (this.villa + ',') : '') + this.tile + ':';
+
+			let M = this.multi;
+
+			if (M) {
+				if ((typeof M) === 'string') {		// query string
+					Str += '?' + M as string;
+				}
+				else {	// number array (IDs)
+					let A = M as Array<number>;
+					let len = A.length;
+					if (len) {
+						for (let i = 0; i < len;) {
+							Str += A[i].toString ();
+							if (++i < len)
+								Str += ',';
+						}
+					}
+					else Str += 'NaN';
+				}
+			}
+			else {		// single ID number
+				Str += this.ID ? this.ID.toString () : '*';
+			}
+
+			return Str;
 		}
 
 
@@ -667,6 +734,7 @@ export namespace RS1 {
 		Name = '';
 		Desc = '';
 		Type = '';
+		protected _ID = new RID ('');
 		Tile = 'S';
 		Sub = '';
 		Str = '';
