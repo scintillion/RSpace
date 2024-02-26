@@ -726,15 +726,18 @@ export namespace RS1 {
 			return Str;
 		}
 
-
-
+		copy () {
+			return new RID (this.toStr ());
+		}
 	}
+
+	export const NILRID = new RID ('');
 
 	export class RSData {
 		Name = '';
 		Desc = '';
 		Type = '';
-		protected _ID = new RID ('');
+		protected _ID = NILRID;
 		Tile = 'S';
 		Sub = '';
 		Str = '';
@@ -745,6 +748,8 @@ export namespace RS1 {
 		NameBufs: NameBuffer[] | undefined;
 
 		PostLoad (P : BufPack) {}
+
+		setRID (rID : RID) { if (_ID === NILRID) _ID = rID; }
 
 		LoadPack(P: BufPack) {
 			if (P === NILPack)
