@@ -657,11 +657,13 @@ export namespace RS1 {
 	export class RID {		// Relational ID, used for all RSData records
 		villa='';
 		tile='';
+		type='';
+		sub='';
 		ID=NaN;
 		multi:number[]|string|undefined;
 		
 		fromStr (Str='') {
-			// String format: VillaName , TileName : ID(s separated by ,)
+			// String format: ID(s separated by ,):TileName,VillaName
 			// VillaName,	if '', assume ME()
 			// TileName		must ALWAYS be set
 			//	ID(#)  * means ALL (0)
@@ -672,8 +674,8 @@ export namespace RS1 {
 			if (NPos < 0)
 				throw (NameDelim + ' required!');
 
-			let numStr = Str.slice(NPos + 1), vStr = Str.slice (0,NPos);
-			let CPos = Str.indexOf (',');
+			let numStr = Str.slice (0,NPos), vStr = Str.slice (NPos + 1);
+			let CPos = vStr.indexOf (',');
 			if (CPos >= 0) {
 				this.villa = vStr.slice (0,CPos);
 				this.tile = vStr.slice (CPos+1);
@@ -682,7 +684,7 @@ export namespace RS1 {
 				this.tile = vStr;
 			}
 
-			if (numStr[0] === '=') {
+			if (numStr[0] === '?') {
 				this.multi = numStr.slice (1);	// query string
 			}
 			else if (numStr.indexOf (',') >= 0)	{	// multiple number IDs!
@@ -703,32 +705,33 @@ export namespace RS1 {
 		constructor (Str='') { this.fromStr (Str); }
 
 		toStr () {
-			let Str = (this.villa ? (this.villa + ',') : '') + this.tile + ':';
+			let VTStr = (this.villa ? (this.villa + ',') : '') + this.tile;
 
+			let NStr = '';
 			let M = this.multi;
 
 			if (M) {
 				if ((typeof M) === 'string') {		// query string
-					Str += '?' + M as string;
+					NStr += '?' + M as string;
 				}
 				else {	// number array (IDs)
 					let A = M as Array<number>;
 					let len = A.length;
 					if (len) {
 						for (let i = 0; i < len;) {
-							Str += A[i].toString ();
+							NStr += A[i].toString ();
 							if (++i < len)
-								Str += ',';
+								NStr += ',';
 						}
 					}
-					else Str += 'NaN';
+					else NStr += 'NaN';
 				}
 			}
 			else {		// single ID number
-				Str += this.ID ? this.ID.toString () : '*';
+				NStr += this.ID ? this.ID.toString () : '*';
 			}
 
-			return Str;
+			return NStr + ':' + VTStr;
 		}
 
 		Reg () {
@@ -1107,10 +1110,8 @@ export namespace RS1 {
 		}
 	}
 
-	const IDnum=1,IDstr=2;
-
 	export class pList {
-		IDType = 0;
+		IDType = '';
 		ValType = 0;
 		count = 0;
 		numIDs : number[]=[];
@@ -1118,11 +1119,11 @@ export namespace RS1 {
 		values : any[]=[];
 
 		constructor (SampleID : number|string) {
-			this.IDType = ((typeof SampleID) === 'number') ? IDnum : IDstr;
+			this.IDType = ((typeof SampleID) === 'number') ? '#' : '$';
 		}
 
 		index (ID : number|string) {
-			if (this.IDType === IDnum)
+			if (this.IDType === '#')
 				return this.numIDs.indexOf (ID as number);
 			else return this.strIDs.indexOf (ID as string);
 		}
@@ -1131,7 +1132,7 @@ export namespace RS1 {
 			let Arr=[];
 			let len,numID=0,strID='';
 			let IDT=this.IDType;
-			let Nums = (IDT === IDnum);
+			let Nums = (IDT === '#');
 
 			if ((typeof IDList) === 'string') {
 				if (IDList[0] === PrimeDelim)
@@ -1189,7 +1190,7 @@ export namespace RS1 {
 			if (ind < 0)
 				return false;
 
-			let Nums = this.IDType === IDnum;
+			let Nums = this.IDType === '#';
 			if (Nums) {
 				this.numIDs[ind] = 0;
 			}
@@ -1203,8 +1204,7 @@ export namespace RS1 {
 		}
 
 		get toStr () {
-			let IDT = this.IDType;
-			let Nums = (IDT === IDnum);
+			let Nums = (this.IDType === '#');
 			let Str = '';
 
 			let len = Nums ? this.numIDs.length : this.strIDs.length;
