@@ -14,10 +14,13 @@ class DBKit {
 
 	constructor(dbPath: string) {
 		this._db = new db(dbPath);
-		console.log ('Database opened at ' + dbPath);
+		console.log ('Database opened at ' + dbPath + '\nDB=' + this._db.name);
+		console.log ('Database:' + this._db + ' MEM ' + this._db.memory);
+		RS1.myServer = 'S';
 
 		RS1.ReqAB = ReqAB;
 		RS1.ReqPack = ReqPack;
+		RS1._RegRID = 'S';
 	}
 
 	get db() {
@@ -26,10 +29,6 @@ class DBKit {
 
 	get name() {
 		return this._db.name;
-	}
-
-	public TestLine () {
-		console.log ('kit.TestLine ()');
 	}
 
 	public close() {
@@ -83,6 +82,18 @@ class DBKit {
 }
 
 const DBK = new DBKit('tile.sqlite3');
+
+export class RServer {
+	DBK : DBKit;
+
+	constructor (Path : string) {
+		this.DBK = new DBKit (Path);
+
+	}
+
+}
+
+const RSS = new RServer ('tile.sqlite3');
 
 async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 	let Serial = InPack.num ('#');

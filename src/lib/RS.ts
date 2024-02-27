@@ -72,6 +72,9 @@ export namespace RS1 {
 		Pack
 	}
 
+	export var myServer='';
+	export var myTile='S';
+
 	type SpecArgs=string|BufPack|RSData;
 
 	interface NewData { () : RSData }
@@ -84,6 +87,7 @@ export namespace RS1 {
 	interface StrReq { (Query : string) : Promise<RS1.BufPack> }
 	interface PackReq { (Pack : BufPack) : Promise<BufPack> }
 	interface DataReq { (D : RSData) : Promise<RSData> }
+	interface RIDReg { (R: RID) : void }
 
 	export async function NILDataReq (D:RSData) : Promise<RSData>
 		{ throw "NILDataReq"; return D; }
@@ -91,6 +95,7 @@ export namespace RS1 {
 
 	export var _ReqAB : ABReq;
 	var _ReqPack : PackReq;
+	export var _RegRID = '';
 
 	const InitStr = 'InitReq must be called before Request Operations!';
 
@@ -726,6 +731,11 @@ export namespace RS1 {
 			return Str;
 		}
 
+		Reg () {
+			if (_RegRID  &&  (this.villa != _RegRID))
+				this.villa = _RegRID;
+		}
+
 		copy () {
 			return new RID (this.toStr ());
 		}
@@ -749,7 +759,10 @@ export namespace RS1 {
 
 		PostLoad (P : BufPack) {}
 
-		setRID (rID : RID) { if (_ID === NILRID) _ID = rID; }
+		setRID (rID : RID) {
+			if ((this._ID === NILRID) || !this._ID.ID)
+				this._ID = rID;
+			}
 
 		LoadPack(P: BufPack) {
 			if (P === NILPack)
@@ -1091,6 +1104,121 @@ export namespace RS1 {
 
 		GetID(TileName: string): TileID | undefined {
 			return undefined;
+		}
+	}
+
+	const IDnum=1,IDstr=2;
+
+	export class pList {
+		IDType = 0;
+		ValType = 0;
+		count = 0;
+		numIDs : number[]=[];
+		strIDs : string[]=[];
+		values : any[]=[];
+
+		constructor (SampleID : number|string) {
+			this.IDType = ((typeof SampleID) === 'number') ? IDnum : IDstr;
+		}
+
+		index (ID : number|string) {
+			if (this.IDType === IDnum)
+				return this.numIDs.indexOf (ID as number);
+			else return this.strIDs.indexOf (ID as string);
+		}
+
+		add (IDList :string|any[]) {
+			let Arr=[];
+			let len,numID=0,strID='';
+			let IDT=this.IDType;
+			let Nums = (IDT === IDnum);
+
+			if ((typeof IDList) === 'string') {
+				if (IDList[0] === PrimeDelim)
+					IDList = (IDList as string).slice (1);
+				if (IDList[IDList.length-1] === PrimeDelim)
+					IDList = (IDList as string).slice (0,(IDList as string).length - 1);
+
+				let Strs = (IDList as string).split ('|');
+				len = Strs.length;
+				if ((len & 1)  || !len)
+					throw ('Requires pairs of ID/value');
+
+				Arr.length = len;
+				for (let i = 0; i < len; i += 2) {
+					Arr[i] = Nums ? Number(Strs[i]) : Strs[i];
+					Arr[i+1]=Strs[i+1];
+				}
+			}
+			else { Arr = IDList as any[]; len = Arr.length; }
+
+			if (!len  || (len & 1))
+				throw 'Requires pairs of ID/value';
+
+			let NullID = Nums? 0 : '';
+
+			for (let i = 0; i < len; i += 2) {
+				let ID = Arr[i];
+
+				let ind = this.index (ID);
+				if (ind >= 0)	//we found, must replace it!
+					this.values[ind] = Arr[i+1];
+				else {	// new ID, must add...
+					ind = this.index (NullID);
+					if (ind >= 0) {	// found an empty slot
+						if (Nums)
+							this.numIDs[ind] = ID as number;
+						else this.strIDs[ind] = ID as string;
+
+						this.values[ind] = Arr[i+1];
+					}
+					else {
+						if (Nums)
+							this.numIDs.push (ID as number);
+						else this.strIDs.push (ID as string);
+
+						this.values.push (Arr[i+1]);
+						this.count++;
+					}
+				}
+			}
+		}
+
+		del (ID : number|string) {
+			let ind = this.index (ID);
+			if (ind < 0)
+				return false;
+
+			let Nums = this.IDType === IDnum;
+			if (Nums) {
+				this.numIDs[ind] = 0;
+			}
+			else this.strIDs[ind] = '';
+			this.values[ind] = undefined;
+		}
+
+		static isListStr (Str:string) {
+			return  (Str  &&  Str.indexOf (PrimeDelim)  &&
+			    (Str.slice (-1) !== PrimeDelim));
+		}
+
+		get toStr () {
+			let IDT = this.IDType;
+			let Nums = (IDT === IDnum);
+			let Str = '';
+
+			let len = Nums ? this.numIDs.length : this.strIDs.length;
+
+			for (let i = 0; i < len;) {
+				let IDStr = Nums ? this.numIDs[i].toString () : this.strIDs[i];
+				if (!IDStr &&  IDStr === '0')
+					continue;	// skip the blanks
+
+				let ValStr = this.values[i].toString ();
+
+				Str += IDStr + PrimeDelim + ValStr + ((++i < len) ? PrimeDelim : '');
+			}
+			return Str;
 		}
 	}
 
@@ -1682,6 +1810,11 @@ export namespace RS1 {
 				} else return Str;
 			}
 			return undefined;
+		}
+
+		static isListStr (Str:string) {
+			return  (Str  &&  Str.indexOf (PrimeDelim)  &&
+			    (Str.slice (-1) === PrimeDelim));
 		}
 
 		UpdateVID(VID: vID, Delete = false) {
@@ -2466,6 +2599,11 @@ export namespace RS1 {
 			let Check2 = ChkBuf (NewBuf);
 
 			console.log ('Check1/2 = ' + Check1.toString () + ' ' + Check2.toString ());
+
+			let IDList = new pList (0);
+			IDList.add ('1|ABC|2|DEF|26|XYZ');
+			IDList.add ('2|BCD|');
+			console.log ('IDList=' + IDList.toStr + '.');
 		}
 
 		TovList(): vList | undefined {
