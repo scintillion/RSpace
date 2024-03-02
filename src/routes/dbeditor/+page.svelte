@@ -2,6 +2,9 @@
   import { onMount } from 'svelte';
   import { RS1 } from '$lib/RS';
   import { InitClient } from '$lib/API/client/request';
+  import Editor from '../../components/tiles/Editor.svelte';
+  import { packStore } from '../../stores/packStore.js';
+  
 
   
   let step = 'selectTableAndType'; // Default step (view)
@@ -16,6 +19,10 @@
   let addingNewRecord = false; 
   let selectedrecordId: number | null;
   let newRecord: RS1.RSData = new RS1.RSData(); 
+  let Pack: RS1.BufPack = new RS1.BufPack();
+  let receivedPack: RS1.BufPack = new RS1.BufPack();
+  let showEditor = false;
+
 
   InitClient();
   
@@ -65,13 +72,32 @@
 };
 
   // special data edit function
-  const handleSpecialDataEdit = async () => {
-      let Pack = new RS1.BufPack();
+  const handleSpecialDataEdit = () => {
+      showEditor = true;
       Pack.add(['A', 'Edit', 'type', currentRecord.Type, 'data', currentRecord.Data]);
+      packStore.set(Pack);
       console.log(Pack)
       return Pack;
       
+      
   }
+
+  const closeSpecialDataEditor = () => {
+    showEditor = false;
+  }
+
+  
+
+//   // Function to check and update the record
+// const checkAndUpdateRecord = async () => {
+//   const ReceivePack: RS1.BufPack = packStore.update(); // Get the bufpack from the packStore
+//   if (bufpack) {
+//     // Update the necessary record with the data in the bufpack
+//     // Replace this with your actual update logic
+//     // Example: currentRecord.updateFromBufpack(bufpack);
+//   }
+// };
+
 
   // handle conditional binding
   $: currentRecord = editingRecordId ? detailedResult : newRecord;
@@ -79,8 +105,24 @@
   // Fetch table names on mount
   onMount(async () => {
     tableNames = await RS1.ReqTiles();
+
+    const subscribe = packStore.subscribe(value => {
+      receivedPack = value;
+      currentRecord.Data = receivedPack.str('data');
+      console.dir('received pack data' + receivedPack.str('data')); 
+  })
+
+  return subscribe;
+
+  
   });
+
+ 
 </script>
+
+{#if showEditor} 
+  <Editor {Pack} on:close={closeSpecialDataEditor} />
+{/if}
 
 <main>
 {#if step === 'selectTableAndType'}
