@@ -1,6 +1,8 @@
 import { RS1 } from '$lib/RS';
 import { Editor_TC } from '../components/tiles';
 import * as Plotter from './Plotter';
+import { packStore } from '../stores/packStore.js';
+
 
 export class Editor {
 	private container: HTMLDivElement;
@@ -24,6 +26,7 @@ export class Editor {
 	private selectContainer: HTMLDivElement;
 	private lol: RS1.ListOfLists;
 	private formats: RS1.vList = RS1.CL.FT as RS1.vList;
+	
 
 	/** Public Functions (External Calls) */
 
@@ -83,10 +86,16 @@ export class Editor {
 			if (this.selectbox.value) {
 				this.UpdateVID(this.i.name.value);
 				this.Reload();
+				console.log('save works')
 			} else {
 				this.CreateVID();
 				this.Reload();
 			}
+			let newPack: RS1.BufPack = new RS1.BufPack();
+	 		// newPack.add(['type', 'List', 'data', this.vList]);
+			newPack = this.vList.SavePack();
+    		packStore.set(newPack); 
+			console.log('vList bufpack sent from constlisteditor ' + newPack.expand())
 		};
 		this.i.fmt.onselectionchange = () => this.FormatChangeHandler();
 	}
@@ -285,12 +294,14 @@ export class Editor {
 
 		if (updatedName) {
 			this.vList.UpdateVID(vID, true);
-			vID.SetName(updatedName);
+			// vID.SetName(updatedName);
+			console.log(this.vList);
+			this.setVIDName(vID,updatedName)
 		}
 
 		this.vList.UpdateVID(vID, false);
 		this.CLToSelect();
-		vID = vID.Copy(this.vList);
+		//vID = vID.Copy(this.vList);
 		console.log(this.vList.Str);
 	}
 
@@ -388,6 +399,13 @@ export class Editor {
 
 	private RemovePossibleDelim(str: string): string {
 		return str.replace(/[\t\n\f|:]/g, '');
+	}
+
+	private setVIDName(vID: any, newName: string): void {
+		if (vID && vID.name) {
+			vID.name = newName;
+		}
+		console.log(this.vList)
 	}
 }
 

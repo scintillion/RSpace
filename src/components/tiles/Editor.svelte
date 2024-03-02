@@ -2,22 +2,43 @@
 	import { onMount } from 'svelte';
 	import { Editor } from '$lib/ConstListEditor';
 	import { RS1 } from '../../lib/RS';
+	import { packStore } from '../../stores/packStore.js';
+	import { createEventDispatcher } from 'svelte';
 
-	export let CLString: string = '';
+	let CLString: string = '';
+	export let Pack: RS1.BufPack;
+	let receivedPack: RS1.BufPack;
+	CLString = Pack.str('data');
 
-	const list1: RS1.vList = new RS1.vList(
-		'Test1|Test1Name:[%=Jane]Your Name|ListNum:[#=1]The List Number|'
-	);
-	const list2: RS1.vList = new RS1.vList(
-		'Test2|Test2Name:[%=John]Your Name|ListNum:[#=2]The List Number|'
-	);
-	const list3: RS1.vList = new RS1.vList(
-		'Test3|Test3Name:[%=Jacob]Your Name|ListNum:[#=3]The List Number|'
-	);
+
+	const dispatch = createEventDispatcher();
+
+	function close() {
+		dispatch('close');
+	}
+
+	// const list1: RS1.vList = new RS1.vList(
+	// 	'Test1|Test1Name:[%=Jane]Your Name|ListNum:[#=1]The List Number|'
+	// );
+	// const list2: RS1.vList = new RS1.vList(
+	// 	'Test2|Test2Name:[%=John]Your Name|ListNum:[#=2]The List Number|'
+	// );
+	// const list3: RS1.vList = new RS1.vList(
+	// 	'Test3|Test3Name:[%=Jacob]Your Name|ListNum:[#=3]The List Number|'
+	// );
 	const LoL: RS1.ListOfLists = new RS1.ListOfLists();
-	LoL.Add(list1.Str);
-	LoL.Add(list2.Str);
-	LoL.Add(list3.Str);
+	// LoL.Add(list1.Str);
+	// LoL.Add(list2.Str);
+	// LoL.Add(list3.Str);
+
+// 	function handleSavePack() {
+// 	//  let newPack = new RS1.BufPack();
+// 	//  let newPack: RS1.BufPack = new RS1.vList(CLString).SavePack
+// 	let newPack: RS1.BufPack = new RS1.BufPack();
+// 	 newPack.add(['type', 'List', 'data', CLString]);
+//     packStore.set(newPack); // assuming packStore has an update method to send data to the store
+// 	console.log(newPack)
+//   }
 
 	onMount(async () => {
 		const container: HTMLDivElement | null = document.getElementById(
@@ -29,6 +50,14 @@
 			const edit: Editor = new Editor(container, list, LoL);
 			edit.Populate();
 		}
+		console.dir('prop pack' + Pack.str ('data'))
+		const subscribe = packStore.subscribe(value => {
+      		receivedPack = value;
+      		console.dir('store pack' + receivedPack.str('data')); 
+      
+    });
+
+    	return subscribe; 
 	});
 </script>
 
@@ -69,6 +98,7 @@
 				<button id="copy">Copy</button>
 				<button id="up">Up</button>
 				<button id="down">Down</button>
+				<button on:click={close}>Back</button>
 			</div>
 		</div>
 	</div>
