@@ -663,7 +663,7 @@ export namespace RS1 {
 		multi:number[]|string|undefined;
 		
 		fromStr (Str='') {
-			// String format: ID(s separated by ,):TileName,VillaName
+			// String format: ID(s separated by ,)_TileName,VillaName
 			// VillaName,	if '', assume ME()
 			// TileName		must ALWAYS be set
 			//	ID(#)  * means ALL (0)
@@ -672,7 +672,7 @@ export namespace RS1 {
 
 			let NPos = Str.indexOf ('_');
 			if (NPos < 0)
-				throw (NameDelim + ' required!');
+				throw ('_ required!');
 
 			let numStr = Str.slice (0,NPos), vStr = Str.slice (NPos + 1);
 			let CPos = vStr.indexOf (',');
@@ -684,28 +684,39 @@ export namespace RS1 {
 				this.tile = vStr;
 			}
 
-			if (numStr[0] === '?') {
-				this.multi = numStr.slice (1);	// query string
-			}
-			else if (numStr.indexOf (',') >= 0)	{	// multiple number IDs!
-				let Nums = numStr.split (',');
-				let i = 0, count = Nums.length;
-				let Ns=Array<number>(count);
-				for (const N of Nums) {
-					Ns[i]=Number (Nums[i]);
-					++i;
+			switch (numStr[0]) {
+				case '?' : this.multi = numStr.slice (1); break; 	// query string
+				case 'T' :
+					let Comma = numStr.indexOf (',');
+					if (Comma > 0) {
+						this.sub = numStr.slice (Comma+1);
+						this.type = numStr.slice (1,Comma);
 					}
-				this.multi=Ns;
-			}
-			else {	// single ID, no comma
-				this.multi=undefined;
-			}
+					else this.type = numStr.slice (1);
+					this.ID = 0;
+					break;
+
+				default : 
+					if (numStr.indexOf (',') >= 0)	{	// multiple number IDs!
+						let Nums = numStr.split (',');
+						let i = 0, count = Nums.length;
+						let Ns=Array<number>(count);
+						for (const N of Nums) {
+							Ns[i]=Number (Nums[i]);
+							++i;
+							}
+						this.multi=Ns;
+					}
+					else {	// single ID, no comma
+						this.ID = Number (numStr);
+					}
+				}
 		}
 
 		constructor (Str='') { this.fromStr (Str); }
 
 		toStr () {
-			let VTStr = (this.villa ? (this.villa + ',') : '') + this.tile;
+			let VTStr = this.villa ? (this.villa + ',' + this.tile) : this.tile;
 
 			let NStr = '';
 			let M = this.multi;
@@ -1118,7 +1129,7 @@ export namespace RS1 {
 		strIDs : string[]=[];
 		values : any[]=[];
 
-		constructor (SampleID : number|string) {
+		constructor (SampleID : number|string|BufPack|RSData) {
 			this.IDType = ((typeof SampleID) === 'number') ? '#' : '$';
 		}
 
