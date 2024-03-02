@@ -670,7 +670,7 @@ export namespace RS1 {
 			// if VillaName absent, use ME (myVilla)
 			if (!Str) return;
 
-			let NPos = Str.indexOf (NameDelim);
+			let NPos = Str.indexOf ('_');
 			if (NPos < 0)
 				throw (NameDelim + ' required!');
 
@@ -731,7 +731,7 @@ export namespace RS1 {
 				NStr += this.ID ? this.ID.toString () : '*';
 			}
 
-			return NStr + ':' + VTStr;
+			return NStr + '_' + VTStr;
 		}
 
 		Reg () {

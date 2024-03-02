@@ -83,7 +83,7 @@ class DBKit {
 
 const DBK = new DBKit('tile.sqlite3');
 
-export class RServer {
+class RServer {
 	DBK : DBKit;
 
 	constructor (Path : string) {
