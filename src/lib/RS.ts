@@ -729,17 +729,15 @@ export namespace RS1 {
 					let A = M as Array<number>;
 					let len = A.length;
 					if (len) {
-						for (let i = 0; i < len;) {
-							NStr += A[i].toString ();
-							if (++i < len)
-								NStr += ',';
+						for (let i = 0; i < len;++i) {
+							NStr += A[i].toString () + ((i < len-1) ? ',' : '');
 						}
 					}
 					else NStr += 'NaN';
 				}
 			}
 			else {		// single ID number
-				NStr += this.ID ? this.ID.toString () : '*';
+				NStr += this.ID ? this.ID.toString () : '0';
 			}
 
 			return NStr + '_' + VTStr;
@@ -1130,11 +1128,22 @@ export namespace RS1 {
 		values : any[]=[];
 
 		constructor (SampleID : number|string|BufPack|RSData) {
-			this.IDType = ((typeof SampleID) === 'number') ? '#' : '$';
+			let IDType = (typeof SampleID);
+			switch (IDType) {
+				case 'number' : this.IDType = tNum; break;
+				case 'string' : this.IDType = tStr; break;
+				case 'object' :
+					let IDType = SampleID.constructor.name;
+					if (IDType === 'BufPack')
+						this.IDType = tPack;
+					else if (SampleID instanceof (RSData))
+						this.IDType = tData;
+					else this.IDType = tNone;
+			}
 		}
 
 		index (ID : number|string) {
-			if (this.IDType === '#')
+			if (this.IDType === tNum)
 				return this.numIDs.indexOf (ID as number);
 			else return this.strIDs.indexOf (ID as string);
 		}
@@ -1143,7 +1152,7 @@ export namespace RS1 {
 			let Arr=[];
 			let len,numID=0,strID='';
 			let IDT=this.IDType;
-			let Nums = (IDT === '#');
+			let Nums = (IDT === tNum);
 
 			if ((typeof IDList) === 'string') {
 				if (IDList[0] === PrimeDelim)
@@ -1201,7 +1210,7 @@ export namespace RS1 {
 			if (ind < 0)
 				return false;
 
-			let Nums = this.IDType === '#';
+			let Nums = this.IDType === tNum;
 			if (Nums) {
 				this.numIDs[ind] = 0;
 			}
@@ -1215,7 +1224,7 @@ export namespace RS1 {
 		}
 
 		get toStr () {
-			let Nums = (this.IDType === '#');
+			let Nums = (this.IDType === tNum);
 			let Str = '';
 
 			let len = Nums ? this.numIDs.length : this.strIDs.length;
