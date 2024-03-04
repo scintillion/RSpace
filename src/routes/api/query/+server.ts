@@ -35,6 +35,125 @@ class DBKit {
 		this._db.close();
 	}
 
+	buildQ (QBuf : RS1.BufPack) : any[] {
+		// select, insert, update, delete
+		console.log ('SQL buildQ QBuf=\n' + QBuf.desc);
+
+		let Tile, qType = '', ID, QF;
+
+		for (const C of QBuf.Cs) {
+			switch (C.Name.toUpperCase ()) {
+				case '!I' : case '!ID' : ID = C.Num; break;
+				case '!Q' : QF = C; qType = C.Str; break;
+				case '!T' : case 'TILE' : case 'TABLE' : Tile = C.Str; break;
+			}
+		}
+
+		if (!QF) {
+			QBuf.add (['!E','No Query!']);
+			return [];
+		}
+
+		let qStr = '', vStr = '', Name;
+		let Values = new Array (QBuf.Ds.length);	// long enough
+		let nValues = 0;
+
+		for (const F of QBuf.Ds)
+		{
+			Name = F.Name;
+			if (qType === 'I') {
+				qStr += Name + ',';
+				vStr += '?,';
+			}
+			else {
+				qStr += Name + '=?,';
+			}
+
+			switch (F.Type) {
+				case RS1.tNum : Values[nValues++] = F.Num; break;
+				case RS1.tStr : Values[nValues++] = F.Str; break;
+				default : Values[nValues++] = new Int8Array (F.AB);
+			}								
+		}
+		Values = Values.slice (0,nValues);
+
+		console.log ('buildQ nValues = ' + nValues.toString ());
+
+
+		switch (qType) {
+			case 'S' : case 'D' :
+				if (qType[0] === 'S')
+					qStr = 'SELECT * FROM ' + Tile;
+				else qStr = 'DELETE FROM ' + Tile;
+				if (ID)
+					qStr += ' WHERE id=' + ID.toString () + ';';
+				else qStr += ';';
+				break;
+
+			case 'H' :	case 'G' : // Hello, Goodbye from client
+				qStr = '';	// fall out with no SQL, server handles
+				break;
+
+			case 'I' : case 'U' :
+				if (qType === 'I') {
+					qStr = 'INSERT INTO ' + Tile + ' (';
+					vStr = ') VALUES(';		
+					}
+				else {
+					qStr = 'UPDATE ' + Tile + ' SET '; vStr = '';
+				}
+
+				for (const F of QBuf.Ds)
+				{
+					Name = F.Name;
+					if (qType === 'I') {
+						qStr += Name + ',';
+						vStr += '?,';
+					}
+					else {
+						qStr += Name + '=?,';
+					}
+				}
+
+				if (qType === 'I') {
+					qStr = qStr.slice (0,qStr.length-1) + vStr.slice (0,vStr.length-1) + ');';
+				}
+				else {	// 'U'
+					if (ID && nValues) {
+						qStr = qStr.slice (0,qStr.length - 1) + 
+								' WHERE id=' + ID.toString () + ';';
+					}
+					else {
+						QBuf.add (['!E','ERROR:' + qType]);
+						return [];
+					}
+				}
+				break;
+
+			default : return Values;	// leave QF.Str as IS, return Values
+		}	// switch
+
+		console.log ('buildQ, adding qStr = ' + qStr);
+		QBuf.add (['!Q',qStr]);
+
+		console.log ('/* BuildQ */ = ' + qStr + ' ' + Values.length.toString () + ' Values');
+		vStr = '    QueryVals=';
+		for (let i = Values.length; --i >= 0;) {
+			let ValStr;
+			switch (typeof (Values[i])) {
+				case 'number' : ValStr = (Values[i] as number).toString (); break;
+				case 'string' : ValStr = (Values[i] as string); break;
+				default : ValStr = 'AB Bytes=' + (Values[i] as ArrayBuffer).toString ();
+			}
+
+			vStr += ValStr + '  '
+		}
+
+		console.log ('VSTR=' + vStr + '=');
+		console.log ('Resulting BuildQ:\n' + QBuf.desc);
+
+		return	Values;
+	}	// BuildQ
 
 	public execQ (Pack : RS1.BufPack, Params : any[]) : RS1.BufPack {
 		let Query = Pack.str ('!Q');
@@ -81,17 +200,23 @@ class DBKit {
 
 }
 
-const DBK = new DBKit('tile.sqlite3');
+// const DBK = new DBKit('tile.sqlite3');
 
 class RServer {
 	DBK : DBKit;
+	myVilla='S';
 
 	constructor (Path : string) {
 		this.DBK = new DBKit (Path);
 
+		RS1.myVilla = '!Error';
+		RS1.myServer = '!Error';
+		RS1.myTile = '!Error';
 	}
 
 }
+
+const Q = new DBKit ('q.sqlite3');
 
 const RSS = new RServer ('tile.sqlite3');
 
@@ -101,8 +226,8 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 		throw "No Client Serial!";
 	console.log ('Server Receives Client Request #' + Serial.toString ());
 
-	let Params = RS1.sql.buildQ (InPack);
-	let OutPack = DBK.execQ (InPack, Params);
+	let Params = RSS.DBK.buildQ (InPack);
+	let OutPack = RSS.DBK.execQ (InPack, Params);
 
 	OutPack.add (['#',Serial]);
 

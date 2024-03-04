@@ -39,7 +39,7 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
   return BP;
 }
 
-export function InitClient () {
+export async function InitClient () {
    RS1.InitReq (ABRequest,packRequest);
 }
 

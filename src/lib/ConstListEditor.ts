@@ -234,11 +234,14 @@ export class Editor {
 			validDesc = `[{${this.RemoveWhitespace(this.i.list.value)}=${selected}]`;
 		}
 
-		let vID: RS1.vID = new RS1.vID(this.i.name.value, validDesc, this.vList);
+		let vID: RS1.vID = new RS1.vID(this.i.name.value, this.vList);
+		vID.Desc = validDesc;
+
 		// Update vList
 		this.vList.UpdateVID(vID);
 		this.CLToSelect();
-		vID = vID.Copy(this.vList);
+		vID = vID.copy ();
+		vID.List = this.vList;
 		this.ClearRef();
 		console.log('Create', vID);
 		console.log('Create', this.vList.Str);
@@ -317,8 +320,10 @@ export class Editor {
 	}
 
 	private CopyVID(vID: RS1.vID) {
-		const newvID = vID.Copy(this.vList);
-		newvID.SetName(`${newvID.Name} Copy`);
+		const newvID = vID.copy ();
+		vID.List = this.vList;
+
+		newvID.Name = `${newvID.Name} Copy`;
 		this.vList.UpdateVID(newvID, false);
 		this.ClearRef();
 		this.Populate();
@@ -531,7 +536,7 @@ export class LOLEditor {
 		// @ts-ignore REASON: You've removed the copy function.
 		const newList: RS1.vList = this.LOL.ListByName(
 			this.select.value
-		)?.Copy() as RS1.vList;
+		)?.copy ();//  as RS1.vList;
 		this.LOL.Add(newList.Str);
 		console.log(this.CL);
 		this.Reload();

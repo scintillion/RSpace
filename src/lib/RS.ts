@@ -72,6 +72,11 @@ export namespace RS1 {
 		Pack
 	}
 
+	export function log (...args:string[]) {
+		console.log (args);
+		return args;
+	}
+
 	// Note: these variables ONLY used by Client, should be set to ''
 	// or '!ERROR' on Server just to be safe!
 	export var myServer='';
@@ -646,11 +651,11 @@ export namespace RS1 {
 	export function setVilla (V : string) {
 		if (!V) return;
 
-		if (V === ('-' + _myVilla))
-			_myVilla = '';
+		if (V === ('-' + myVilla))
+			myVilla = '';
 
-		else if (!_myVilla)
-			_myVilla = V;
+		else if (!myVilla)
+			myVilla = V;
 	}
 
 
@@ -1391,6 +1396,10 @@ export namespace RS1 {
 		static ToFrom(In: IOArgs): IOArgs {
 			// Should raise exception!
 			return undefined;
+		}
+
+		copy () : vID {
+			return new vID (this.ToStr (),this.List);
 		}
 	} // class vID
 
@@ -2588,27 +2597,6 @@ export namespace RS1 {
 				RS1.sql.bInsUpd (Pack);
 			}
 
-
-			let List = CL.LT;
-
-			if (List) {
-				let Pack = List.SavePack();
-				// Add code here to save List to the database
-				// using "Pack"
-
-				console.log ('LT SavePack List:' + '\n' + Pack.desc);
-
-				Pack.add (['!Q','S']);
-				RS1.sql.buildQ (Pack);
-				Pack.add (['!Q','I']);
-				RS1.sql.buildQ (Pack);
-				Pack.add (['!Q','U','!I',123]);
-				RS1.sql.buildQ (Pack);
-				Pack.add (['!Q','D','!I',456]);
-				RS1.sql.buildQ (Pack);
-			}
-
-
 			let BP = new BufPack('TEST', 'Details...asdfasdfas');
 			BP.add([
 				'Num1',
@@ -3568,122 +3556,6 @@ export namespace RS1 {
 	export const NILPack = new BufPack ();
 
 	export class SQL {
-		buildQ (QBuf : BufPack) : any[] {
-			// select, insert, update, delete
-			console.log ('SQL buildQ QBuf=\n' + QBuf.desc);
-
-			let Tile, qType = '', ID, QF;
-
-			for (const C of QBuf.Cs) {
-				switch (C.Name.toUpperCase ()) {
-					case '!I' : case '!ID' : ID = C.Num; break;
-					case '!Q' : QF = C; qType = C.Str; break;
-					case '!T' : case 'TILE' : case 'TABLE' : Tile = C.Str; break;
-				}
-			}
-
-			if (!QF) {
-				QBuf.add (['!E','No Query!']);
-				return [];
-			}
-
-			let qStr = '', vStr = '', Name;
-			let Values = new Array (QBuf.Ds.length);	// long enough
-			let nValues = 0;
-
-			for (const F of QBuf.Ds)
-			{
-				Name = F.Name;
-				if (qType === 'I') {
-					qStr += Name + ',';
-					vStr += '?,';
-				}
-				else {
-					qStr += Name + '=?,';
-				}
-
-				switch (F.Type) {
-					case tNum : Values[nValues++] = F.Num; break;
-					case tStr : Values[nValues++] = F.Str; break;
-					default : Values[nValues++] = new Int8Array (F.AB);
-				}								
-			}
-			Values = Values.slice (0,nValues);
-
-			console.log ('buildQ nValues = ' + nValues.toString ());
-
-
-			switch (qType) {
-				case 'S' : case 'D' :
-					if (qType[0] === 'S')
-						qStr = 'SELECT * FROM ' + Tile;
-					else qStr = 'DELETE FROM ' + Tile;
-					if (ID)
-						qStr += ' WHERE id=' + ID.toString () + ';';
-					else qStr += ';';
-					break;
-
-				case 'I' : case 'U' :
-					if (qType === 'I') {
-						qStr = 'INSERT INTO ' + Tile + ' (';
-						vStr = ') VALUES(';		
-						}
-					else {
-						qStr = 'UPDATE ' + Tile + ' SET '; vStr = '';
-					}
-
-					for (const F of QBuf.Ds)
-					{
-						Name = F.Name;
-						if (qType === 'I') {
-							qStr += Name + ',';
-							vStr += '?,';
-						}
-						else {
-							qStr += Name + '=?,';
-						}
-					}
-
-					if (qType === 'I') {
-						qStr = qStr.slice (0,qStr.length-1) + vStr.slice (0,vStr.length-1) + ');';
-					}
-					else {	// 'U'
-						if (ID && nValues) {
-							qStr = qStr.slice (0,qStr.length - 1) + 
-									' WHERE id=' + ID.toString () + ';';
-						}
-						else {
-							QBuf.add (['!E','ERROR:' + qType]);
-							return [];
-						}
-					}
-					break;
-
-				default : return Values;	// leave QF.Str as IS, return Values
-			}	// switch
-
-			console.log ('buildQ, adding qStr = ' + qStr);
-			QBuf.add (['!Q',qStr]);
-
-			console.log ('BuildQ = ' + qStr + ' ' + Values.length.toString () + ' Values');
-			vStr = '    QueryVals=';
-			for (let i = Values.length; --i >= 0;) {
-				let ValStr;
-				switch (typeof (Values[i])) {
-					case 'number' : ValStr = (Values[i] as number).toString (); break;
-					case 'string' : ValStr = (Values[i] as string); break;
-					default : ValStr = 'AB Bytes=' + (Values[i] as ArrayBuffer).toString ();
-				}
-
-				vStr += ValStr + '  '
-			}
-
-			console.log ('VSTR=' + vStr + '=');
-			console.log ('Resulting BuildQ:\n' + QBuf.desc);
-
-			return	Values;
-		}	// BuildQ
-
 		bSelDel (Tile : string, ID : number, Query : string) : BufPack {
 			let Pack = new BufPack ();
 			Pack.add (['!T', Tile, '!I', ID,'!Q',Query]);
