@@ -72,8 +72,11 @@ export namespace RS1 {
 		Pack
 	}
 
+	// Note: these variables ONLY used by Client, should be set to ''
+	// or '!ERROR' on Server just to be safe!
 	export var myServer='';
 	export var myTile='S';
+	export var myVilla='S';
 
 	type SpecArgs=string|BufPack|RSData;
 
@@ -90,7 +93,7 @@ export namespace RS1 {
 	interface RIDReg { (R: RID) : void }
 
 	export async function NILDataReq (D:RSData) : Promise<RSData>
-		{ throw "NILDataReq"; return D; }
+		{ throw "NILDataReq"; return NILData; }
 	export function NILNew () { throw 'NILNew'; return NILData; }
 
 	export var _ReqAB : ABReq;
@@ -119,7 +122,7 @@ export namespace RS1 {
 		Reg (['List',()=>new vList (),NILDataReq])
 	}
 
-	var tNames=new Array<string>, tNews=new Array<NewData>,tEdits=new Array<DataReq>;
+	var dNames=new Array<string>, dNews=new Array<NewData>,dEdits=new Array<DataReq>;
 
 	export function Reg (A:any[]=[]) {
 		// Args: NameStr, New(RSData)Func, Edit(RSData)Func
@@ -130,10 +133,10 @@ export namespace RS1 {
 			return;
 		}
 		if (!count) { //clearing previous}
-			tNames = [];  tNews = [];  tEdits = [];
+			dNames = [];  dNews = [];  dEdits = [];
 		}
 
-		if (!tNames.length)	// Need to add default system list
+		if (!dNames.length)	// Need to add default system list
 			Reg (['List',NILNew,NILDataReq]);	
 
 		for (let i = 0; i < count; i += 3) {
@@ -143,11 +146,11 @@ export namespace RS1 {
 				throw ('NULL Name in Reg!');
 
 			let NewFunc = A[i+1] as NewData, EditFunc=A[i+2] as DataReq;
-			let f = tNames.indexOf (Name);
+			let f = dNames.indexOf (Name);
 			if (f >= 0) {	//	replacing
-				tNames[f] = Name; tNews[f] = NewFunc; tEdits[f]=EditFunc;
+				dNames[f] = Name; dNews[f] = NewFunc; dEdits[f]=EditFunc;
 			}
-			else { tNames.push (Name); tNews.push (NewFunc); tEdits.push (EditFunc); }
+			else { dNames.push (Name); dNews.push (NewFunc); dEdits.push (EditFunc); }
 		}
 	}
 	
@@ -637,8 +640,6 @@ export namespace RS1 {
 		}
 	}
 
-	var _myVilla = '';
-
 	export function ME() { }
 	export function dVilla() { }	// default villa, based on includes (ME vs. system villa)
 
@@ -759,7 +760,7 @@ export namespace RS1 {
 		Name = '';
 		Desc = '';
 		Type = '';
-		protected _ID = NILRID;
+		protected _rID = NILRID;
 		Tile = 'S';
 		Sub = '';
 		Str = '';
@@ -771,9 +772,11 @@ export namespace RS1 {
 
 		PostLoad (P : BufPack) {}
 
-		setRID (rID : RID) {
-			if ((this._ID === NILRID) || !this._ID.ID)
-				this._ID = rID;
+		get RID () { return this._rID.copy (); }
+
+		setRID (rID1 : RID) {
+			if ((this._rID === NILRID) || !this._rID.ID)
+				this._rID = rID1;
 			}
 
 		LoadPack(P: BufPack) {
@@ -787,6 +790,11 @@ export namespace RS1 {
 			this.Str = P.str ('str');
 			this.Sub = P.str ('sub');
 			this.ID = P.num ('!ID');
+
+			let ridStr = P.str ('!rid');
+			if (ridStr)
+				this._rID = new RID (ridStr);
+
 			if (!this.ID)
 				this.ID = P.num ('id');
 			this.Details = P.str ('details');
@@ -1218,6 +1226,11 @@ export namespace RS1 {
 			this.values[ind] = undefined;
 		}
 
+		push (D : BufPack|RSData) {
+			this.add ([(D.constructor.name === 'BufPack') ?
+				(D as BufPack).str ('rid') : (D as RSData).RID.toStr (), D]);
+		}
+		
 		static isListStr (Str:string) {
 			return  (Str  &&  Str.indexOf (PrimeDelim)  &&
 			    (Str.slice (-1) !== PrimeDelim));
