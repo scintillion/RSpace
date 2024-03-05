@@ -52,6 +52,15 @@ export async function InitClient () {
    newVID.Fmt.setValue ('123');
    console.log ('xClient NewVID = "' + newVID.ToStr () + '".');
 
+   newVID = new RS1.vID ('Name:[R1,100=49]Desc');
+    console.log ('qClient NewVID = "' + newVID.ToStr () + '".');
+
+    newVID.Fmt = new RS1.IFmt ('');
+
+    newVID.Fmt.setType('Range');
+    newVID.Fmt.setXtra ('1,100');
+    newVID.Fmt.setValue ('49');
+    console.log ('zClient NewVID = "' + newVID.ToStr () + '".');
 
 }
 

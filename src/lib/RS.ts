@@ -442,7 +442,8 @@ export namespace RS1 {
 	export class IFmt {
 		Type: number = 0;
 		Ch = ''; // first char denoting type of format
-		Str: string;
+		// Str='';
+		Xtra='';
 		Value: IValue = new IValue();
 		Num = 0;
 		List: vList|undefined;
@@ -473,7 +474,7 @@ export namespace RS1 {
 		setXtra (Str1='') {
 			switch (this.Type) {
 				case FMMember:
-					if (!(this.List = CL.ListByName(Str1))) this.Str = Str1 + ' = Bad List Name';
+					if (!(this.List = CL.ListByName(Str1))) this.Xtra = Str1 + ' = Bad List Name';
 					break;
 
 				case FMRange:
@@ -481,7 +482,7 @@ export namespace RS1 {
 						this.Arr = new Array(2);
 						this.Arr[0] = Number(Str1);
 						this.Arr[1] = Number(Str1.slice(Str1.indexOf(',') + 1));
-					} else this.Str = Str1 + ' = Bad Range';
+					} else this.Xtra = Str1 + ' = Bad Range';
 					break;
 
 				case FMSet:
@@ -489,7 +490,7 @@ export namespace RS1 {
 						Str1 = Str1.slice(1, Str1.length - 1); // clip it from ends
 					else Str1 = Str1.slice(1);
 
-					this.Str = Str1 = ',' + Str1 + ','; // every member starts/ends with ,
+					this.Xtra = Str1 = ',' + Str1 + ','; // every member starts/ends with ,
 					break;
 /*
 				case FMNum:		do nothing for these, can ignore
@@ -503,6 +504,8 @@ export namespace RS1 {
 					break;
 */
 			}
+
+			this.Xtra = Str1;
 		}
 
 		setValue(ValStr='') {
@@ -621,14 +624,14 @@ export namespace RS1 {
 			return 0;	// bad type name
 
 		this.Ch = TypeChars[index];
-		return this.Type = TypeArray[index];			
+		this.Type = TypeArray[index];			
+		return this.Type;
 	}
 
 		constructor(Str1: string) {
 			let NoError = true;
 
 			if (!Str1) {
-				this.Str = Str1;
 				return;
 			}
 
@@ -648,16 +651,14 @@ export namespace RS1 {
 				Str1 = Str1.slice(0, ValPos);
 			}
 
-			this.Str = Str1;
 			this.setType (Str1.slice (0,1).toUpperCase ());
 			if (Str1.length > 1) {
-				this.Str = Str1.slice(1);
+				this.Xtra = Str1.slice(1);
 				if (V) {
-					if (isDigit(Str1[0])) this.Num = Number(Str1);
+					if (isDigit(Str1[0])) this.Num = Number(this.Xtra);
 				}
-			} else this.Str = Str1 = '';
-
-			this.setXtra (Str1);
+				this.setXtra (this.Xtra);
+			} else this.Xtra = Str1 = '';
 
 			this.setValue(this.Value._Str);
 		}
@@ -665,9 +666,7 @@ export namespace RS1 {
 		ToStr() {
 			if (this.Type)
 			return (
-				FormatStart +
-				this.Ch +
-				this.Str +
+				FormatStart + this.Ch + this.Xtra +
 				(this.Value._Str ? '=' + this.Value._Str : '') +
 				FormatEnd
 			);
@@ -2180,7 +2179,7 @@ export namespace RS1 {
 					// print out format
 					FmtStr += '//\t' + VID.Name + ' ~' + VID.Fmt.Ch;
 
-					if (VID.Fmt.Str) FmtStr += ' Str="' + VID.Fmt.Str + '"';
+					if (VID.Fmt.Xtra) FmtStr += ' Xtra="' + VID.Fmt.Xtra + '"';
 
 					if (VID.Fmt.Num) FmtStr += ' Num=' + VID.Fmt.Num.toString();
 
@@ -2606,7 +2605,7 @@ export namespace RS1 {
 							'[' +
 							VID.Fmt.Ch +
 							(VID.Fmt.Num ? VID.Fmt.Num.toString() : '') +
-							VID.Fmt.Str +
+							VID.Fmt.Xtra +
 							']' +
 							'\t';
 					let ID = VID.List.IDByName(VID.Name); // VID.ID;
