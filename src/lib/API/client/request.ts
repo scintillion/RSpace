@@ -41,5 +41,17 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 
 export async function InitClient () {
    RS1.InitReq (ABRequest,packRequest);
+
+   let newVID = new RS1.vID ('Name:Desc');
+   let newFmt = new RS1.IFmt ('');
+   newVID.Fmt = newFmt;
+
+   console.log ('Client NewVID = "' + newVID.ToStr () + '".');
+   newVID.Fmt.setType ('#');
+
+   newVID.Fmt.setValue ('123');
+   console.log ('xClient NewVID = "' + newVID.ToStr () + '".');
+
+
 }
 

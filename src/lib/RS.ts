@@ -422,6 +422,9 @@ export namespace RS1 {
 		return '';
 	}
 
+	const NILNums:number[]=[];
+	const NILStrs:string[]=[];
+
 	export class IValue {
 		_Str: string = '';
 		Nums: number[] = [];
@@ -442,7 +445,7 @@ export namespace RS1 {
 		Str: string;
 		Value: IValue = new IValue();
 		Num = 0;
-		List: vList | undefined;
+		List: vList|undefined;
 		Arr: number[] | undefined;
 
 		/*  Input Formats, defined by [FormatStr]
@@ -467,118 +470,8 @@ export namespace RS1 {
 
         */
 
-		ParseValue(ValStr: string = '') {
-			if (ValStr) {
-				this.Value._Str = ValStr;
-			} else ValStr = this.Value._Str;
-
-			this.Value.Nums = [];
-			this.Value.Strs = [];
-			this.Value.Error = '';
-
+		setXtra (Str1='') {
 			switch (this.Type) {
-				case FMNum:
-				case FMInt:
-				case FMDollar:
-				case FMRange:
-				case FMOrd:
-					this.Value.Nums.push(Number(this.Value._Str));
-					break; // single number
-
-				case FMStrs:
-					this.Value.Strs = this.Value._Str.split(',');
-					break;
-
-				case FMPair:
-				case FMNums:
-					let Strs = this.Value._Str.split(',');
-					let limit = Strs.length;
-					for (let i = 0; i < limit; ) this.Value.Nums.push(Number(Strs[i++]));
-					break; // multiple numbers
-
-				case FMStr:
-				case FMUpper:
-				case FMSet:
-					this.Value.Strs.push(this.Value._Str);
-					break; //  string
-
-				default:
-					this.Value.Error = 'Invalid Type';
-					break;
-			}
-		}
-
-		constructor(Str1: string) {
-			let NoError = true;
-
-			if (Str1[0] === FormatStart) {
-				let EndPos = Str1.indexOf(FormatEnd);
-				if (EndPos >= 0) {
-					Str1 = Str1.slice(1, EndPos);
-				}
-			}
-
-			let ValPos = Str1.indexOf('=');
-			let V;
-			if (ValPos >= 0) {
-				V = new IValue();
-				V._Str = Str1.slice(ValPos + 1);
-				this.Value = V;
-				Str1 = Str1.slice(0, ValPos);
-			}
-
-			/*
-			let V;
-			let limit = Str1.length;
-
-			for (let i = 0; ++i < limit; )
-				if (Str1[i] === '=') {
-					V = new IValue();
-					V._Str = Str1.slice(i + 1);
-					this.Value = V;
-					Str1 = Str1.slice(0, i);
-					break;
-				}
-*/
-
-			this.Str = Str1;
-
-			this.Ch = Str1.slice (0,1).toUpperCase ();
-			if (Str1.length > 1) {
-				this.Str = Str1.slice(1);
-				if (V) {
-					if (isDigit(Str1[0])) this.Num = Number(Str1);
-				}
-			} else this.Str = Str1 = '';
-
-			let TypeArray = [
-				FMNum,
-				FMInt,
-				FMDollar,
-				FMPair,
-				FMOrd,
-				FMNums,
-				FMStr,
-				FMUpper,
-				FMMember,
-				FMRange,
-				FMSet
-			];
-
-			let index = '#I$POA%U@R{'.indexOf(this.Ch);
-			if (index >= 0) this.Type = TypeArray[index];
-
-			switch (this.Type) {
-				case FMNum:
-				case FMInt:
-				case FMPair:
-					break;
-				case FMOrd:
-				case FMNums:
-				case FMStr:
-				case FMUpper:
-					break;
-
 				case FMMember:
 					if (!(this.List = CL.ListByName(Str1))) this.Str = Str1 + ' = Bad List Name';
 					break;
@@ -598,16 +491,179 @@ export namespace RS1 {
 
 					this.Str = Str1 = ',' + Str1 + ','; // every member starts/ends with ,
 					break;
+/*
+				case FMNum:		do nothing for these, can ignore
+				case FMInt:
+				case FMPair:
+					break;
+				case FMOrd:
+				case FMNums:
+				case FMStr:
+				case FMUpper:
+					break;
+*/
+			}
+		}
+
+		setValue(ValStr='') {
+			this.Value._Str = ValStr;
+
+			this.Value.Nums = [];
+			this.Value.Strs = [];
+			this.Value.Error = '';
+
+			switch (this.Type) {
+				case FMNum:
+				case FMInt:
+				case FMDollar:
+				case FMRange:
+				case FMOrd:
+					this.Value.Nums.push(Number(ValStr));
+					break; // single number
+
+				case FMStrs:
+					this.Value.Strs = ValStr.split(',');
+					break;
+
+				case FMPair:
+				case FMNums:
+					let Strs = ValStr.split(',');
+					let limit = Strs.length;
+					for (let i = 0; i < limit; ) this.Value.Nums.push(Number(Strs[i++]));
+					break; // multiple numbers
+
+				case FMStr:
+				case FMUpper:
+				case FMSet:
+					this.Value.Strs.push(ValStr);
+					break; //  string
 
 				default:
-					this.Str = Str1 + ' = Bad String and Ch = ' + this.Ch;
-					NoError = false;
+					this.Value.Error = 'Invalid Type';
+					break;
+			}
+		}
+
+	ParseValue(ValStr: string = '') {
+		if (ValStr) {
+			this.Value._Str = ValStr;
+		} else ValStr = this.Value._Str;
+
+		this.Value.Nums = [];
+		this.Value.Strs = [];
+		this.Value.Error = '';
+
+		switch (this.Type) {
+			case FMNum:
+			case FMInt:
+			case FMDollar:
+			case FMRange:
+			case FMOrd:
+				this.Value.Nums.push(Number(this.Value._Str));
+				break; // single number
+
+			case FMStrs:
+				this.Value.Strs = this.Value._Str.split(',');
+				break;
+
+			case FMPair:
+			case FMNums:
+				let Strs = this.Value._Str.split(',');
+				let limit = Strs.length;
+				for (let i = 0; i < limit; ) this.Value.Nums.push(Number(Strs[i++]));
+				break; // multiple numbers
+
+			case FMStr:
+			case FMUpper:
+			case FMSet:
+				this.Value.Strs.push(this.Value._Str);
+				break; //  string
+
+			default:
+				this.Value.Error = 'Invalid Type';
+				break;
+		}
+	}
+
+
+	setType (Str : string|number) {
+		let index = 0;
+		let TypeNum = 0;
+
+		if ((typeof Str) === 'number') {
+			TypeNum = Str as number;
+			index = TypeArray.indexOf (TypeNum);
+			if (index >= 0) {
+				this.Ch = TypeChars[index];
+				return this.Type = TypeNum;
+			}
+			return 0;	// no luck, bad type number
+		}
+
+		// setting Type by String
+		let Str1 = Str as string;
+		if (!Str)
+			return 0;
+
+		if (Str1.length === 1) {
+			index = TypeChars.indexOf (Str1);
+			if (index >= 0)
+			{
+				this.Ch = Str1;
+				return this.Type = TypeArray[index];
+			}
+			return 0;
+		}
+
+		// Named String...
+		index = TypeNames.indexOf (Str1);
+		if (index < 0)
+			return 0;	// bad type name
+
+		this.Ch = TypeChars[index];
+		return this.Type = TypeArray[index];			
+	}
+
+		constructor(Str1: string) {
+			let NoError = true;
+
+			if (!Str1) {
+				this.Str = Str1;
+				return;
 			}
 
-			if (NoError) this.ParseValue();
+			if (Str1[0] === FormatStart) {
+				let EndPos = Str1.indexOf(FormatEnd);
+				if (EndPos >= 0) {
+					Str1 = Str1.slice(1, EndPos);
+				}
+			}
+
+			let ValPos = Str1.indexOf('=');
+			let V;
+			if (ValPos >= 0) {
+				V = new IValue();
+				V._Str = Str1.slice(ValPos + 1);
+				this.Value = V;
+				Str1 = Str1.slice(0, ValPos);
+			}
+
+			this.Str = Str1;
+			this.setType (Str1.slice (0,1).toUpperCase ());
+			if (Str1.length > 1) {
+				this.Str = Str1.slice(1);
+				if (V) {
+					if (isDigit(Str1[0])) this.Num = Number(Str1);
+				}
+			} else this.Str = Str1 = '';
+
+			this.setXtra (Str1);
+
+			this.setValue(this.Value._Str);
 		}
 
 		ToStr() {
+			if (this.Type)
 			return (
 				FormatStart +
 				this.Ch +
@@ -615,6 +671,8 @@ export namespace RS1 {
 				(this.Value._Str ? '=' + this.Value._Str : '') +
 				FormatEnd
 			);
+
+			return '';
 		}
 	}
 
@@ -1273,7 +1331,7 @@ export namespace RS1 {
 			return this.List ? this.List.IDByName(this.Name) : 0;
 		}
 
-		constructor(Str: string, List1: vList) {
+		constructor(Str: string, List1: vList = NILList) {
 			let Desc1 = '', NameEnd = Str.indexOf(NameDelim);
 
 			if (NameEnd >= 0) {
@@ -2166,8 +2224,8 @@ export namespace RS1 {
 		}
 	} // vList
 
-	const NILList = new vList ('');
-	const NILVID = new vID ('',NILList);
+	export const NILList = new vList ('');
+	export const NILVID = new vID ('',NILList);
 
 	export class vFast {
 		Names : Array<string>=[];
@@ -3691,6 +3749,25 @@ export namespace RS1 {
 	export const TestCost = 3,
 		TestNameF = 1,
 		TestXY = 2;
+
+	export const TypeArray = [
+		FMNum,
+		FMInt,
+		FMDollar,
+		FMPair,
+		FMOrd,
+		FMNums,
+		FMStr,
+		FMUpper,
+		FMMember,
+		FMRange,
+		FMSet
+	];
+
+	export const TypeNames = ['Number','Integer','Dollar','Pair',
+						'Ordinal','Numbers','String',
+						'UpperCase','Member','Range','Set'];
+	export const TypeChars = '#I$POA%U@R{';
 } // namespace RS1
 
 /*  Documentation Names/Desc	___________________
