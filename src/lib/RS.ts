@@ -471,6 +471,11 @@ export namespace RS1 {
 
         */
 
+		get TypeStr () { 
+			let i = TypeArray.indexOf (this.Type);
+			return (i >= 0) ? TypeNames[i] : '';
+		}
+
 		setXtra (Str1='') {
 			switch (this.Type) {
 				case FMMember:
@@ -508,7 +513,11 @@ export namespace RS1 {
 			this.Xtra = Str1;
 		}
 
-		setValue(ValStr='') {
+		setValue(Val:string|number='') {
+			let vType = typeof (Val);
+			let ValStr = (vType === 'string') ? 
+				(Val as string) : (Val as number).toString ();
+
 			this.Value._Str = ValStr;
 
 			this.Value.Nums = [];
@@ -521,7 +530,15 @@ export namespace RS1 {
 				case FMDollar:
 				case FMRange:
 				case FMOrd:
-					this.Value.Nums.push(Number(ValStr));
+					if (ValStr === 'NaN') {
+						this.Value._Str = '';
+						return;
+					}
+
+					let Num = Number(ValStr);
+					if (Num || (Num === 0))
+						this.Value.Nums.push(Num);
+					else this.Value._Str = '';
 					break; // single number
 
 				case FMStrs:

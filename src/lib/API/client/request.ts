@@ -61,6 +61,7 @@ export async function InitClient () {
     newVID.Fmt.setXtra ('1,100');
     newVID.Fmt.setValue ('49');
     console.log ('zClient NewVID = "' + newVID.ToStr () + '".');
-
+    console.log ('zClient Fmt = "' + newVID.Fmt.ToStr () + '"');
+    console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
 }
 
