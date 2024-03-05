@@ -471,6 +471,16 @@ export namespace RS1 {
 
         */
 
+		static create (Type : string|number,Xtra='',Value:string|number='') {
+			let Fmt = new IFmt ('');
+			Fmt.setType (Type);
+			if (Xtra)
+				Fmt.setXtra (Xtra);
+			if (Value)
+				Fmt.setValue (Value);
+			return Fmt;
+		}
+
 		get TypeStr () { 
 			let i = TypeArray.indexOf (this.Type);
 			return (i >= 0) ? TypeNames[i] : '';
@@ -530,11 +540,6 @@ export namespace RS1 {
 				case FMDollar:
 				case FMRange:
 				case FMOrd:
-					if (ValStr === 'NaN') {
-						this.Value._Str = '';
-						return;
-					}
-
 					let Num = Number(ValStr);
 					if (Num || (Num === 0))
 						this.Value.Nums.push(Num);

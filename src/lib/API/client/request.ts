@@ -63,5 +63,10 @@ export async function InitClient () {
     console.log ('zClient NewVID = "' + newVID.ToStr () + '".');
     console.log ('zClient Fmt = "' + newVID.Fmt.ToStr () + '"');
     console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
+
+    newVID.Fmt = RS1.IFmt.create ('Range','25,75','64');
+    console.log ('aClient NewVID = "' + newVID.ToStr () + '".');
+    console.log ('aClient Fmt = "' + newVID.Fmt.ToStr () + '"');
+    console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
 }
 
