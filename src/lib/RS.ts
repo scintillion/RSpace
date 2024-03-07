@@ -182,14 +182,16 @@ export namespace RS1 {
 		let DPos = Query.indexOf (PrimeDelim);
 		let StrType;
 		if (DPos >= 0) {
-			StrType = '!' + Query.slice (0,DPos);
+			StrType = Query.slice (0,DPos);
 			Query = Query.slice (DPos + 1);
 		}
-		else StrType = '!Q';
+		else StrType = 'Q';
 
 		let BP = new BufPack ();
 		console.log ('StrType=' + StrType + ',Query=' + Query + '.');
-		BP.add ([StrType,Query]);
+		BP.xAdd (StrType,Query);
+		
+//		BP.add ([StrType,Query]);
 	
 		// console.log ('strRequest BP on client:\n' + BP.Desc ());
 		// console.log ('BP.BufOut length = ' + BP.BufOut ().byteLength.toString ());
@@ -941,7 +943,9 @@ export namespace RS1 {
 
 		async toDB () {if (!this.Tile) this.Tile = 'S';
 			let P = this.SavePack ();
-			P.add (['!Q',this.ID ? 'U' : 'I']);
+//			P.add (['!Q',this.ID ? 'U' : 'I']);
+			P.xAdd ('Q',this.ID ? 'U' : 'I');
+
 			P = await RS1.ReqPack (P);
 			return P.num ('changes') > 0;
 		}
@@ -2672,7 +2676,8 @@ export namespace RS1 {
 			for (let i = 0; i < CL.Lists.length; ++i) {
 				let List = CL.Lists[i];
 				let Pack = List.SavePack ();
-				Pack.add (['!Q','I']);
+				Pack.xAdd ('Q','I');
+//				Pack.add (['!Q','I']);
 				RS1.sql.bInsUpd (Pack);
 			}
 
@@ -3188,6 +3193,8 @@ export namespace RS1 {
 		}
 	}
 
+	export const NILField = new PackField ('!NIL',NILAB);
+
 	export class BufPack {
 		Cs : PackField[] = [];
 		Ds : PackField[] = [];
@@ -3278,6 +3285,18 @@ export namespace RS1 {
 				this.add (Args);
 		}
 
+		xAdd (Type:string,Value:string) {
+			this.add (['!',Type,'!'+Type,Value]);
+		}
+
+		get xField () {
+			let tField=this.field ('!');
+			if (tField !== NILField)
+				return this.field ('!' + tField.Data as string);
+
+			return NILField;
+		}
+
 		toABs ()
 		{
 			for (const F of this.Cs)
@@ -3298,9 +3317,9 @@ export namespace RS1 {
 				}
 		}
 
-		field(Name: string): PackField | undefined {
+		field(Name: string): PackField {
 			if (!Name)
-				return undefined;
+				return NILField;
 
 			let Fs = (Name[0] >= '0') ? this.Ds : this.Cs;
 
@@ -3308,21 +3327,23 @@ export namespace RS1 {
 				if (F.Name === Name)
 					return F;
 			}
+
+			return NILField;
 		}
 
 		data(Name: string): PFData {
 			let F = this.field(Name);
-			return F ? F.Data : NILAB;
+			return F !== NILField ? F.Data : NILAB;
 		}
 
 		str(Name: string) {
 			let F = this.field(Name);
-			return F ? F.Str : '';
+			return F !== NILField ? F.Str : '';
 		}
 
 		num(Name: string) {
 			let F = this.field(Name);
-			return F ? F.Num : NaN;
+			return F !== NILField ? F.Num : NaN;
 		}
 
 		get desc() {
@@ -3637,7 +3658,8 @@ export namespace RS1 {
 	export class SQL {
 		bSelDel (Tile : string, ID : number, Query : string) : BufPack {
 			let Pack = new BufPack ();
-			Pack.add (['!T', Tile, '!I', ID,'!Q',Query]);
+			Pack.xAdd ('Q', Query);
+			Pack.add (['!T', Tile, '!I', ID]);
 
 			return Pack;
 		}
@@ -3645,7 +3667,8 @@ export namespace RS1 {
 		bInsUpd (Pack : BufPack) : BufPack {
 			let ID = Pack.num ('!I');
 
-			Pack.add (['!Q',ID ? 'U' : 'I']);
+			Pack.xAdd ('Q',ID ? 'U' : 'I');
+			//	Pack.add (['!Q',ID ? 'U' : 'I']);
 			return Pack;
 		}
 
