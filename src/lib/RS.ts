@@ -872,12 +872,12 @@ export namespace RS1 {
 			this.Name = P.str ('name');
 			this.Desc = P.str ('desc');
 			this.Type = P.str ('type');
-			this.Tile = P.str ('!T');
+			this.Tile = P.str ('.T');
 			this.Str = P.str ('str');
 			this.Sub = P.str ('sub');
-			this.ID = P.num ('!ID');
+			this.ID = P.num ('.ID');
 
-			let ridStr = P.str ('!rid');
+			let ridStr = P.str ('.rid');
 			if (ridStr)
 				this._rID = new RID (ridStr);
 
@@ -901,11 +901,11 @@ export namespace RS1 {
 			P.add([	'name',	this.Name,
 				'desc',	this.Desc,
 				'type',	this.Type,
-				'!T',	this.Tile,
+				'.T',	this.Tile,
 				'str',	this.Str,
 				'sub', this.Sub,
 				'details',	this.Details,
-				'!ID',	this.ID,
+				'.ID',	this.ID,
 				'data',	this.Data
 			]);
 
@@ -943,7 +943,6 @@ export namespace RS1 {
 
 		async toDB () {if (!this.Tile) this.Tile = 'S';
 			let P = this.SavePack ();
-//			P.add (['!Q',this.ID ? 'U' : 'I']);
 			P.xAdd ('Q',this.ID ? 'U' : 'I');
 
 			P = await RS1.ReqPack (P);
@@ -2415,26 +2414,7 @@ export namespace RS1 {
 					}
 				}
 			}
-			/*
-} else {
-	let Strs: string[] = Array.isArray(Str) ? Str : FromString(Str);
 
-	limit = Strs.length + 1;
-
-	this.tiles = Array(limit);
-	for (let i = 0; ++i < limit; ) {
-		console.log(i.toString() + '=' + Strs[i - 1]);
-
-		if (Strs[i - 1][0] !== '!') {
-			console.log ('Line==' + Strs[i-1] + '.');
-			let newTDE = new TDE(Strs[i - 1]);
-			if (newTDE) {
-				this.tiles[++count] = newTDE;
-			}
-		}
-	}
-}
-*/
 			this.tiles.length = count + 1;
 			this.Links();
 		}
@@ -2677,7 +2657,6 @@ export namespace RS1 {
 				let List = CL.Lists[i];
 				let Pack = List.SavePack ();
 				Pack.xAdd ('Q','I');
-//				Pack.add (['!Q','I']);
 				RS1.sql.bInsUpd (Pack);
 			}
 
@@ -3193,7 +3172,7 @@ export namespace RS1 {
 		}
 	}
 
-	export const NILField = new PackField ('!NIL',NILAB);
+	export const NILField = new PackField ('NIL!',NILAB);
 
 	export class BufPack {
 		Cs : PackField[] = [];
@@ -3286,13 +3265,24 @@ export namespace RS1 {
 		}
 
 		xAdd (Type:string,Value:string) {
-			this.add (['!',Type,'!'+Type,Value]);
+			let F = new PackField ('!'+Type,Value);
+			let L = this.Cs.length;
+
+			if (L)	{
+				let Old = this.Cs[0];
+				this.Cs[0] = F;
+				this.Cs.push (Old);
+			}
+			this.Cs.push (F);
 		}
 
 		get xField () {
-			let tField=this.field ('!');
-			if (tField !== NILField)
-				return this.field ('!' + tField.Data as string);
+			if (this.Cs.length)
+			{
+				let F = this.Cs[0];
+				if (F.Name[0] === '!')
+					return F;
+			}
 
 			return NILField;
 		}
@@ -3503,10 +3493,6 @@ export namespace RS1 {
 
 			let Offset = PBytes;
 
-			// console.log ('BufIn: pBytes = ' + PBytes.toString () + '/' + AB.byteLength.toString () + 
-			//	' Prefix:' + Prefix + '! PStr=' + PStr + '.');
-
-
 			let TPos;
 			let SPos;
 			let EndPos;
@@ -3659,16 +3645,15 @@ export namespace RS1 {
 		bSelDel (Tile : string, ID : number, Query : string) : BufPack {
 			let Pack = new BufPack ();
 			Pack.xAdd ('Q', Query);
-			Pack.add (['!T', Tile, '!I', ID]);
+			Pack.add (['.T', Tile, '.I', ID]);
 
 			return Pack;
 		}
 
 		bInsUpd (Pack : BufPack) : BufPack {
-			let ID = Pack.num ('!I');
+			let ID = Pack.num ('.I');
 
 			Pack.xAdd ('Q',ID ? 'U' : 'I');
-			//	Pack.add (['!Q',ID ? 'U' : 'I']);
 			return Pack;
 		}
 
