@@ -39,13 +39,15 @@ class DBKit {
 		// select, insert, update, delete
 		console.log ('SQL buildQ QBuf=\n' + QBuf.desc);
 
-		let Tile, qType = '', ID, QF;
+		let Tile, qType = '', ID;
+		let QF = QBuf.xField;
+		if (QF)
+			qType = QF.Str;
 
 		for (const C of QBuf.Cs) {
 			switch (C.Name.toUpperCase ()) {
-				case '!I' : case '!ID' : ID = C.Num; break;
-				case '!Q' : QF = C; qType = C.Str; break;
-				case '!T' : case 'TILE' : case 'TABLE' : Tile = C.Str; break;
+				case '.I' : case '.ID' : ID = C.Num; break;
+				case '.T' : case '.TILE' : case '.TABLE' : Tile = C.Str; break;
 			}
 		}
 
@@ -78,7 +80,7 @@ class DBKit {
 		Values = Values.slice (0,nValues);
 
 		console.log ('buildQ nValues = ' + nValues.toString ());
-
+		console.log ('qStr=' + qStr + '. vStr =' + vStr);
 
 		switch (qType) {
 			case 'S' : case 'D' :
@@ -95,6 +97,7 @@ class DBKit {
 				break;
 
 			case 'I' : case 'U' :
+				console.log ('Entering IU');
 				if (qType === 'I') {
 					qStr = 'INSERT INTO ' + Tile + ' (';
 					vStr = ') VALUES(';		
@@ -119,24 +122,29 @@ class DBKit {
 					qStr = qStr.slice (0,qStr.length-1) + vStr.slice (0,vStr.length-1) + ');';
 				}
 				else {	// 'U'
+					console.log ('  Entering U, ID = ' + ID?.toString ());
 					if (ID && nValues) {
 						qStr = qStr.slice (0,qStr.length - 1) + 
 								' WHERE id=' + ID.toString () + ';';
 					}
 					else {
 						QBuf.add (['!E','ERROR:' + qType]);
+						console.log ('  U ERROR!');
 						return [];
 					}
 				}
+				console.log ('I/U qStr =' + qStr + '. vStr =' + vStr + '.');
 				break;
 
-			default : return Values;	// leave QF.Str as IS, return Values
+			default : 
+				console.log ('Leaving QF AS IS, returning Values');
+				return Values;	// leave QF.Str as IS, return Values
 		}	// switch
 
 		console.log ('buildQ, adding qStr = ' + qStr);
 		QBuf.add (['!Q',qStr]);
 
-		console.log ('/* BuildQ */ = ' + qStr + ' ' + Values.length.toString () + ' Values');
+		console.log ('BuildQ = ' + qStr + ' ' + Values.length.toString () + ' Values');
 		vStr = '    QueryVals=';
 		for (let i = Values.length; --i >= 0;) {
 			let ValStr;

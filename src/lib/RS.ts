@@ -3266,14 +3266,13 @@ export namespace RS1 {
 
 		xAdd (Type:string,Value:string) {
 			let F = new PackField ('!'+Type,Value);
-			let L = this.Cs.length;
 
-			if (L)	{
+			if (this.Cs.length)	{
 				let Old = this.Cs[0];
 				this.Cs[0] = F;
 				this.Cs.push (Old);
 			}
-			this.Cs.push (F);
+			else this.Cs.push (F);
 		}
 
 		get xField () {
