@@ -9,7 +9,7 @@
   
   let step = 'selectTableAndType'; // Default step (view)
   let tableNames: string[] = [];
-  let selectedTableName = '';
+  let selectedTableName = 'S';
   let typeFilter: string = '';
   let subFilter: string = '';
   let summaryResult: any[] = []; // Results from ReqNames
@@ -187,7 +187,7 @@
       <input type="text" id="details" name="details" bind:value={currentRecord.Details} placeholder="Details" />
       <label for="data">Data: </label>
      
-      <input type="text" id="data" name="data" bind:value={currentRecord.Data} placeholder="Data" readonly />
+      <input type="text" id="data" name="data" bind:value={currentRecord.Data} placeholder="Data" />
      
       
       <div class="buttons">
