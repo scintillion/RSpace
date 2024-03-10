@@ -71,7 +71,7 @@ export class Editor {
 			up: this.container.querySelector('#up') as HTMLButtonElement,
 			down: this.container.querySelector('#down') as HTMLButtonElement,
 			list: firstLine.appendChild(this.container.ownerDocument.createElement('select')),
-			vID: firstLine.appendChild(this.container.ownerDocument.createElement('select'))
+			vID: firstLine.appendChild(this.container.ownerDocument.createElement('select')),
 		};
 
 		this.i.vID.multiple = false;
@@ -84,11 +84,12 @@ export class Editor {
 		/** Preset Event Handlers  */
 		this.i.save.onclick = () => {
 			if (this.selectbox.value) {
-				this.UpdateVID(this.i.name.value);
+				//this.UpdateVID(this.i.name.value);
+				this.CreateVID1();	
 				this.Reload();
-				console.log('save works')
 			} else {
-				this.CreateVID();
+				//this.CreateVID();
+				this.CreateVID1();
 				this.Reload();
 			}
 			let newPack: RS1.BufPack = new RS1.BufPack();
@@ -150,30 +151,41 @@ export class Editor {
 
 	private DefineFields(vID: RS1.vID): void {
 		if (vID) {
-			this.i.name.value = vID.Name ? vID.Name : '';
-			this.i.description.value = vID.Desc ? vID.Desc : '';
+			this.i.name.value = vID.Name;
+			this.i.description.value = vID.Desc
 
 			console.log(vID.Fmt?.Ch !== '');
 
-			const rawFMT = vID.Fmt as RS1.IFmt;
-			const format = this.formats.GetDesc(rawFMT.Ch) as string;
+			if (vID.Fmt) {
+				const rawFMT = vID.Fmt as RS1.IFmt;
+				const format1: string = rawFMT.TypeStr;
+				const format = this.formats.GetDesc(rawFMT.Ch) as string;
+				
+				if (format === 'Member') {
+					this.LoadMemberAndSetFields();
+				} else if (format === 'Set') {
+					this.LoadMemberAndSetFields('Set');
+				} else this.UnloadMemberAndSetFields();
 
-			if (format === 'Member') {
-				this.LoadMemberAndSetFields();
-			} else if (format === 'Set') {
-				this.LoadMemberAndSetFields('Set');
-			} else this.UnloadMemberAndSetFields();
-
-			this.i.fmtstr.value = rawFMT.Str.slice(rawFMT.Ch.length);
-			this.i.fmt.value = format;
-			this.i.value.value = rawFMT.Value._Str as string;
+				//this.i.fmtstr.value = rawFMT.Str.slice(format.length);
+				this.i.fmtstr.value = rawFMT.Xtra;
+				this.i.fmt.value = format1;
+				console.log('format is ' + format1);
+				console.log('value is ' + rawFMT.Value._Str);
+				this.i.value.value = rawFMT.Value._Str as string;
+			} else {
+				console.log('no format present')
+				vID.Fmt = new RS1.IFmt('')
+				return;
+					}
 
 			this.i.del.onclick = () => this.DeleteVID(vID.Name);
 			this.i.clear.onclick = () => this.ClearRef();
 			this.i.copy.onclick = () => this.CopyVID(vID);
 			this.i.up.onclick = () => this.MoveElement('up', vID);
 			this.i.down.onclick = () => this.MoveElement('down', vID);
-		} else return;
+		
+	} else return;
 	}
 
 	private LoadMemberAndSetFields(field?: string) {
@@ -247,6 +259,36 @@ export class Editor {
 		console.log('Create', this.vList.Str);
 	}
 
+	private CreateVID1(): void {
+		let vID: RS1.vID = new RS1.vID('');
+		vID.Name = this.i.name.value;
+		vID.Desc = this.i.description.value;
+		vID.Fmt = new RS1.IFmt('')
+		//let fmttype: RS1.IFmt | undefined = vID.Fmt;
+		console.log('createVID' + this.i.value.value);
+		console.log(this.i.fmt.value)
+
+		if (this.i.fmt.value && this.i.value.value) {
+			//fmttype.Format = this.formats.NameByDesc(this.i.fmt.value) as string;
+			if (!this.checkFormat(this.i.value.value, this.i.fmt.value)) {
+				alert('Error: Invalid Format');
+				return;
+			}
+			vID.Fmt.setType(this.i.fmt.value);
+			vID.Fmt.setValue(this.i.value.value)
+		} 
+
+		this.vList.UpdateVID(vID);
+		this.CLToSelect();
+		vID = vID.copy ();
+		vID.List = this.vList;
+		this.ClearRef();
+		console.log('Create', vID);
+		console.log('Create', this.vList.Str);
+
+
+	}
+
 	private GetSelected(Select: HTMLSelectElement): string[] {
 		const response: string[] = [];
 		for (let i = 0; i < Select.selectedOptions.length; i++) {
@@ -259,7 +301,7 @@ export class Editor {
 		const format: string = this.formats.NameByDesc(
 			this.RemovePossibleDelim(this.i.fmt.value)
 		) as string;
-		let value: string = this.RemovePossibleDelim(this.i.value.value) as string;
+		let value: string | number = this.RemovePossibleDelim(this.i.value.value);;
 		const updatedName: string = this.RemovePossibleDelim(this.i.name.value) as string;
 		const fmtstr: string = this.RemovePossibleDelim(this.i.fmtstr.value) as string;
 		let description: string = this.RemovePossibleDelim(this.i.description.value) as string;
@@ -343,7 +385,10 @@ export class Editor {
 	}
 
 	private checkFormat(value: string, format: string): boolean {
-		const validFormat = this.formats.GetVID(format);
+		//const validFormat = this.formats.GetVID(format);
+		const validFormat = format
+		//console.log('valid format ' + validFormat?.Name);
+		//console.log(validFormat?.Desc)
 
 		if (!validFormat) {
 			return false;
@@ -351,14 +396,14 @@ export class Editor {
 
 		value = value.trim();
 
-		switch (validFormat.Desc) {
-			case 'Int':
+		switch (validFormat) {
+			case 'Integer':
 				return /^\d+$/.test(value);
 				break;
-			case 'Str':
+			case 'String':
 				return true;
 				break;
-			case 'Num':
+			case 'Number':
 				return this.isNum(value);
 			case 'Dollar':
 				return /^\$?\d{1,3}(,\d{3})*(\.\d{2})?$/.test(value);
@@ -366,21 +411,24 @@ export class Editor {
 			case 'Range':
 				return /^\d+$/.test(value);
 				break;
-			case 'Nums':
+			case 'Numbers':
 				return /^\s*\d+\s*(,\s*\d+\s*)*$/.test(value);
 				break;
-			case 'Upper':
+			case 'UpperCase':
 				return value.toUpperCase() === value;
 				break;
-			case 'Ord':
+			case 'Ordinal':
 				return /^\d{1,2}(st|nd|rd|th)$/.test(value);
 				break;
 			case 'Pair':
 				return /^\s*\d+\s*,\s*\d+\s*$/.test(value);
 				break;
-			case 'Member':
-			case 'Set':
-				return true;
+			// case 'Null':
+			// 	return value === '';
+			// 	break;	
+			// case 'Member':
+			// case 'Set':
+			// 	return true;
 			default:
 				return false;
 				break;

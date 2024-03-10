@@ -9,13 +9,16 @@
 	export let Pack: RS1.BufPack;
 	let receivedPack: RS1.BufPack;
 	CLString = Pack.str('data');
+	//let showEditorfields = true;
 
 
 	const dispatch = createEventDispatcher();
+	const TypeArray = RS1.TypeNames;
 
 	function close() {
 		dispatch('close');
 	}
+	
 
 	// const list1: RS1.vList = new RS1.vList(
 	// 	'Test1|Test1Name:[%=Jane]Your Name|ListNum:[#=1]The List Number|'
@@ -53,7 +56,7 @@
 		console.dir('prop pack' + Pack.str ('data'))
 		const subscribe = packStore.subscribe(value => {
       		receivedPack = value;
-      		console.dir('store pack' + receivedPack.str('data')); 
+      		//console.dir('store pack' + receivedPack.str('data')); 
       
     });
 
@@ -63,8 +66,14 @@
 
 <div class="editor">
 	<div id="cledit">
+		<!-- {#if showEditorfields == true} -->
 		<div class="selectContainer" />
+		<!-- <button on:click={() => showEditorfields = false} >Edit </button> -->
+		<!-- {/if} -->
+		
+		<!-- {#if showEditorfields == false} -->
 		<div class="VIDOperations">
+			
 			<div class="functions" id="Line1">
 				<label for="name">Name: </label>
 				<input type="text" name="name" placeholder="No Use Unless You Add" />
@@ -73,9 +82,11 @@
 				<label for="value">Value:</label>
 				<input type="text" name="value" />
 			</div>
+			
 			<div class="functions" id="Line2">
 				<label for="format">Format: </label>
 				<select name="format" placeholder="Format" id="format">
+					<!-- <option value = "Null">Null</option>
 					<option value="Dollar">Dollar</option>
 					<option value="Int">Int</option>
 					<option value="Num">Num</option>
@@ -86,7 +97,10 @@
 					<option value="Str">Str</option>
 					<option value="Upper">Upper</option>
 					<option value="Member">Member</option>
-					<option value="Set">Set</option>
+					<option value="Set">Set</option> -->
+					{#each TypeArray as type}
+						<option value={type}>{type}</option>
+					{/each}
 				</select>
 				<label for="fmtstr">Format Str:</label>
 				<input type="text" name="fmtstr" />
@@ -98,9 +112,11 @@
 				<button id="copy">Copy</button>
 				<button id="up">Up</button>
 				<button id="down">Down</button>
+				<button id="add">Add</button>
 				<button on:click={close}>Back</button>
 			</div>
 		</div>
+		<!-- {/if} -->
 	</div>
 </div>
 
@@ -108,11 +124,11 @@
 	.VIDOperations {
 		width: 100%;
 		display: flex;
-		align-items: center;
+		// align-items: center;
 		justify-content: center;
-		gap: 20px;
+		//gap: 10px;
 		flex-direction: column;
-		min-height: 400px;
+		
 	}
 
 	.editor {
@@ -126,13 +142,14 @@
 	}
 
 	#cledit {
-		display: inherit;
-		align-items: inherit;
-		justify-content: inherit;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		flex-direction: column;
 		gap: 20px;
-		width: inherit;
-		height: inherit;
+		width: 450px;
+		height: 100%;
+		padding: 10px;
 	}
 
 	.functions {
@@ -141,49 +158,65 @@
 		display: flex;
 		flex-direction: row;
 		gap: 5px;
+		flex-direction: column;
 	}
 
-	input,
-	select {
-		width: 200px;
-		height: 40px;
-		border-radius: 10px;
-		font-family: inherit;
-		outline: none;
-		border: none;
-		padding-left: 10px;
-		transition: 0.3s linear;
-	}
+	// input,
+	// select {
+	// 	width: 200px;
+	// 	height: 40px;
+	// 	border-radius: 10px;
+	// 	font-family: inherit;
+	// 	outline: none;
+	// 	border: none;
+	// 	padding-left: 10px;
+	// 	transition: 0.3s linear;
+	// }
 
-	select[name='format'] {
-		width: 100px;
-	}
+	// select[name='format'] {
+	// 	width: 100px;
+	// }
 
-	input[name='fmtstr'] {
-		width: 70px;
-	}
+	// input[name='fmtstr'] {
+	// 	width: 70px;
+	// }
 
 	button {
-		margin-top: 10px;
-		width: 100px;
-		height: 40px;
-		border-radius: 8px;
-		font-family: inherit;
-		background: black;
-		outline: none;
-		border: none;
-		cursor: pointer;
-		color: white;
-		transition: 0.3s linear;
-
-		&:hover {
-			background: lighten($color: #000000, $amount: 7%);
-		}
+		margin-top:   10px;
+     width:   80px;
+     height:   32px;
+     border-radius:   8px;
+     font-family: inherit;
+     background: black;
+     outline: none;
+     border: none;
+     cursor: pointer;
+     color: white;
+     transition:   0.3s linear;
 	}
 
 	.selectContainer {
-		width: 100%;
-		height: 100%;
-		padding: 35px;
+	 width:   100%;
+     height: auto;
+     
+     border-radius:   8px;
+     max-height: 500px; 
+     overflow-y: auto;
+     //gap:   10px;
 	}
+
+	input,
+   select {
+     width: 100%;
+     height:   32px;
+     border-radius:   8px;
+     font-family: inherit;
+     outline: none;
+     border: none;
+     padding-left:   5px;
+     transition:   0.3s linear;
+     width: 100%;
+   }
+	
+	
 </style>
