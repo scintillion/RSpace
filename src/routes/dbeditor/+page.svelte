@@ -86,7 +86,128 @@
     showEditor = false;
   }
 
-  
+
+  async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null): Promise<RS1.RSData> {
+    const list: RS1.vList = new RS1.vList(D.Data);
+    //Pack.add(['A', 'Edit', 'type', D.Type, 'data', D.Data]);
+    Pack = list.SavePack();
+
+    if (EditContainer) {
+        const editorComponent = new Editor({
+            target: EditContainer,
+            props: {
+                Pack,
+            },
+        });
+    } else {
+        const modalContainer = document.createElement('div');
+        modalContainer.style.display = 'none';
+        modalContainer.style.position = 'fixed';
+        modalContainer.style.top = '0';
+        modalContainer.style.left = '0';
+        modalContainer.style.width = '100%';
+        modalContainer.style.height = '100%';
+        modalContainer.style.backgroundColor = 'rgba(30, 30, 30, 0.5)';
+        modalContainer.style.zIndex = '1';
+        document.body.appendChild(modalContainer);
+
+        const modalContent = document.createElement('div');
+        modalContent.style.position = 'absolute';
+        modalContent.style.top = '40%';
+        modalContent.style.left = '50%';
+        modalContent.style.transform = 'translate(-50%, -50%)';
+        modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
+        modalContent.style.padding = '20px';
+        modalContent.style.borderRadius = '5px';
+        modalContainer.appendChild(modalContent);
+
+        const style = document.createElement('style');
+        style.innerHTML = `
+        @keyframes animatetop {
+          from {top: 100px; opacity: 0}
+          to {top: 40%; opacity: 1}
+        }
+        `;
+        document.head.appendChild(style);
+
+        modalContent.style.animationName = 'animatetop';
+        modalContent.style.animationDuration = '0.4s';
+
+        const editorComponent = new Editor({
+            target: modalContent,
+            props: {
+                Pack,
+            },
+        });
+
+        modalContainer.style.display = 'block';
+
+        editorComponent.$on('close', () => {
+        modalContainer.style.display = 'none';
+        subscribe();
+    });
+
+    }
+    
+    const subscribe = packStore.subscribe(value => {
+        receivedPack = value;
+        D.Data = receivedPack.str('data');
+    });
+
+    return D;
+}
+
+// async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null): Promise<RS1.RSData> {
+//     const list: RS1.vList = new RS1.vList(D.Data);
+//     Pack = list.SavePack();
+
+//     const modalContent = document.createElement('div');
+
+//     const targetElement = EditContainer || modalContent;
+    
+//     const editorComponent = new Editor({
+//         target: targetElement,
+//         props: {
+//             Pack,
+//         },
+//     });
+
+//     modalContent.style.position = 'absolute';
+//     modalContent.style.top = '50%';
+//     modalContent.style.left = '50%';
+//     modalContent.style.transform = 'translate(-50%, -50%)';
+//     modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
+//     modalContent.style.padding = '20px';
+//     modalContent.style.borderRadius = '5px';
+//     document.body.appendChild(modalContent);
+
+//     const style = document.createElement('style');
+//     style.innerHTML = `
+//         @keyframes animatetop {
+//             from {top: -300px; opacity: 0}
+//             to {top: 50%; opacity: 1}
+//         }
+//     `;
+//     document.head.appendChild(style);
+
+//     modalContent.style.animationName = 'animatetop';
+//     modalContent.style.animationDuration = '0.4s';
+
+//     modalContent.style.display = 'block';
+
+//     editorComponent.$on('close', () => {
+//         modalContent.style.display = 'none';
+//         subscribe();
+//     });
+
+//     const subscribe = packStore.subscribe(value => {
+//         receivedPack = value;
+//         D.Data = receivedPack.str('data');
+//     });
+
+//     return D;
+// }
+
 
 //   // Function to check and update the record
 // const checkAndUpdateRecord = async () => {
@@ -109,6 +230,7 @@
     const subscribe = packStore.subscribe(value => {
       receivedPack = value;
       currentRecord.Data = receivedPack.str('data');
+      //D.Data = receivedPack.str('data');
       console.dir('received pack data' + receivedPack.str('data')); 
   })
 
@@ -120,9 +242,9 @@
  
 </script>
 
-{#if showEditor} 
+<!-- {#if showEditor} 
   <Editor {Pack} on:close={closeSpecialDataEditor} />
-{/if}
+{/if} -->
 
 <main>
 {#if step === 'selectTableAndType'}
@@ -188,6 +310,7 @@
       <label for="data">Data: </label>
      
       <input type="text" id="data" name="data" bind:value={currentRecord.Data} placeholder="Data" />
+      <div id="specialdatadiv"></div>
      
       
       <div class="buttons">
@@ -196,7 +319,7 @@
           {#if addingNewRecord === false}
           <button on:click={() => selectedItemId && deleteRecord(selectedItemId)}>Delete</button>
           {/if}
-          <button on:click={handleSpecialDataEdit}>Edit Data</button>
+          <button on:click={() => EditList(currentRecord,null)}>Edit Data</button>
       </div>
     </div>
     
