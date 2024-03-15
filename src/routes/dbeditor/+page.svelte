@@ -5,8 +5,6 @@
   import Editor from '../../components/tiles/Editor.svelte';
   import { packStore } from '../../stores/packStore.js';
   
-
-  
   let step = 'selectTableAndType'; // Default step (view)
   let tableNames: string[] = [];
   let selectedTableName = 'S';
@@ -22,6 +20,7 @@
   let Pack: RS1.BufPack = new RS1.BufPack();
   let receivedPack: RS1.BufPack = new RS1.BufPack();
   let showEditor = false;
+
 
 
   InitClient();
@@ -143,7 +142,7 @@
         modalContainer.style.display = 'block';
 
         editorComponent.$on('close', () => {
-        modalContainer.style.display = 'none';
+        modalContainer.remove();
         subscribe();
     });
 
@@ -151,7 +150,10 @@
     
     const subscribe = packStore.subscribe(value => {
         receivedPack = value;
-        D.Data = receivedPack.str('data');
+        if (receivedPack.str('data')) {        
+          D.Data = receivedPack.str('data');
+          console.log('Data: ' + D.Data);
+        };
     });
 
     return D;
