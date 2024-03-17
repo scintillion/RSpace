@@ -62,7 +62,7 @@ export namespace RS1 {
 
 	export const NameDelim = ':',PrimeDelim = '|',TabDelim = '\t',LineDelim = '\n',FormDelim = '\f';
 	export const FormatStart = '[',FormatEnd = ']';
-	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='&';
+	export const tNone='?',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^';
 
 	export enum CLType {
 		None,
@@ -85,7 +85,7 @@ export namespace RS1 {
 
 	type SpecArgs=string|BufPack|RSData;
 
-	interface NewData { () : RSData }
+	interface NewData { (P:BufPack) : RSData }
 
 	interface PackFunc { (Pack : BufPack) : BufPack }
 	interface PackToDataFunc { (P:BufPack,Type:string) : RSData }
@@ -3086,16 +3086,22 @@ export namespace RS1 {
 								Type = tAB;
 								this._AB = (D as ArrayBuffer).slice (0);
 								break;
+							case 'Buffer' :
+								Type = tAB;
+								let TBuf = (D as Int8Array).slice(0);
+								this._AB = ABfromArray (TBuf);
+								break;
 							default :
 								if (D instanceof RSData) {
 									Type = tData;
 									this._data = (D as RSData).SavePack ();
-									console.log ('setData:Not allowed without TypeLists, field='+this.Name);
+									log ('setData:Not allowed without TypeLists, field='+this.Name);
 									// we cannot directly create the appropriate
 									// RSData record because we don't have TypeLists
 									// fully implemented
 								}
 								else
+									throw ('tNone! Name =' + this.Name + ' CName=' + CName);
 									Type = tNone;
 									this._data = NILAB;
 								}
@@ -3147,8 +3153,8 @@ export namespace RS1 {
 			else if (nBytes < 0)
 				nBytes = 999999999;
 
-
-			if (InBuffer.constructor.name === 'ArrayBuffer') {
+			let CName = InBuffer.constructor.name;
+			if (CName === 'ArrayBuffer') {
 				ABuf = (InBuffer as ArrayBuffer).slice (Start, Start + nBytes);
 				IBuf = new Int8Array (ABuf);
 			}
@@ -3162,6 +3168,9 @@ export namespace RS1 {
 
 		constructor (N : string, D : PFData,Type1='') {
 			this._name = N;
+
+			if (N === 'ist')
+				throw 'ist!1';
 
 			if (Type1)		// AB coming in with type
 				this.setByAB (D as ArrayBuffer, Type1);
@@ -3255,6 +3264,20 @@ export namespace RS1 {
 		Type1 = '';
 		Details = '';
 
+		get summary () {
+			let Fields = this.Cs.concat (this.Ds);
+
+			let Str = 'PACK';
+			if (this.Type1)
+				Str += ' Type:' + this.Type1;
+			if (this.Details)
+				Str += ' Details:' + this.Details;
+
+			for (const Q of Fields)
+				Str += ' ' + Q.Name;
+			return Str;
+		}
+
 		add(Args: any[]) {
 			if (this === NILPack)
 				return;
@@ -3282,6 +3305,9 @@ export namespace RS1 {
 				let DF = !FldName  || (FldName[0] >= '0');
 				let Fs = DF ? this.Ds : this.Cs;
 				let Data = Args[i++];
+
+				if (FldName === 'ist')
+					throw 'ist!2';
 
 				let NewField = new PackField(FldName,Data);
 
@@ -3433,15 +3459,13 @@ export namespace RS1 {
 			return F !== NILField ? F.Pack : NILPack;
 		}
 
-
-
 		get desc() {
 			let Lines = [];
 			let Pref = this.getPrefix ();
 			let Fields = this.Cs.concat (this.Ds);
 			let nFields = Fields.length;
 
-			let Str = 'DESC ' + nFields.toString () + ' Fields, Buf Type:' + this.Type1 + ' Details:' + this.Details + '.';
+			let Str = this.summary;
 			Lines.push(Str);
 			Lines.push ('Prefix = ' + Pref);
 
@@ -3625,6 +3649,9 @@ export namespace RS1 {
 						console.log ('  !! DBuf bytes = ' + DBuf.byteLength.toString ());
 						throw "LimitError!";
 					}
+
+					if (Name === 'ist')
+						throw ('ist!3');
 
 					let NewFld = new PackField (Name,DBuf,Type);
 
