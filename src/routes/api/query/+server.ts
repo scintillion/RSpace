@@ -186,7 +186,7 @@ class DBKit {
 				BPs[countBP++] = BP;
 				}
 				Pack.Cs = [];
-				Pack.pack (BPs);
+				Pack.packArray (BPs);
 				console.log ('Server packs ' + BPs.length.toString () + ' records to send to client');
 				console.log (Pack.desc);
 				let newBPs = new RS1.BufPack ();
@@ -234,13 +234,21 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 		throw "No Client Serial!";
 	console.log ('Server Receives Client Request #' + Serial.toString ());
 
-	let Params = RSS.DBK.buildQ (InPack);
-	let OutPack = RSS.DBK.execQ (InPack, Params);
+	let QF = InPack.xField;
+	switch (QF.Name) {
+		case '!Q' :
+			let Params = RSS.DBK.buildQ (InPack);
+			let OutPack = RSS.DBK.execQ (InPack, Params);
 
-	OutPack.add (['#',Serial]);
+			OutPack.add (['#',Serial]);
 
-	console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
-	return OutPack;
+			console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
+			return OutPack;
+
+		default : return RS1.NILPack;
+	}
+	
+	return RS1.NILPack;
 }
 
 async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
