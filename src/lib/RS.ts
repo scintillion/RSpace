@@ -893,12 +893,8 @@ export namespace RS1 {
 			this.Str = P.str ('str');
 			this.Sub = P.str ('sub');
 			this.ID = P.num ('.ID');
-			let Str = P.str ('list');
-			this.List = Str ? new vList (Str) : NILList;
-			let pField = P.field('pack');
-			this.pasdfField.Pack
-			this.Pack = (pField.Pack != NILPack) ? pField.Pack.copy () : NILPack;
-			this.Pack.bufIn (P.field ('pack').toAB);
+			this.List = P.list ('list');
+			this.Pack = P.pack('pack');
 
 			let ridStr = P.str ('.rid');
 			if (ridStr)
@@ -3094,7 +3090,7 @@ export namespace RS1 {
 								if (D instanceof RSData) {
 									Type = tData;
 									this._data = (D as RSData).SavePack ();
-									throw 'Not allowed without TypeLists'
+									console.log ('setData:Not allowed without TypeLists, field='+this.Name);
 									// we cannot directly create the appropriate
 									// RSData record because we don't have TypeLists
 									// fully implemented
@@ -3120,7 +3116,7 @@ export namespace RS1 {
 					let Pack = new BufPack (); Pack.bufIn (AB);
 					D = Pack;
 					if (Type1 === tData)
-						throw 'Not allowed without TypeLists';
+						console.log ('setByAB: type = ' + Type1 + ' Not allowed without TypeLists, field='+this.Name);
 					// currently we cannot support tData by creating
 					// the appropriate RSData record because we don't
 					// have TypeLists fully implemented (Name/new/EditFunc)
