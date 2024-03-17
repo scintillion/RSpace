@@ -99,17 +99,6 @@
             },
         });
     } else {
-        const modalContainer = document.createElement('div');
-        modalContainer.style.display = 'none';
-        modalContainer.style.position = 'fixed';
-        modalContainer.style.top = '0';
-        modalContainer.style.left = '0';
-        modalContainer.style.width = '100%';
-        modalContainer.style.height = '100%';
-        modalContainer.style.backgroundColor = 'rgba(30, 30, 30, 0.5)';
-        modalContainer.style.zIndex = '1';
-        document.body.appendChild(modalContainer);
-
         const modalContent = document.createElement('div');
         modalContent.style.position = 'absolute';
         modalContent.style.top = '40%';
@@ -118,7 +107,7 @@
         modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
         modalContent.style.padding = '20px';
         modalContent.style.borderRadius = '5px';
-        modalContainer.appendChild(modalContent);
+        document.body.appendChild(modalContent);
 
         const style = document.createElement('style');
         style.innerHTML = `
@@ -139,10 +128,10 @@
             },
         });
 
-        modalContainer.style.display = 'block';
+        modalContent.style.display = 'block';
 
         editorComponent.$on('close', () => {
-        modalContainer.remove();
+        modalContent.remove();
         subscribe();
     });
 
@@ -167,13 +156,6 @@
 
 //     const targetElement = EditContainer || modalContent;
     
-//     const editorComponent = new Editor({
-//         target: targetElement,
-//         props: {
-//             Pack,
-//         },
-//     });
-
 //     modalContent.style.position = 'absolute';
 //     modalContent.style.top = '50%';
 //     modalContent.style.left = '50%';
@@ -195,16 +177,26 @@
 //     modalContent.style.animationName = 'animatetop';
 //     modalContent.style.animationDuration = '0.4s';
 
+//     const editorComponent = new Editor({
+//         target: targetElement,
+//         props: {
+//             Pack,
+//         },
+//     });
+
 //     modalContent.style.display = 'block';
 
 //     editorComponent.$on('close', () => {
-//         modalContent.style.display = 'none';
+//         //modalContent.style.display = 'none';
+//         modalContent.remove();
 //         subscribe();
 //     });
 
 //     const subscribe = packStore.subscribe(value => {
 //         receivedPack = value;
-//         D.Data = receivedPack.str('data');
+//         if (receivedPack.str('data')) {   
+//           D.Data = receivedPack.str('data');
+//         }
 //     });
 
 //     return D;
