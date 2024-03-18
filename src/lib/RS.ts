@@ -72,6 +72,10 @@ export namespace RS1 {
 		Pack
 	}
 
+	var _editTile = 'S';
+
+	export function setEditTile (T='S') { _editTile = T; myTile = T; }
+
 	export function log (...args:string[]) {
 		console.log (args);
 		return args;
@@ -178,7 +182,10 @@ export namespace RS1 {
 		return true;
 	}
 	
-	export async function ReqStr (Query : string) : Promise<RS1.BufPack> {
+	export async function ReqStr (Query : string, Tile:string) : Promise<RS1.BufPack> {
+		if (!Tile)
+			return NILPack;
+
 		let DPos = Query.indexOf (PrimeDelim);
 		let StrType;
 		if (DPos >= 0) {
@@ -190,6 +197,7 @@ export namespace RS1 {
 		let BP = new BufPack ();
 		console.log ('StrType=' + StrType + ',Query=' + Query + '.');
 		BP.xAdd (StrType,Query);
+		BP.add (['.T',Tile]);
 		
 //		BP.add ([StrType,Query]);
 	
@@ -201,7 +209,7 @@ export namespace RS1 {
 	}
 
 	export async function ReqTiles () : Promise<string[]> {
-		let BP = await ReqStr ('SELECT name from sqlite_master;');
+		let BP = await ReqStr ('SELECT name from sqlite_master;','Q');
 		// let TestBP = BP.copy ();
 		// console.log (BP.desc);	// <----- my code/data works if THIS LINE IS running!
 		
@@ -252,7 +260,7 @@ export namespace RS1 {
 			QStr += ' WHERE ' + Condits.join (' AND ') + ';';
 		else QStr += ';';
 
-		let BP = await ReqStr  (QStr);
+		let BP = await ReqStr  (QStr,R.Tile);
 
 		if (BP.multi)
 			return BP.unpackArray ();
@@ -328,7 +336,7 @@ export namespace RS1 {
 
 		QStr += WhereXP;
 		
-		let BP = await ReqStr  (QStr);
+		let BP = await ReqStr  (QStr,Tile);
 		// console.log ('BP Promised!' + BP.desc);
 		
 		if (!BP.multi)
@@ -811,7 +819,7 @@ export namespace RS1 {
 
 		constructor (Str='') { this.fromStr (Str); }
 
-		toStr () {
+		get toStr () {
 			let VTStr = this.villa ? (this.villa + ',' + this.tile) : this.tile;
 
 			let NStr = '';
@@ -845,7 +853,7 @@ export namespace RS1 {
 		}
 
 		copy () {
-			return new RID (this.toStr ());
+			return new RID (this.toStr);
 		}
 	}
 
@@ -855,8 +863,8 @@ export namespace RS1 {
 		Name = '';
 		Desc = '';
 		Type = '';
-		protected _rID = NILRID;
-		Tile = 'S';
+		private _rID = NILRID;
+		_Tile = 'S';
 		Sub = '';
 		Str = '';
 		ID = 0;
@@ -871,6 +879,14 @@ export namespace RS1 {
 
 		get RID () { return this._rID.copy (); }
 
+		get Tile () { return this._Tile; }
+		get Villa () { return this._rID.villa; }
+
+		private setTile (T='S') {
+			this._Tile = T;
+			this._rID.tile = T;
+		}
+
 		setRID (rID1 : RID) {
 			if (this === NILData)
 				return;
@@ -878,6 +894,10 @@ export namespace RS1 {
 			if ((this._rID === NILRID) || !this._rID.ID)
 				this._rID = rID1;
 			}
+
+		get desc () {
+			return this.Name + '[' + this.Type + ']' + (this.Desc? (':'+this.Desc):''); 
+		}
 
 		LoadPack(P: BufPack) {
 			if (this === NILData)
@@ -889,7 +909,7 @@ export namespace RS1 {
 			this.Name = P.str ('name');
 			this.Desc = P.str ('desc');
 			this.Type = P.str ('type');
-			this.Tile = P.str ('.T');
+			this.setTile (P.str ('.T'));
 			this.Str = P.str ('str');
 			this.Sub = P.str ('sub');
 			this.ID = P.num ('.ID');
@@ -897,8 +917,10 @@ export namespace RS1 {
 			this.Pack = P.pack('pack');
 
 			let ridStr = P.str ('.rid');
-			if (ridStr)
+			if (ridStr) {
 				this._rID = new RID (ridStr);
+				RS1.log ('Assigning RID ' + ridStr + ' to ' + this.desc)
+			}
 
 			if (!this.ID)
 				this.ID = P.num ('id');
@@ -966,12 +988,14 @@ export namespace RS1 {
 			return undefined;
 		}
 
-		async toDB () {if (!this.Tile) this.Tile = 'S';
-		if (this === NILData)
-			return;
+		async toDB () {
+			if (this === NILData)
+				return;
 
-		let P = this.SavePack ();
-			P.xAdd ('Q',this.ID ? 'U' : 'I');
+			if (!this.Tile) this.setTile ('S');
+
+			let P = this.SavePack ();
+				P.xAdd ('Q',this.ID ? 'U' : 'I');
 
 			P = await RS1.ReqPack (P);
 			return P.num ('changes') > 0;
@@ -1343,7 +1367,7 @@ export namespace RS1 {
 
 		push (D : BufPack|RSData) {
 			this.add ([(D.constructor.name === 'BufPack') ?
-				(D as BufPack).str ('rid') : (D as RSData).RID.toStr (), D]);
+				(D as BufPack).str ('rid') : (D as RSData).RID.toStr, D]);
 		}
 		
 		static isListStr (Str:string) {
@@ -3480,7 +3504,7 @@ export namespace RS1 {
 			return Lines.join('\n');
 		}
 
-		expand () {
+		get expand () {
 			if (!this.multi)
 				return this.desc + '\n';
 

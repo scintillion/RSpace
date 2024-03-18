@@ -175,7 +175,12 @@ class DBKit {
 			let RecArray = dbResponse as unknown as object[];
 			console.log ("RecArray: length = " + RecArray.length.toString () + '\n' + RecArray);
 			console.log (RecArray);
-			
+
+			let RIDSuffix = '_' + RSS.myTile + ',' + RSS.myVilla;
+			RS1.log ('----- RIDSuffix='+ RIDSuffix, ' tile = ' + RSS.myTile + ' villa = ' + RSS.myVilla);
+
+			let RID = new RS1.RID (RIDSuffix);
+
 			let BPs = Array (RecArray.length);
 			let countBP = 0;
 			console.log ('Server receives Record Array from Query, length = ' + RecArray.length.toString ());
@@ -183,12 +188,17 @@ class DBKit {
 				let Obj = Each as object;
 				let BP = new RS1.BufPack ();
 				BP.objectIn (Obj);
+				RID.ID = BP.num('id');
+				BP.add (['.rid', RID.toStr]);
+
+				console.log ('   Adding RID ' + RID.toStr + '\n' + BP.expand);
+
 				BPs[countBP++] = BP;
 				}
 				Pack.Cs = [];
 				Pack.packArray (BPs);
 				console.log ('Server packs ' + BPs.length.toString () + ' records to send to client');
-				console.log (Pack.desc);
+				console.log (Pack.expand);
 				let newBPs = new RS1.BufPack ();
 				newBPs.bufIn (Pack.bufOut ());
 			}
@@ -213,6 +223,7 @@ class DBKit {
 class RServer {
 	DBK : DBKit;
 	myVilla='S';
+	myTile='';
 
 	constructor (Path : string) {
 		this.DBK = new DBKit (Path);
@@ -235,8 +246,14 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 	console.log ('Server Receives Client Request #' + Serial.toString ());
 
 	let QF = InPack.xField;
+	console.log ('-----------\nInPack=' + InPack.summary + 'Q=' + QF?.Str + '\n-----------\n'
+		 + InPack.desc);
+		 
 	switch (QF.Name) {
 		case '!Q' :
+			RSS.myTile = InPack.str('.T');
+			console.log ('  Query Tile --> ' + RSS.myTile);
+			
 			let Params = RSS.DBK.buildQ (InPack);
 			let OutPack = RSS.DBK.execQ (InPack, Params);
 

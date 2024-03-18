@@ -96,7 +96,7 @@ export class Editor {
 	 		// newPack.add(['type', 'List', 'data', this.vList]);
 			newPack = this.vList.SavePack();
     		packStore.set(newPack); 
-			console.log('vList bufpack sent from constlisteditor ' + newPack.expand())
+			console.log('vList bufpack sent from constlisteditor ' + newPack.expand)
 		};
 		this.i.fmt.onselectionchange = () => this.FormatChangeHandler();
 	}
