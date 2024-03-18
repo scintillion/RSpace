@@ -277,6 +277,10 @@ export class Editor {
 			vID.Fmt.setType(this.i.fmt.value);
 			vID.Fmt.setValue(this.i.value.value)
 		} 
+		if (this.i.fmtstr.value) {
+			const XtraStr: string = this.RemovePossibleDelim(this.i.fmtstr.value) as string;
+			vID.Fmt.setXtra(XtraStr);
+		}
 
 		this.vList.UpdateVID(vID);
 		this.CLToSelect();

@@ -301,19 +301,29 @@
       <input type="text" id="sub" name="sub" bind:value={currentRecord.Sub} placeholder="Sub" />
       <label for="details">Details: </label>
       <input type="text" id="details" name="details" bind:value={currentRecord.Details} placeholder="Details" />
+      <label for="pack">Pack: </label>
+      <input type="text" id="pack" name="pack" bind:value={currentRecord.Pack.summary} placeholder="Pack" readonly />
+      <label for="details">List: </label>
+      <input type="text" id="list" name="list" bind:value={currentRecord.List} placeholder="list" readonly/>
       <label for="data">Data: </label>
      
       <input type="text" id="data" name="data" bind:value={currentRecord.Data} placeholder="Data" />
       <div id="specialdatadiv"></div>
      
-      
-      <div class="buttons">
+      <div class="buttonsContainer">
+        <div class="buttons">
           <button on:click={() => step = 'recordList'}>Back</button>
           <button on:click={saveChanges}>Save</button>
           {#if addingNewRecord === false}
-          <button on:click={() => selectedItemId && deleteRecord(selectedItemId)}>Delete</button>
+            <button on:click={() => selectedItemId && deleteRecord(selectedItemId)}>Delete</button>
           {/if}
           <button on:click={() => EditList(currentRecord,null)}>Edit Data</button>
+          
+        </div>
+        <div class="buttons">
+          <button on:click={() => EditList(currentRecord.List,null)}>Edit List</button>
+          <button>Edit Pack</button>
+        </div>
       </div>
     </div>
     
@@ -397,9 +407,12 @@
      max-height: 500px; 
      overflow-y: auto;
      gap:   10px;
-     
-     
-     
+   }
+
+   .buttonsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
    }
    
    .selectContainer div {

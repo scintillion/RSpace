@@ -84,7 +84,7 @@
 			</div>
 			
 			<div class="functions" id="Line2">
-				<label for="format">Format: </label>
+				<label for="format">ValueType: </label>
 				<select name="format" placeholder="Format" id="format">
 					<!-- <option value = "Null">Null</option>
 					<option value="Dollar">Dollar</option>
@@ -102,7 +102,7 @@
 						<option value={type}>{type}</option>
 					{/each}
 				</select>
-				<label for="fmtstr">Format Str:</label>
+				<label for="fmtstr">XtraStr:</label>
 				<input type="text" name="fmtstr" />
 			</div>
 			<div class="buttons">
@@ -199,7 +199,7 @@
 	 width:   100%;
      height: auto;
      
-     border-radius:   8px;
+     //border-radius:   8px;
      max-height: 500px; 
      overflow-y: auto;
      //gap:   10px;
