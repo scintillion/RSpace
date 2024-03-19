@@ -3326,16 +3326,85 @@ export namespace RS1 {
 			return Str;
 		}
 
+		getField(Name: string): PackField {
+			if (!Name)
+				return NILField;
+
+			let Fs = (Name >= '0') ? this.Ds : this.Cs;
+
+			for (const F of Fs) {
+				if (F.Name === Name)
+					return F;
+			}
+
+			return NILField;
+		}
+
+		pushField (F:PackField) {
+			let N=F.Name;
+			if (!N  || (N >= '0'))
+				this.Ds.push (F);
+			else this.Cs.push (F);
+		}
+
 		addField (F:PackField) {
+			let Name = F.Name;
+			let Fs = (!Name  || (Name >= '0')) ? this.Ds : this.Cs;
 
+			let Found = this.getField (Name);
+			if (Found != NILField) {
+				let index = Fs.indexOf (Found);
+				if (index >= 0) {
+					console.log ('AddField, Replacing ' + Fs[index].desc + ' with ' + F.desc);
+					Fs[index] = F;
+					return false;
+				}
+				throw 'Cannot find twice!';
+				return false;
+			}
 
+			Fs.push (F);
+			return true;	// added field
 		}
 
-		delField (F:PackField) {
+		delField (F:PackField|string) {
+			let Field = ((typeof F) === 'string') ? this.getField(F as string) : F as PackField;
+			if (Field === NILField)
+				return false;
 
+			let index = this.Cs.indexOf (Field);
+			if (index >= 0) {
+				this.Cs.splice (index,1);
+				return true;
+			}
+			if ((index = this.Ds.indexOf (Field)) >= 0) {
+				this.Ds.splice (index,1);
+				return true;
+			}
 
+			return false;
 		}
 
+		add(Args: any[]) {
+			let limit = Args.length;
+			let NotNull = this.Cs.length || this.Ds.length;
+
+			if ((this === NILPack)  ||  (Args.length & 1))
+				return;		// must always be matching pairs (Name/Data), odd params not allowed
+
+			for (let i = 0; i < limit; )
+			{
+				let FldName = Args[i++] as string;
+				let Data = Args[i++];
+				let NewField = new PackField(FldName,Data);
+
+				if (NotNull)
+					this.addField (NewField);
+				else this.pushField (NewField);
+			}
+		}
+
+/*
 		add(Args: any[]) {
 			if (this === NILPack)
 				return;
@@ -3360,16 +3429,11 @@ export namespace RS1 {
 			for (let i = 0; i < limit; )
 			{
 				let FldName = Args[i++] as string;
-				let DF = !FldName  || (FldName[0] >= '0');
-				let Fs = DF ? this.Ds : this.Cs;
 				let Data = Args[i++];
-
-				if (FldName === 'ist')
-					throw 'ist!2';
-
 				let NewField = new PackField(FldName,Data);
 
-				// console.log ('   ...Adding ' + (DF ? 'D:' : 'C:') +  FldName + ' DESC:' + NewField.Desc () + '\n');
+				let DF = !FldName  || (FldName >= '0');
+				let Fs = DF ? this.Ds : this.Cs;
 
 				if (NotNull)
 				{
@@ -3389,17 +3453,14 @@ export namespace RS1 {
 						continue;
 				}
 
-				if (DF)
-					this.Ds.push (NewField);
-				else this.Cs.push (NewField);
-
+				Fs.push (NewField);
 //				console.log ('Adding ' + FldName + '=' + NewField.Str + '\n' + NewField.Desc());
 			}
 
 //			console.log ('BufPack.Add Outgoing:\n' + this.Desc ());
 		}
 
-
+*/
 
 		constructor(_Type = '', _Details = '', Args : any[]=[]) {
 			this.Type1 = _Type;
@@ -3468,43 +3529,28 @@ export namespace RS1 {
 			return false;	// not found, no change
 		}
 
-		field(Name: string): PackField {
-			if (!Name)
-				return NILField;
-
-			let Fs = (Name[0] >= '0') ? this.Ds : this.Cs;
-
-			for (const F of Fs) {
-				if (F.Name === Name)
-					return F;
-			}
-
-			return NILField;
-		}
-
 		data(Name: string): PFData {
-			let F = this.field(Name);
+			let F = this.getField(Name);
 			return F !== NILField ? F.Data : NILAB;
 		}
 
 		str(Name: string) {
-			let F = this.field(Name);
+			let F = this.getField(Name);
 			return F !== NILField ? F.Str : '';
 		}
 
 		num(Name: string) {
-			let F = this.field(Name);
+			let F = this.getField(Name);
 			return F !== NILField ? F.Num : NaN;
 		}
 
 		list (Name: string) {
-			let F = this.field(Name);
+			let F = this.getField(Name);
 			return F !== NILField ? F.List : NILList;
 		}
 
-
 		pack (Name: string) {
-			let F = this.field(Name);
+			let F = this.getField(Name);
 			return F !== NILField ? F.Pack : NILPack;
 		}
 
