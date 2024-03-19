@@ -86,8 +86,14 @@
   }
 
 
-  async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null): Promise<RS1.RSData> {
-    const list: RS1.vList = new RS1.vList(D.Data);
+  async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null, ListField: boolean = false): Promise<RS1.RSData> {
+    //const list: RS1.vList = new RS1.vList(D.Data);
+    if (ListField && D.List == undefined) {
+      alert('No List found')
+      return D
+    }
+    const list: RS1.vList = ListField? new RS1.vList(D.List.Data):new RS1.vList(D.Data);
+    
     //Pack.add(['A', 'Edit', 'type', D.Type, 'data', D.Data]);
     Pack = list.SavePack();
 
@@ -99,6 +105,16 @@
             },
         });
     } else {
+        const modalBackground = document.createElement('div');
+        modalBackground.style.position = 'fixed';
+        modalBackground.style.top = '0';
+        modalBackground.style.left = '0';
+        modalBackground.style.width = '100%';
+        modalBackground.style.height = '100%';
+        modalBackground.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        modalBackground.style.zIndex = '1';
+        document.body.appendChild(modalBackground);
+
         const modalContent = document.createElement('div');
         modalContent.style.position = 'absolute';
         modalContent.style.top = '40%';
@@ -107,6 +123,7 @@
         modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
         modalContent.style.padding = '20px';
         modalContent.style.borderRadius = '5px';
+        modalContent.style.zIndex = '1';
         document.body.appendChild(modalContent);
 
         const style = document.createElement('style');
@@ -132,6 +149,7 @@
 
         editorComponent.$on('close', () => {
         modalContent.remove();
+        modalBackground.remove();
         subscribe();
     });
 
@@ -304,7 +322,7 @@
       <label for="pack">Pack: </label>
       <input type="text" id="pack" name="pack" bind:value={currentRecord.Pack.summary} placeholder="Pack" readonly />
       <label for="details">List: </label>
-      <input type="text" id="list" name="list" bind:value={currentRecord.List} placeholder="list" readonly/>
+      <input type="text" id="list" name="list" bind:value={currentRecord.List.getStr} placeholder="list" readonly/>
       <label for="data">Data: </label>
      
       <input type="text" id="data" name="data" bind:value={currentRecord.Data} placeholder="Data" />
@@ -321,7 +339,7 @@
           
         </div>
         <div class="buttons">
-          <button on:click={() => EditList(currentRecord.List,null)}>Edit List</button>
+          <button on:click={() => EditList(currentRecord.List,null,true)}>Edit List</button>
           <button>Edit Pack</button>
         </div>
       </div>

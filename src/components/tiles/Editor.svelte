@@ -8,7 +8,12 @@
 	let CLString: string = '';
 	export let Pack: RS1.BufPack;
 	let receivedPack: RS1.BufPack;
-	CLString = Pack.str('data');
+	//let SpecialData: RS1.RSData = new RS1.RSData();
+	let SpecialData: RS1.vList = new RS1.vList();
+	//CLString = Pack.str('data');
+	SpecialData.LoadPack(Pack);
+	//CLString = SpecialData.Data.LStr;
+	CLString = SpecialData.LStr;
 	//let showEditorfields = true;
 
 
@@ -79,8 +84,8 @@
 				<input type="text" name="name" placeholder="No Use Unless You Add" />
 				<label for="desc">Desc: </label>
 				<input type="text" name="desc" />
-				<label for="value">Value:</label>
-				<input type="text" name="value" />
+				<!-- <label for="value">Value:</label> -->
+				<!-- <input type="text" name="value" /> -->
 			</div>
 			
 			<div class="functions" id="Line2">
@@ -102,6 +107,8 @@
 						<option value={type}>{type}</option>
 					{/each}
 				</select>
+				<label for="value">Value:</label>
+				<input type="text" name="value" />
 				<label for="fmtstr">XtraStr:</label>
 				<input type="text" name="fmtstr" />
 			</div>
