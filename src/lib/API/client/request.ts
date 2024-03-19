@@ -66,5 +66,12 @@ export async function InitClient () {
     console.log ('aClient NewVID = "' + newVID.ToStr () + '".');
     console.log ('aClient Fmt = "' + newVID.Fmt.ToStr () + '"');
     console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
+
+    let F = new RS1.PackField ('Num',123);
+    F.clear ();
+    let List = new RS1.vList ('|');
+    let v = new RS1.vID ('ABC:DEF');
+    List.UpdateVID (v);
+    console.log ('List=' + List.getStr);
 }
 

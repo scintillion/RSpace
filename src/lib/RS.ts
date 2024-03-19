@@ -369,7 +369,10 @@ export namespace RS1 {
 	}
 
 	export function isDigit(ch: string): boolean {
-		ch = ch[0];
+		if (ch)
+			ch = ch[0];
+		else return false;
+
 		if ((ch <= '9')  &&  ch.length)
 				return ((ch >= '0') || (ch === '-') || (ch === '.'));
 
@@ -867,7 +870,7 @@ export namespace RS1 {
 		_Tile = 'S';
 		Sub = '';
 		Str = '';
-		ID = 0;
+//		ID = 0;
 		List = NILList;
 		Pack = NILPack;
 		Details = '';
@@ -877,6 +880,7 @@ export namespace RS1 {
 
 		PostLoad (P : BufPack) {}
 
+		get ID () { return this._rID !== NILRID ? this._rID.ID : 0; }
 		get RID () { return this._rID.copy (); }
 
 		get Tile () { return this._Tile; }
@@ -912,18 +916,19 @@ export namespace RS1 {
 			this.setTile (P.str ('.T'));
 			this.Str = P.str ('str');
 			this.Sub = P.str ('sub');
-			this.ID = P.num ('.ID');
+			// this.ID = P.num ('.ID');
 			this.List = P.list ('list');
 			this.Pack = P.pack('pack');
 
 			let ridStr = P.str ('.rid');
 			if (ridStr) {
 				this._rID = new RID (ridStr);
-				RS1.log ('Assigning RID ' + ridStr + ' to ' + this.desc)
+				RS1.log ('Assigning RID "' + ridStr + '" to ' + this.desc)
 			}
 
-			if (!this.ID)
-				this.ID = P.num ('id');
+//			if (!this.ID)
+//				this.ID = P.num ('id');
+
 			this.Details = P.str ('details');
 			this.Data = P.data ('data');
 
@@ -1811,6 +1816,9 @@ export namespace RS1 {
 		private InitList(Str1: string | string[]) {
 			if (this === NILList)
 				return;
+
+			if (!Str1)
+				Str1 = PrimeDelim;
 
 			this._NameIDs = '';
 			this._Indent = 0;
@@ -3134,6 +3142,21 @@ export namespace RS1 {
 			this._type = Type;
 		}
 
+		clear () {
+			let D : any;
+			switch (this._type) {
+				case tStr : D = ''; break;
+				case tNum : D = NaN; break;
+				case tPack : D = new BufPack (); break;
+				case tAB : D = new ArrayBuffer (0); break;
+				case tList : D = new vList (''); break;
+				default : 
+					D = NILAB;
+			}
+			this._data = D;
+		}
+
+
 		private setByAB (AB : ArrayBuffer,Type1 : string) {
 			if (this === NILField)
 				return;
@@ -3153,6 +3176,7 @@ export namespace RS1 {
 					break;
 				case tAB : D = AB.slice (0); break;
 				case tList : D = new vList (ab2str (AB)); break;
+				case tData : D = NILData; break;
 				default : this._error = 'constructor error Type =' + Type1 + ', converted to NILAB.';
 					Type1 = tAB;
 					D = NILAB;
@@ -3302,6 +3326,16 @@ export namespace RS1 {
 			return Str;
 		}
 
+		addField (F:PackField) {
+
+
+		}
+
+		delField (F:PackField) {
+
+
+		}
+
 		add(Args: any[]) {
 			if (this === NILPack)
 				return;
@@ -3341,15 +3375,6 @@ export namespace RS1 {
 				{
 					let Found = false;
 
-					/*
-					for (var F of Fs) {
-						if (F.Name === FldName) {
-							F = NewField;
-							Found = true;
-							break;
-						}
-					*/
-
 					for (let j = Fs.length; --j >= 0;)
 						if (Fs[j].Name === FldName) {
 							Fs[j] = NewField;
@@ -3362,9 +3387,7 @@ export namespace RS1 {
 
 					if (Found)
 						continue;
-
 				}
-
 
 				if (DF)
 					this.Ds.push (NewField);
@@ -3429,7 +3452,7 @@ export namespace RS1 {
 				F.toAB;
 		}
 
-		update (N : string, V : any) {
+		update (N : string, V : any){
 			if (this === NILPack)
 				return;
 
@@ -3438,9 +3461,11 @@ export namespace RS1 {
 			for (i = Fs.length; --i >= 0;) {
 					if (Fs[i].Name === N) {
 						Fs[i] = new PackField (N,V);
-						return;
+						return true;
 					}
 				}
+
+			return false;	// not found, no change
 		}
 
 		field(Name: string): PackField {
