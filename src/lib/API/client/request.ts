@@ -69,7 +69,7 @@ export async function InitClient () {
 
     let F = new RS1.PackField ('Num',123);
     F.clear ();
-    let List = new RS1.vList ('|');
+    let List = new RS1.vList ();
     let v = new RS1.vID ('ABC:DEF');
     List.UpdateVID (v);
     console.log ('List=' + List.getStr);

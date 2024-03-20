@@ -1951,10 +1951,7 @@ export namespace RS1 {
 			
 			super ();
 			if ((typeof Str1) === 'string') {
-				let S = Str1 as string;
-				if (S)
-					this.InitList (S);
-				else return;
+				this.InitList (Str1 as string);
 			}
 			else if (Array.isArray (Str1)) {
 				this.InitList (Str1 as string[]);
@@ -3243,7 +3240,7 @@ export namespace RS1 {
 
 					let Pack = this.Pack;
 
-					Str += 'C:'+Pack.Cs.length.toString() + ' D:' + Pack.Ds.length.toString () + ')';
+					Str += 'C:'+Pack.fetch('<').length.toString() + ' D:' + Pack.fetch('>').length.toString () + ')';
 					break;
 
 				default : Str += 'BADTYPE=' + this._type + ' ' + this.AB.byteLength.toString () + ' bytes';
@@ -3289,7 +3286,8 @@ export namespace RS1 {
 				case tList : break;
 				case tPack : case tData :  
 					let Pack = this.Pack;
-					for (const F of Pack.Ds)
+					let Ds = Pack.fetch('>');
+					for (const F of Ds)
 						Str += ' ' + F.NameVal;
 					break;
 				case tAB : break;
@@ -3307,23 +3305,59 @@ export namespace RS1 {
 	export const NILField = new PackField ('NIL!',NILAB);
 
 	export class BufPack {
-		Cs : PackField[] = [];
-		Ds : PackField[] = [];
-		Type1 = '';
-		Details = '';
+		private Cs : PackField[] = [];
+		private Ds : PackField[] = [];
+		_Type = '';
+		_Details = '';
+
+		get Type() { return this._Type; }
+		get Details () { return this._Details; }
 
 		get summary () {
 			let Fields = this.Cs.concat (this.Ds);
 
 			let Str = 'PACK';
-			if (this.Type1)
-				Str += ' Type:' + this.Type1;
+			if (this._Type)
+				Str += ' Type:' + this._Type;
 			if (this.Details)
 				Str += ' Details:' + this.Details;
 
 			for (const Q of Fields)
 				Str += ' ' + Q.Name;
 			return Str;
+		}
+
+		fetch (Name='') : PackField[] {
+			// Name = '' (ALL), Name = 'ABC.' ALL with ABC prefix,
+			// Name = '.xyz' ALL with xyz suffix
+			// Name = '>', ALL Ds  '<' ALL Cs
+
+			if (!Name)
+				return (this.Cs.concat (this.Ds)).slice(0);
+
+			let Fields=[], len = Name.length;
+			switch (Name[0]) {
+				case '.' :	// all with suffix
+					len = -len;
+					for (const F of this.Ds) {
+						if (F.Name.slice (len) === Name)
+							Fields.push (F);
+						}
+					return Fields;
+					break;
+
+				case '>' : return this.Ds.slice (0); break;
+				case '<' : return this.Cs.slice (0); break;
+				default : 
+						if (Name.slice(-1) !== '.')
+							return	[];
+
+						for (const F of this.Ds) {
+							if (F.Name.slice (0,len) === Name)
+								Fields.push (F);
+						}
+						return Fields;
+			}
 		}
 
 		getField(Name: string): PackField {
@@ -3463,14 +3497,14 @@ export namespace RS1 {
 */
 
 		constructor(_Type = '', _Details = '', Args : any[]=[]) {
-			this.Type1 = _Type;
+			this._Type = _Type;
 			//	console.log ('constructor SetType =' + _Type);
 
 			let BPos = _Details.indexOf(']');
 			if (BPos > 0) _Details = _Details.slice(0, BPos);
 			// trim ] and trailing text to avoid errors
 
-			this.Details = _Details;
+			this._Details = _Details;
 
 			if (Args.length)
 				this.add (Args);
@@ -3598,9 +3632,10 @@ export namespace RS1 {
 			let PFs = this.Cs.concat (this.Ds);
 
 			let Prefix = '    ';
-			if (this.Type1) {
-				Prefix += ':' + this.Type1;
-				if (this.Details) Prefix += '[' + this.Details + ']';
+			if (this._Type) {
+				Prefix += ':' + this._Type;
+				if (this._Details)
+					Prefix += '[' + this._Details + ']';
 			}
 			//	console.log ('Building Prefix, Type = ' + this.Type1 + ', starting as:' + Prefix);
 
@@ -3708,9 +3743,9 @@ export namespace RS1 {
 				}
 				Type = Type.slice (0,C0);
 			}
-			this.Type1 = Type;
+			this._Type = Type;
 			// console.log ('1.Type1 set to ' + Type)
-			this.Details = Details;
+			this._Details = Details;
 
 			let Offset = PBytes;
 
@@ -3769,12 +3804,12 @@ export namespace RS1 {
 		clear() {
 			this.Cs = [];
 			this.Ds = [];
-			this.Type1 = '';
-			this.Details = '';
+			this._Type = '';
+			this._Details = '';
 		}
 
 		get multi () {
-			if (this.Type1[0] === '*')
+			if (this._Type  &&  (this._Type[0] === '*'))
 				return this.Ds.length;
 			else return 0;
 		}
@@ -3796,7 +3831,7 @@ export namespace RS1 {
 					BPs[count++] = NewBP;
 			}
 
-			this.Type1 = this.Type1.slice (1);	// result is NOT a multipack...
+			this._Type = this._Type.slice (1);	// result is NOT a multipack...
 			this.Ds.length = 0;
 
 			return BPs;
@@ -3816,8 +3851,8 @@ export namespace RS1 {
 			}
 			this.Ds = NewFields;
 
-			if (this.Type1[0] !== '*')
-				this.Type1 = '*' + this.Type1;
+			if (this._Type[0] !== '*')
+				this._Type = '*' + this._Type;
 
 			//	console.log ('2.Type1 set to ' + this.Type1);
 		}
