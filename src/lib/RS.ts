@@ -1570,7 +1570,7 @@ export namespace RS1 {
 
 		get notNIL () {
 			if (this === NILList) {
-			   throw 'NILList!'; return false;
+			   log ('NILList!'); return false;
 		   }
 		   return true;
 	   }
@@ -3081,7 +3081,7 @@ export namespace RS1 {
 
 		get notNIL () {
 			 if (this === NILField) {
-				throw 'NILField!'; return false;
+				log ('NILField!'); return false;
 			}
 			return true;
 		}
@@ -3359,7 +3359,7 @@ export namespace RS1 {
 
 		get notNIL () {
 			if (this === NILPack) {
-			   throw 'NILPack!'; return false;
+			   log ('NILPack!'); return false;
 		   }
 		   return true;
 	   }

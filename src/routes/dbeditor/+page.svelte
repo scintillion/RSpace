@@ -109,7 +109,7 @@
 // console.log('PACK PACK' + list.Data)
 
     if (ListField) {
-      if (D.List === undefined) {
+      if (D.List === RS1.NILList) {
         D.List = new RS1.vList();
         list = new RS1.vList();
         console.log('LIST1 DATA' + list.Data)

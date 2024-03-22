@@ -250,7 +250,10 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 	let OutPack : RS1.BufPack;
 
 	if (!Serial)
+	{
+		console.log ('NO Client Serial:\n' + InPack.expand);
 		throw "No Client Serial!";
+	}
 	console.log ('Server Receives Client Request #' + Serial.toString ());
 
 	let QF = InPack.xField;
