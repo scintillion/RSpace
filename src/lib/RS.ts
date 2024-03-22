@@ -62,7 +62,7 @@ export namespace RS1 {
 
 	export const NameDelim = ':',PrimeDelim = '|',TabDelim = '\t',LineDelim = '\n',FormDelim = '\f';
 	export const FormatStart = '[',FormatEnd = ']';
-	export const tNone='?',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^';
+	export const tNone='?',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^',tID='+';
 
 	export enum CLType {
 		None,
@@ -84,6 +84,7 @@ export namespace RS1 {
 	// Note: these variables ONLY used by Client, should be set to ''
 	// or '!ERROR' on Server just to be safe!
 	export var myServer='';
+	export var mySession=0;
 	export var myTile='S';
 	export var myVilla='S';
 
@@ -862,6 +863,12 @@ export namespace RS1 {
 
 	export const NILRID = new RID ('');
 
+	export class IData {
+		ID = 0;
+		Name = '';
+		Desc = '';
+	}
+
 	export class RSData {
 		Name = '';
 		Desc = '';
@@ -899,9 +906,12 @@ export namespace RS1 {
 				this._rID = rID1;
 			}
 
-		get desc () {
+		get preDesc () {
 			return this.Name + '[' + this.Type + ']' + (this.Desc? (':'+this.Desc):''); 
 		}
+
+		get desc () { return this.preDesc; }
+
 
 		LoadPack(P: BufPack) {
 			if (this === NILData)
@@ -1290,12 +1300,14 @@ export namespace RS1 {
 						this.IDType = tPack;
 					else if (SampleID instanceof (RSData))
 						this.IDType = tData;
+					else if (SampleID instanceof IData)
+						this.IDType = tID;
 					else this.IDType = tNone;
 			}
 		}
 
 		index (ID : number|string) {
-			if (this.IDType === tNum)
+			if ((this.IDType === tNum)  ||  (this.IDType === tID))
 				return this.numIDs.indexOf (ID as number);
 			else return this.strIDs.indexOf (ID as string);
 		}
@@ -1556,8 +1568,21 @@ export namespace RS1 {
 		protected _Childs: vList[] | undefined;
 		protected _Indent = 0;
 
-		get Count() {
+		get notNIL () {
+			if (this === NILList) {
+			   throw 'NILList!'; return false;
+		   }
+		   return true;
+	   }
+
+	   get Count() {
 			return this._Count;
+		}
+
+		get desc ():string {
+			this.notNIL;
+
+			return this.preDesc + ' LStr=' + this.LStr;
 		}
 
 		get Childs() {
@@ -1601,8 +1626,7 @@ export namespace RS1 {
 		}
 
 		Merge(AddList: vList | undefined): boolean {
-			if (this === NILList)
-				return false;
+		    this.notNIL;
 
 			let DestStrs = this.LStr.split(this._Delim);
 			DestStrs.length = DestStrs.length - 1;
@@ -1666,8 +1690,7 @@ export namespace RS1 {
 		}
 
 		SetDelim(NewDelim: string): boolean {
-			if (this === NILList)
-				return false;
+		    this.notNIL;
 
 				let OldDelim = this._Delim;
 
@@ -1724,8 +1747,7 @@ export namespace RS1 {
 		}
 
 		NameList(UseList = 1): string {
-			if (this === NILList)
-				return '';
+		    this.notNIL;
 
 			if (UseList && this._NameIDs) return this._NameIDs;
 
@@ -1814,8 +1836,7 @@ export namespace RS1 {
 		}
 
 		private InitList(Str1: string | string[]) {
-			if (this === NILList)
-				return;
+		    this.notNIL;
 
 			if (!Str1)
 				Str1 = PrimeDelim;
@@ -2011,7 +2032,8 @@ export namespace RS1 {
 		}
 
 		UpdateVID(VID: vID, Delete = false) {
-			if (!VID  ||  this === NILList) return;
+		    this.notNIL;
+			if (!VID) return;
 
 			let Delim = this._Delim;
 			let Str = this.LStr;
@@ -2140,12 +2162,19 @@ export namespace RS1 {
 		}
 
 		ByDesc(Desc: string) {
-			let SearchStr = NameDelim + Desc + this._Delim;
+			let SearchStr = NameDelim + Desc;
+			let Last = Desc.slice(-1);
+			if (Last !== '*') 
+				SearchStr += this._Delim;
+			else SearchStr = SearchStr.slice (0,-1);
 
+			// PrefixMatch the first characters of Desc, allows for
+			// Type,ABC to match based on "Type," starting the Desc
+			// does not work if [Format] is present
 			let Pos1 = this.LStr.indexOf(SearchStr, this._FirstDelim);
 			if (Pos1 >= 0) {
-				for (let i = Pos1; --i > 0; ) {
-					if (this.LStr[i] === this._Delim) return this.VIDByPos(i + 1);
+				for (let D = this._Delim, i = Pos1; --i > 0; ) {
+					if (this.LStr[i] === D) return this.VIDByPos(i + 1);
 				}
 
 				return undefined;
@@ -3044,11 +3073,30 @@ export namespace RS1 {
 	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData;
 
 	export class PackField {
-		private _name = '';
-		private _type = ' ';
-		private _data : any = NILAB;
-		private _error = '';
-		private _AB = NILAB;
+		protected _name = '';
+		protected _type = ' ';
+		protected _data : any = NILAB;
+		protected _error = '';
+		protected _AB = NILAB;
+
+		get notNIL () {
+			 if (this === NILField) {
+				throw 'NILField!'; return false;
+			}
+			return true;
+		}
+
+		get copy () {
+			let AB = this.toAB;
+			return new PackField (this._name, AB, this._type);
+		}
+
+		from (Src : PackField) {
+			this._name = Src._name;
+			this._type = Src._type;
+			let AB = Src.toAB;
+			this.setByAB (AB, this._type);
+		}
 
 		get Type () { return this._type; }
 		get Name () { return this._name; }
@@ -3081,15 +3129,14 @@ export namespace RS1 {
 				case tData : AB = (this._data as BufPack).bufOut (); break;
 				case tPack : AB = this.Pack.bufOut (); break;
 				case tList : AB = str2ab (this.List.getStr); break;
-				default : AB = NILAB; this._error = 'toArray Error, Type =' + this.Type + '.';
+				default : AB = NILAB; this._error = 'toArray Error, Type =' + this._type + '.';
 			}
 
 			return this._AB = AB;
 		}
 
 		setData (D : PFData) {
-			if (this === NILField)
-				return;
+		    this.notNIL;
 
 			let Type;
 			switch (typeof (D)) {
@@ -3124,13 +3171,13 @@ export namespace RS1 {
 								if (D instanceof RSData) {
 									Type = tData;
 									this._data = (D as RSData).SavePack ();
-									log ('setData:Not allowed without TypeLists, field='+this.Name);
+									log ('setData:Not allowed without TypeLists, field='+this._name);
 									// we cannot directly create the appropriate
 									// RSData record because we don't have TypeLists
 									// fully implemented
 								}
 								else
-									throw ('tNone! Name =' + this.Name + ' CName=' + CName);
+									throw ('tNone! Name =' + this._name + ' CName=' + CName);
 									Type = tNone;
 									this._data = NILAB;
 								}
@@ -3155,8 +3202,7 @@ export namespace RS1 {
 
 
 		private setByAB (AB : ArrayBuffer,Type1 : string) {
-			if (this === NILField)
-				return;
+		    this.notNIL;
 
 			let D;
 			switch (Type1) {
@@ -3166,14 +3212,13 @@ export namespace RS1 {
 					let Pack = new BufPack (); Pack.bufIn (AB);
 					D = Pack;
 					if (Type1 === tData)
-						console.log ('setByAB: type = ' + Type1 + ' Not allowed without TypeLists, field='+this.Name);
+						console.log ('setByAB: type = ' + Type1 + ' Not allowed without TypeLists, field='+this._name);
 					// currently we cannot support tData by creating
 					// the appropriate RSData record because we don't
 					// have TypeLists fully implemented (Name/new/EditFunc)
 					break;
 				case tAB : D = AB.slice (0); break;
 				case tList : D = new vList (ab2str (AB)); break;
-				case tData : D = NILData; break;
 				default : this._error = 'constructor error Type =' + Type1 + ', converted to NILAB.';
 					Type1 = tAB;
 					D = NILAB;
@@ -3186,8 +3231,7 @@ export namespace RS1 {
 		}
 
 		private _setByBuf (Type : string, InBuffer : Int8Array | ArrayBuffer, Start = -1, nBytes = -1) {
-			if (this === NILField)
-				return;
+		    this.notNIL;
 
 			let ABuf : ArrayBuffer;
 			let IBuf,TBuf : Int8Array;
@@ -3251,8 +3295,7 @@ export namespace RS1 {
 
 
 		Equal (Ref : PackField) : boolean {
-			if (this === NILField)
-				return false;
+		    this.notNIL;
 
 			if (this._type === Ref._type) {
 				switch (this._type) {
@@ -3298,6 +3341,9 @@ export namespace RS1 {
 			if (this._error)
 				Str += ' ***ERROR*** ' + this._error;
 
+			if (this === NILField)
+				Str = 'NILField!';
+
 			return Str;
 		}
 	}
@@ -3305,20 +3351,28 @@ export namespace RS1 {
 	export const NILField = new PackField ('NIL!',NILAB);
 
 	export class BufPack {
-		private Cs : PackField[] = [];
-		private Ds : PackField[] = [];
-		_Type = '';
-		_Details = '';
+		_type = '';
+		_details = '';
 
-		get Type() { return this._Type; }
-		get Details () { return this._Details; }
+		Cs : PackField[] = [];
+		Ds : PackField[] = [];
+
+		get notNIL () {
+			if (this === NILPack) {
+			   throw 'NILPack!'; return false;
+		   }
+		   return true;
+	   }
+
+	   get Type() { return this._type; }
+		get Details () { return this._details; }
 
 		get summary () {
 			let Fields = this.Cs.concat (this.Ds);
 
 			let Str = 'PACK';
-			if (this._Type)
-				Str += ' Type:' + this._Type;
+			if (this._type)
+				Str += ' Type:' + this._type;
 			if (this.Details)
 				Str += ' Details:' + this.Details;
 
@@ -3420,10 +3474,14 @@ export namespace RS1 {
 		}
 
 		add(Args: any[]) {
+		    this.notNIL;
+
 			let limit = Args.length;
 			let NotNull = this.Cs.length || this.Ds.length;
 
-			if ((this === NILPack)  ||  (Args.length & 1))
+		    this.notNIL;
+
+			if (Args.length & 1)
 				return;		// must always be matching pairs (Name/Data), odd params not allowed
 
 			for (let i = 0; i < limit; )
@@ -3438,81 +3496,22 @@ export namespace RS1 {
 			}
 		}
 
-/*
-		add(Args: any[]) {
-			if (this === NILPack)
-				return;
+		constructor(_type = '', _Details = '', Args : any[]=[]) {
+			this._details = _Details;
 
-			let limit = Args.length;
-			let NotNull = this.Cs.length || this.Ds.length;
-
-			let TypeCh,Size,Bytes;
-			let NewBuf : ArrayBuffer;
-			let PList = PL;
-
-			if (!PList) return;
-
-			if (Args.length & 1)
-				return;		// must always be matching pairs (Name/Data), odd params not allowed
-
-
-			// console.log ('BufPack.Add Incoming:');
-			if (NotNull)
-				console.log (this.desc);
-
-			for (let i = 0; i < limit; )
-			{
-				let FldName = Args[i++] as string;
-				let Data = Args[i++];
-				let NewField = new PackField(FldName,Data);
-
-				let DF = !FldName  || (FldName >= '0');
-				let Fs = DF ? this.Ds : this.Cs;
-
-				if (NotNull)
-				{
-					let Found = false;
-
-					for (let j = Fs.length; --j >= 0;)
-						if (Fs[j].Name === FldName) {
-							Fs[j] = NewField;
-							if (DF)
-								this.Ds[j] = NewField;
-							else this.Cs[j] = NewField;
-							Found = true;
-							break;
-						}
-
-					if (Found)
-						continue;
-				}
-
-				Fs.push (NewField);
-//				console.log ('Adding ' + FldName + '=' + NewField.Str + '\n' + NewField.Desc());
-			}
-
-//			console.log ('BufPack.Add Outgoing:\n' + this.Desc ());
-		}
-
-*/
-
-		constructor(_Type = '', _Details = '', Args : any[]=[]) {
-			this._Type = _Type;
-			//	console.log ('constructor SetType =' + _Type);
+			this._type = _type;
+			//	console.log ('constructor SetType =' + _type);
 
 			let BPos = _Details.indexOf(']');
 			if (BPos > 0) _Details = _Details.slice(0, BPos);
 			// trim ] and trailing text to avoid errors
 
-			this._Details = _Details;
-
 			if (Args.length)
 				this.add (Args);
 		}
 
-		xAdd (Type:string,Value:string) {
-			if (this === NILPack)
-				return;
+		xAdd (Type:string,Value:string|number) {
+		    this.notNIL;
 
 			let F = new PackField ('!'+Type,Value);
 
@@ -3537,8 +3536,7 @@ export namespace RS1 {
 
 		toABs ()
 		{
-			if (this === NILPack)
-				return;
+		    this.notNIL;
 
 			for (const F of this.Cs)
 				F.toAB;
@@ -3548,8 +3546,7 @@ export namespace RS1 {
 		}
 
 		update (N : string, V : any){
-			if (this === NILPack)
-				return;
+		    this.notNIL;
 
 			let i;
 			let Fs = ((N[0] < '0') || !N) ? this.Ds : this.Cs;
@@ -3605,6 +3602,9 @@ export namespace RS1 {
 			for (const F of this.Ds) {
 					Lines.push ('  D::' + F.desc);
 			}
+
+			if (this === NILPack)
+				return 'NILPack!'
 	
 			return Lines.join('\n');
 		}
@@ -3632,10 +3632,10 @@ export namespace RS1 {
 			let PFs = this.Cs.concat (this.Ds);
 
 			let Prefix = '    ';
-			if (this._Type) {
-				Prefix += ':' + this._Type;
-				if (this._Details)
-					Prefix += '[' + this._Details + ']';
+			if (this._type) {
+				Prefix += ':' + this._type;
+				if (this.Details)
+					Prefix += '[' + this.Details + ']';
 			}
 			//	console.log ('Building Prefix, Type = ' + this.Type1 + ', starting as:' + Prefix);
 
@@ -3651,8 +3651,9 @@ export namespace RS1 {
 			let PAB = str2ab (Prefix);
 			let Bytes = PAB.byteLength;
 			let ByteStr = Bytes.toString ();
-			// console.log ('FirstPAB ' + PAB.byteLength.toString ());
-
+			console.log ('FirstPAB ' + PAB.byteLength.toString () + ' Strlen=' + Prefix.length);
+			if (PAB.byteLength != Prefix.length)
+				log ('*******mismatch!');
 			Prefix = ByteStr + Prefix.slice (ByteStr.length);
 			PAB = str2ab (Prefix);
 			// console.log ('SecondPAB ' + PAB.byteLength.toString ());
@@ -3701,8 +3702,7 @@ export namespace RS1 {
 		}
 
 		bufIn (AB: ArrayBuffer) {
-			if (this === NILPack)
-				return;
+		    this.notNIL;
 
 			this.clear ();
 
@@ -3743,9 +3743,9 @@ export namespace RS1 {
 				}
 				Type = Type.slice (0,C0);
 			}
-			this._Type = Type;
+			this._type = Type;
 			// console.log ('1.Type1 set to ' + Type)
-			this._Details = Details;
+			this._details = Details;
 
 			let Offset = PBytes;
 
@@ -3804,12 +3804,12 @@ export namespace RS1 {
 		clear() {
 			this.Cs = [];
 			this.Ds = [];
-			this._Type = '';
-			this._Details = '';
+			this._type = '';
+			this._details = '';
 		}
 
 		get multi () {
-			if (this._Type  &&  (this._Type[0] === '*'))
+			if (this._type  &&  (this._type[0] === '*'))
 				return this.Ds.length;
 			else return 0;
 		}
@@ -3831,7 +3831,7 @@ export namespace RS1 {
 					BPs[count++] = NewBP;
 			}
 
-			this._Type = this._Type.slice (1);	// result is NOT a multipack...
+			this._type = this._type.slice (1);	// result is NOT a multipack...
 			this.Ds.length = 0;
 
 			return BPs;
@@ -3851,15 +3851,14 @@ export namespace RS1 {
 			}
 			this.Ds = NewFields;
 
-			if (this._Type[0] !== '*')
-				this._Type = '*' + this._Type;
+			if (this._type[0] !== '*')
+				this._type = '*' + this._type;
 
 			//	console.log ('2.Type1 set to ' + this.Type1);
 		}
 
 		objectIn (O : Object) {
-			if (this === NILPack)
-				return;
+		    this.notNIL;
 
 			this.clear ();
 			

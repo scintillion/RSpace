@@ -1,7 +1,12 @@
-<script >
+<script lang="ts">
 import { InitClient } from '$lib/API/client/request';
+import { onMount } from 'svelte';
 
-InitClient ();
+
+onMount(() => {
+	console.log ('Entry InitClient!');
+	InitClient ();
+});
 </script>
 
 

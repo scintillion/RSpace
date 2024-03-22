@@ -73,5 +73,11 @@ export async function InitClient () {
     let v = new RS1.vID ('ABC:DEF');
     List.UpdateVID (v);
     console.log ('List=' + List.getStr);
+
+    let OutPack = new RS1.BufPack ();
+    OutPack.xAdd ('H',RS1.myVilla);
+    let InPack = await RS1.ReqPack (OutPack);
+    RS1.mySession = InPack.num('!H');
+    console.log ('mySession = ' + RS1.mySession.toString ());
 }
 

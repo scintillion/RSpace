@@ -44,7 +44,9 @@ class DBKit {
 		if (QF)
 			qType = QF.Str;
 
-		for (const C of QBuf.Cs) {
+		let Cs = QBuf.Cs;
+
+		for (const C of Cs) {
 			switch (C.Name.toUpperCase ()) {
 				case '.I' : case '.ID' : ID = C.Num; break;
 				case '.T' : case '.TILE' : case '.TABLE' : Tile = C.Str; break;
@@ -57,10 +59,11 @@ class DBKit {
 		}
 
 		let qStr = '', vStr = '', Name;
-		let Values = new Array (QBuf.Ds.length);	// long enough
+		let Ds = QBuf.Ds;
+		let Values = new Array (Ds.length);	// long enough
 		let nValues = 0;
 
-		for (const F of QBuf.Ds)
+		for (const F of Ds)
 		{
 			Name = F.Name;
 			if (qType === 'I') {
@@ -106,7 +109,7 @@ class DBKit {
 					qStr = 'UPDATE ' + Tile + ' SET '; vStr = '';
 				}
 
-				for (const F of QBuf.Ds)
+				for (const F of Ds)
 				{
 					Name = F.Name;
 					if (qType === 'I') {
@@ -195,7 +198,7 @@ class DBKit {
 
 				BPs[countBP++] = BP;
 				}
-				Pack.Cs = [];
+				// Pack.Cs = [];
 				Pack.packArray (BPs);
 				console.log ('Server packs ' + BPs.length.toString () + ' records to send to client');
 				console.log (Pack.expand);
@@ -224,6 +227,9 @@ class RServer {
 	DBK : DBKit;
 	myVilla='S';
 	myTile='';
+	mySession='';
+
+	nextSession=0;
 
 	constructor (Path : string) {
 		this.DBK = new DBKit (Path);
@@ -241,13 +247,17 @@ const RSS = new RServer ('tile.sqlite3');
 
 async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 	let Serial = InPack.num ('#');
+	let OutPack : RS1.BufPack;
+
 	if (!Serial)
 		throw "No Client Serial!";
 	console.log ('Server Receives Client Request #' + Serial.toString ());
 
 	let QF = InPack.xField;
+
 	console.log ('-----------\nInPack=' + InPack.summary + 'Q=' + QF?.Str + '\n-----------\n'
 		 + InPack.desc);
+
 		 
 	switch (QF.Name) {
 		case '!Q' :
@@ -255,12 +265,19 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 			console.log ('  Query Tile --> ' + RSS.myTile);
 			
 			let Params = RSS.DBK.buildQ (InPack);
-			let OutPack = RSS.DBK.execQ (InPack, Params);
+			OutPack = RSS.DBK.execQ (InPack, Params);
 
 			OutPack.add (['#',Serial]);
 
 			console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
 			return OutPack;
+
+		case '!H' :
+			OutPack = new RS1.BufPack ();
+			OutPack.add (['!H',++(RSS.nextSession),'#',Serial]);
+			console.log ('  Starting Session #' + RSS.mySession);
+			return OutPack;
+			break;
 
 		default : return RS1.NILPack;
 	}
