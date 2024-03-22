@@ -4,6 +4,7 @@
 	import { RS1 } from '../../lib/RS';
 	import { packStore } from '../../stores/packStore.js';
 	import { createEventDispatcher } from 'svelte';
+    import { subscribe } from 'svelte/internal';
 
 	let CLString: string = '';
 	export let Pack: RS1.BufPack;
@@ -16,12 +17,19 @@
 	CLString = SpecialData.LStr;
 	//let showEditorfields = true;
 
+	const unsubscribe = packStore.subscribe(value => {
+      		receivedPack = value;
+      		//console.dir('store pack' + receivedPack.str('data')); 
+      
+    });
+
 
 	const dispatch = createEventDispatcher();
 	const TypeArray = RS1.TypeNames;
 
 	function close() {
 		dispatch('close');
+		unsubscribe;
 	}
 	
 
@@ -59,15 +67,58 @@
 			edit.Populate();
 		}
 		console.dir('prop pack' + Pack.str ('data'))
-		const subscribe = packStore.subscribe(value => {
-      		receivedPack = value;
-      		//console.dir('store pack' + receivedPack.str('data')); 
+	// 	const unsubscribe = packStore.subscribe(value => {
+    //   		receivedPack = value;
+    //   		//console.dir('store pack' + receivedPack.str('data')); 
       
-    });
+    // });
 
-    	return subscribe; 
+    	return unsubscribe; 
 	});
+
+	// let name = "";
+	// let type = "";
+	// let sub = "";
+  
+	// function handleNameChange(event:any) {
+	//   if (name === "") {
+	// 	name = event.target.value;
+	//   }
+	// }
+  
+	// function handleTypeChange(event:any) {
+	//   if (type === "") {
+	// 	type = event.target.value;
+	//   }
+	// }
+  
+	// function handleSubChange(event:any) {
+	//   if (sub === "") {
+	// 	sub = event.target.value;
+	//   }
+	// }
+
+	// let name = "";
+	// let type = "";
+	// let sub = "";
+
+	// $: nameSet = name !== "";
+	// $: typeSet = type !== "";
+	// $: subSet = sub !== "";
+
+	// function handleNameChange(event:any) {
+	// 	name = event.target.value;
+	// }
+
+	// function handleTypeChange(event:any) {
+	// 	type = event.target.value;
+	// }
+
+	// function handleSubChange(event:any) {
+	// 	sub = event.target.value;
+	// }
 </script>
+
 
 <div class="editor">
 	<div id="cledit">
@@ -82,6 +133,10 @@
 			<div class="functions" id="Line1">
 				<label for="name">Name: </label>
 				<input type="text" name="name" placeholder="No Use Unless You Add" />
+				<!-- <label for="name">Name:</label>
+			  <input type="text" id="name" bind:value={name} on:input={handleNameChange} readOnly={name !== ""}> -->
+			  <!-- <label for="name">Name:</label>
+		<input type="text" id="name" bind:value={name} on:input={handleNameChange} readOnly={nameSet}> -->
 				<label for="desc">Desc: </label>
 				<input type="text" name="desc" />
 				<!-- <label for="value">Value:</label> -->
@@ -113,6 +168,16 @@
 				<input type="text" name="fmtstr" />
 			</div>
 			<div class="buttons">
+			
+			<!-- <div>
+			  
+			
+			  <label for="type">Type:</label>
+			  <input type="text" id="type" bind:value={type} on:input={handleTypeChange} readOnly={type !== ""}>
+			
+			  <label for="sub">Sub:</label>
+			  <input type="text" id="sub" bind:value={sub} on:input={handleSubChange} readOnly={sub !== ""}>
+			</div> -->
 				<button id="save">Save</button>
 				<button id="del">Delete</button>
 				<button id="clear">Clear</button>

@@ -141,6 +141,7 @@ export class Editor {
 
 	private ClearRef(): void {
 		this.UnloadMemberAndSetFields();
+		this.i.name.readOnly = false;
 		this.i.description.value = '';
 		this.i.fmt.value = '';
 		this.i.name.value = '';
@@ -152,7 +153,10 @@ export class Editor {
 	private DefineFields(vID: RS1.vID): void {
 		if (vID) {
 			this.i.name.value = vID.Name;
-			this.i.description.value = vID.Desc
+			if (this.i.name.value) {
+			this.i.name.readOnly = true;
+			}
+			this.i.description.value = vID.Desc		
 
 			console.log(vID.Fmt?.Ch !== '');
 
@@ -199,7 +203,7 @@ export class Editor {
 			'display: block; width: 100px; height: 40px; border-radius: 10px; font-family: inherit; outline: none; border: none; padding-left: 10px; transition: 0.3s linear;';
 		this.i.list.onchange = () => {
 			const List = this.lol.ListByName(this.i.list.value) as RS1.vList;
-			List.ToSelect(this.i.vID);
+			List.ToSelect(this.i.vID);			
 		};
 
 		if (field === 'Set') {

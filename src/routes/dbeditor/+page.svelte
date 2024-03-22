@@ -4,6 +4,7 @@
   import { InitClient } from '$lib/API/client/request';
   import Editor from '../../components/tiles/Editor.svelte';
   import { packStore } from '../../stores/packStore.js';
+  import { subscribe } from 'svelte/internal';
   
   let step = 'selectTableAndType'; // Default step (view)
   let tableNames: string[] = [];
@@ -84,15 +85,66 @@
   const closeSpecialDataEditor = () => {
     showEditor = false;
   }
+  
 
 
   async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null, ListField: boolean = false): Promise<RS1.RSData> {
     //const list: RS1.vList = new RS1.vList(D.Data);
-    if (ListField && D.List == undefined) {
-      alert('No List found')
-      return D
+    // if (ListField && D.List == undefined) {
+    //   alert('No List found')
+    //   return D
+    // }
+    //const list: RS1.vList = ListField? new RS1.vList(D.List.Data):new RS1.vList(D.Data);
+    //const list: RS1.vList = ListField && D.List === undefined ? new RS1.vList() : D.List ? new RS1.vList(D.List.Data) : new RS1.vList(D.Data);
+
+    let list: RS1.vList;
+
+// if (ListField && D.List === undefined) {
+//   list = new RS1.vList();
+// } else if (D.List) {
+//   list = new RS1.vList(D.List.Data);
+// } else {
+//   list = new RS1.vList(D.Data);
+// }
+// console.log('PACK PACK' + list.Data)
+
+    if (ListField) {
+      if (D.List === undefined) {
+        D.List = new RS1.vList();
+        list = new RS1.vList();
+        console.log('LIST1 DATA' + list.Data)
+      }
+      else {
+        // list = new RS1.vList(D.List.Data);
+        list = D.List;
+        console.log('LIST2 DATA' + list.Data)
+        console.log('LIST2 D.DLIST' + D.List.Data)
+      }
     }
-    const list: RS1.vList = ListField? new RS1.vList(D.List.Data):new RS1.vList(D.Data);
+    else {
+      if (D.Data === '') {
+      // list = new RS1.vList(D.Data);
+      //D.Data  = new RS1.vList();
+      list = new RS1.vList();
+      console.log("EMPTY DATA FIELD")
+      }
+      else {
+        // list = new RS1.vList();
+        list = new RS1.vList(D.Data);
+      }
+    }
+
+    // let list = new RS1.vList(ListField ? (D.List === undefined ? [] : D.List.Data) : D.Data);
+    console.log('LIST DATA' + list.Data)
+    
+    if (D.List) {
+      console.log('D LIST DATA' + D.List.Data)
+
+    }
+    else {
+      console.log('NO D LIST DATA')
+    }
+   
     
     //Pack.add(['A', 'Edit', 'type', D.Type, 'data', D.Data]);
     Pack = list.SavePack();
@@ -150,18 +202,33 @@
         editorComponent.$on('close', () => {
         modalContent.remove();
         modalBackground.remove();
-        subscribe();
+        unsubscribe();
     });
 
     }
     
-    const subscribe = packStore.subscribe(value => {
+    const unsubscribe = packStore.subscribe(value => {
         receivedPack = value;
-        if (receivedPack.str('data')) {        
-          D.Data = receivedPack.str('data');
-          console.log('Data: ' + D.Data);
-        };
+        if (receivedPack.str('data')) {
+          if (ListField) {       
+          //D.List = new RS1.vList();
+          D.List.Data = receivedPack.str('data');
+          packStore.set(new RS1.BufPack());
+          // console.log('Edit List: ' + D.List.Data);
+          }
+          else {
+            
+            D.Data = receivedPack.str('data');
+          console.log('Edit Data: ' + D.Data);
+          packStore.set(new RS1.BufPack());
+            
+          
+        }
+        }
+       
     });
+
+    unsubscribe();
 
     return D;
 }
@@ -239,14 +306,14 @@
   onMount(async () => {
     tableNames = await RS1.ReqTiles();
 
-    const subscribe = packStore.subscribe(value => {
-      receivedPack = value;
-      currentRecord.Data = receivedPack.str('data');
-      //D.Data = receivedPack.str('data');
-      console.dir('received pack data' + receivedPack.str('data')); 
-  })
+  //   const subscribe = packStore.subscribe(value => {
+  //     receivedPack = value;
+  //     currentRecord.Data = receivedPack.str('data');
+  //     //D.Data = receivedPack.str('data');
+  //     console.dir('received pack data' + receivedPack.str('data')); 
+  // })
 
-  return subscribe;
+  // return subscribe;
 
   
   });
@@ -305,27 +372,32 @@
     <h1>Edit Record</h1>
     <div class="fields" id="Line1">
       <label for="name">Name: </label>
-      <input type="text" id="name" name="name" bind:value={currentRecord.Name} placeholder="Name" />
+     <input type="text" id="name" name="name" bind:value={currentRecord.Name} placeholder="Name" readonly={addingNewRecord=== false} />
       <label for="desc">Desc: </label>
       <input type="text" id="desc" name="desc" bind:value={currentRecord.Desc} placeholder="Description" />
       <label for="type">Type: </label>
-      <select bind:value={subFilter}>
+      <select bind:value={subFilter} disabled={addingNewRecord=== false}>
           <option value=""></option>
           <option value="List">List</option>
       </select>
       <label for="tile">Tile: </label>
       <input type="text" id="tile" name="tile" bind:value={selectedTableName} placeholder="Tile" readonly />
       <label for="sub">Sub: </label>
-      <input type="text" id="sub" name="sub" bind:value={currentRecord.Sub} placeholder="Sub" />
+      <input type="text" id="sub" name="sub" bind:value={currentRecord.Sub} placeholder="Sub" readonly={addingNewRecord=== false} />
       <label for="details">Details: </label>
       <input type="text" id="details" name="details" bind:value={currentRecord.Details} placeholder="Details" />
-      <label for="pack">Pack: </label>
+      <div class="editButtons">
+      <button id="list" on:click={() => EditList(currentRecord.List,null,true)}>List {currentRecord.List.desc}</button>
+      <button id="pack">Pack {currentRecord.Pack.desc}</button>
+      <button id="data" on:click={() => EditList(currentRecord,null)}>Data: Type Specific</button>
+      </div>
+      <!-- <label for="pack">Pack: </label>
       <input type="text" id="pack" name="pack" bind:value={currentRecord.Pack.summary} placeholder="Pack" readonly />
       <label for="details">List: </label>
       <input type="text" id="list" name="list" bind:value={currentRecord.List.getStr} placeholder="list" readonly/>
       <label for="data">Data: </label>
      
-      <input type="text" id="data" name="data" bind:value={currentRecord.Data} placeholder="Data" />
+      <input type="text" id="data" name="data" bind:value={currentRecord.Data} placeholder="Data" /> -->
       <div id="specialdatadiv"></div>
      
       <div class="buttonsContainer">
@@ -335,13 +407,13 @@
           {#if addingNewRecord === false}
             <button on:click={() => selectedItemId && deleteRecord(selectedItemId)}>Delete</button>
           {/if}
-          <button on:click={() => EditList(currentRecord,null)}>Edit Data</button>
+          <!-- <button on:click={() => EditList(currentRecord,null)}>Data: Type Specific</button> -->
           
         </div>
-        <div class="buttons">
-          <button on:click={() => EditList(currentRecord.List,null,true)}>Edit List</button>
-          <button>Edit Pack</button>
-        </div>
+        <!-- <div class="buttons">
+          <button on:click={() => EditList(currentRecord.List,null,true)}>List {currentRecord.List.desc}</button>
+          <button>{currentRecord.Pack.desc}</button>
+        </div> -->
       </div>
     </div>
     
@@ -414,8 +486,17 @@
      flex-direction: row;
      gap: 10px;
    }
-   
-   
+
+   .editButtons {
+     justify-content: center;
+     display: flex;
+     flex-direction: column;
+     gap: 10px;
+   }
+   .editButtons button {
+    width: 100%;
+   }
+  
    .selectContainer {
      width:   100%;
      height: auto;
