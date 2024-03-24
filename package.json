@@ -28,6 +28,7 @@
 		"@neodrag/svelte": "^2.0.3",
 		"better-sqlite3": "^8.7.0",
 		"btoa": "^1.2.1",
+		"lit": "^3.1.2",
 		"sass": "^1.57.1",
 		"socket.io": "^4.7.1",
 		"sqlite": "^4.1.2"

@@ -57,6 +57,12 @@ export namespace RS1 {
     */
 
 	
+	export const NILAB = new ArrayBuffer (0);
+	export const NILArray = new Uint8Array (NILAB);
+	const NILNums:number[]=[];
+	const NILStrs:string[]=[];
+	export const NILIDs = new Array<number>();
+
 	const sleep=async (ms=1)=>await new Promise((r)=>setTimeout(r,ms));
 	type StoreBuffer = string | ArrayBuffer | Function | undefined;
 
@@ -435,9 +441,6 @@ export namespace RS1 {
 
 		return '';
 	}
-
-	const NILNums:number[]=[];
-	const NILStrs:string[]=[];
 
 	export class IValue {
 		_Str: string = '';
@@ -917,7 +920,7 @@ export namespace RS1 {
 			if (this === NILData)
 				return;
 
-			if (P === NILPack)
+			if (!P  ||  (P === NILPack))
 				return;
 
 			this.Name = P.str ('name');
@@ -951,7 +954,7 @@ export namespace RS1 {
 
 		PostSave (P : BufPack) {}
 		SavePack (P : BufPack = NILPack) {
-			if (P === NILPack)
+			if (!P  || (P === NILPack))
 				P = new BufPack ();
 
 			P.add([	'name',	this.Name,
@@ -1025,7 +1028,6 @@ export namespace RS1 {
 	}
 
 	export const NILData = new RSData ();
-	export const NILIDs = new Array<number>();
 
 	const SiNew='$', SiLoad='B', SiEdit='D';
 
@@ -2969,9 +2971,6 @@ export namespace RS1 {
 	}
 
 	export const ToFroms = new TFList();
-
-	export const NILAB = new ArrayBuffer (0);
-	export const NILArray = new Uint8Array (NILAB);
 
 	export function ABfromArray (Source : Int8Array) : ArrayBuffer {
 		let AB = new ArrayBuffer (Source.length);
