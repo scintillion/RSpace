@@ -939,6 +939,9 @@ export namespace RS1 {
 				RS1.log ('Assigning RID "' + ridStr + '" to ' + this.desc)
 			}
 
+			if (!this.List || !this.Pack)
+				console.log ('LoadNILs!');
+
 //			if (!this.ID)
 //				this.ID = P.num ('id');
 
@@ -1697,7 +1700,7 @@ export namespace RS1 {
 			return false;
 		}
 
-		SetDelim(NewDelim: string): boolean {
+		private SetDelim(NewDelim: string): boolean {
 		    this.notNIL;
 
 				let OldDelim = this._Delim;
@@ -2078,7 +2081,7 @@ export namespace RS1 {
 			this.InitList(Str);
 		}
 
-		GetNamePos(Name: string): number {
+		private GetNamePos(Name: string): number {
 			let SearchStr = this._Delim + Name; // e.g. '|NameXYZ:''
 
 			let Pos1 = this.LStr.indexOf(SearchStr + NameDelim, this._FirstDelim);
@@ -2354,8 +2357,8 @@ export namespace RS1 {
 		}
 	} // vList
 
-	export const NILList = new vList ('');
-	export const NILVID = new vID ('',NILList);
+	export const NILList = new vList ('NIL|');
+	export const NILVID = new vID ('NIL:NIL',NILList);
 
 	export class vFast {
 		Names : Array<string>=[];
@@ -3905,7 +3908,7 @@ export namespace RS1 {
 		}
 	}
 
-	export const NILPack = new BufPack ();
+	export const NILPack = new BufPack ('','NILPack');
 
 	export class SQL {
 		bSelDel (Tile : string, ID : number, Query : string) : BufPack {
@@ -3928,6 +3931,8 @@ export namespace RS1 {
 	export const sql = new SQL ();
 
 	(() => {
+
+
 		// Immediately Invoked Function Expression IIFE
 		// Code that runs in your function
 

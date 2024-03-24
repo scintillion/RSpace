@@ -89,6 +89,9 @@
 
   async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null, ListField: boolean = false): Promise<RS1.RSData> {
     let list: RS1.vList = new RS1.vList();
+    console.log ('EditList:' + D.desc);
+    let P = D.SavePack ();
+    console.log ('  EditList Pack:\n',P.desc);
     console.log('D List val' + D.List)
     if (ListField) {
       // D.List = D.List !== RS1.NILList? D.List: new RS1.vList('');
