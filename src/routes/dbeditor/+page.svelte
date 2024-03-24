@@ -23,7 +23,6 @@
   let showEditor = false;
 
 
-
   InitClient();
   
   const selectTableAndType = async () => {
@@ -89,53 +88,43 @@
 
 
   async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null, ListField: boolean = false): Promise<RS1.RSData> {
-    //const list: RS1.vList = new RS1.vList(D.Data);
-    // if (ListField && D.List == undefined) {
-    //   alert('No List found')
-    //   return D
-    // }
-    //const list: RS1.vList = ListField? new RS1.vList(D.List.Data):new RS1.vList(D.Data);
-    //const list: RS1.vList = ListField && D.List === undefined ? new RS1.vList() : D.List ? new RS1.vList(D.List.Data) : new RS1.vList(D.Data);
-
-    let list: RS1.vList;
-
-// if (ListField && D.List === undefined) {
-//   list = new RS1.vList();
-// } else if (D.List) {
-//   list = new RS1.vList(D.List.Data);
-// } else {
-//   list = new RS1.vList(D.Data);
-// }
-// console.log('PACK PACK' + list.Data)
-
+    let list: RS1.vList = new RS1.vList();
+    console.log('D List val' + D.List)
     if (ListField) {
-      if (D.List === RS1.NILList) {
-        D.List = new RS1.vList();
-        list = new RS1.vList();
-        console.log('LIST1 DATA' + list.Data)
+      // D.List = D.List !== RS1.NILList? D.List: new RS1.vList('');
+      // console.log('list field' + D.List)
+
+      
+      // if (D.List === RS1.NILList) {
+      //   D.List = new RS1.vList();
+      //   console.log('list null')
+      //   console.log(D.List === RS1.NILList)
+      //   list = D.List;
+      //   console.log('LIST1 DATA' + list.Data)
+      // }
+      // else {
+      //   list = D.List;
+      //   console.log('list non null')
+      //   console.log('LIST2 DATA' + list.Data)
+      // }
+
+      if (D.List) {
+        list = D.List;
       }
       else {
-        // list = new RS1.vList(D.List.Data);
+        D.List = new RS1.vList();
         list = D.List;
-        console.log('LIST2 DATA' + list.Data)
-        console.log('LIST2 D.DLIST' + D.List.Data)
       }
     }
     else {
       if (D.Data === '') {
-      // list = new RS1.vList(D.Data);
-      //D.Data  = new RS1.vList();
-      list = new RS1.vList();
-      console.log("EMPTY DATA FIELD")
+        list = new RS1.vList();
+        console.log("EMPTY DATA FIELD")
       }
       else {
-        // list = new RS1.vList();
         list = new RS1.vList(D.Data);
       }
     }
-
-    // let list = new RS1.vList(ListField ? (D.List === undefined ? [] : D.List.Data) : D.Data);
-    console.log('LIST DATA' + list.Data)
     
     if (D.List) {
       console.log('D LIST DATA' + D.List.Data)
@@ -144,9 +133,7 @@
     else {
       console.log('NO D LIST DATA')
     }
-   
-    
-    //Pack.add(['A', 'Edit', 'type', D.Type, 'data', D.Data]);
+   //console.log('PACK STATUS' +list.Type)
     Pack = list.SavePack();
 
     if (EditContainer) {
@@ -214,11 +201,11 @@
           //D.List = new RS1.vList();
           D.List.Data = receivedPack.str('data');
           packStore.set(new RS1.BufPack());
-          // console.log('Edit List: ' + D.List.Data);
+          console.log('Edit List: ' + D.List.Data);
           }
           else {
             
-            D.Data = receivedPack.str('data');
+          D.Data = receivedPack.str('data');
           console.log('Edit Data: ' + D.Data);
           packStore.set(new RS1.BufPack());
             
