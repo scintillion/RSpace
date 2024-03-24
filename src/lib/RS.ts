@@ -949,6 +949,12 @@ export namespace RS1 {
 		}
 
 		constructor (P = NILPack) {
+			if (!this.Pack)
+				log ('RSData.NILs!');
+
+			if (!this.List)
+				log ('RSData.List NIL!');
+
 			this.LoadPack (P);
 		}
 
