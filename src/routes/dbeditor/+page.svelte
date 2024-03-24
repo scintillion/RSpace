@@ -23,7 +23,6 @@
   let showEditor = false;
 
 
-
   InitClient();
   
   const selectTableAndType = async () => {
@@ -108,7 +107,7 @@
       //   console.log('list non null')
       //   console.log('LIST2 DATA' + list.Data)
       // }
-      
+
       if (D.List) {
         list = D.List;
       }
