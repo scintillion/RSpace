@@ -87,57 +87,14 @@
   
 
 
-  async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null, ListField: boolean = false): Promise<RS1.RSData> {
+  async function EditList(D: RS1.vList, EditContainer: HTMLElement | null, ListField: Boolean = false): Promise<RS1.RSData> {
     let list: RS1.vList = new RS1.vList();
     console.log ('EditList:' + D.desc);
     let P = D.SavePack ();
     console.log ('  EditList Pack:\n',P.desc);
     console.log('D List val' + D.List)
-    if (ListField) {
-      // D.List = D.List !== RS1.NILList? D.List: new RS1.vList('');
-      // console.log('list field' + D.List)
-
-      
-      // if (D.List === RS1.NILList) {
-      //   D.List = new RS1.vList();
-      //   console.log('list null')
-      //   console.log(D.List === RS1.NILList)
-      //   list = D.List;
-      //   console.log('LIST1 DATA' + list.Data)
-      // }
-      // else {
-      //   list = D.List;
-      //   console.log('list non null')
-      //   console.log('LIST2 DATA' + list.Data)
-      // }
-
-      if (D.List) {
-        list = D.List;
-      }
-      else {
-        D.List = new RS1.vList();
-        list = D.List;
-      }
-    }
-    else {
-      if (D.Data === '') {
-        list = new RS1.vList();
-        console.log("EMPTY DATA FIELD")
-      }
-      else {
-        list = new RS1.vList(D.Data);
-      }
-    }
     
-    if (D.List) {
-      console.log('D LIST DATA' + D.List.Data)
-
-    }
-    else {
-      console.log('NO D LIST DATA')
-    }
-   //console.log('PACK STATUS' +list.Type)
-    Pack = list.SavePack();
+    Pack = D.SavePack();
 
     if (EditContainer) {
         const editorComponent = new Editor({
@@ -199,29 +156,26 @@
     
     const unsubscribe = packStore.subscribe(value => {
         receivedPack = value;
+    
         if (receivedPack.str('data')) {
-          if (ListField) {       
-          //D.List = new RS1.vList();
-          D.List.Data = receivedPack.str('data');
-          packStore.set(new RS1.BufPack());
-          console.log('Edit List: ' + D.List.Data);
+          console.log('BUFPACK DATA' + receivedPack.str('data'))    
+          if (ListField) {
+            currentRecord.List = new RS1.vList(receivedPack.str('data'));;
           }
           else {
-            
-          D.Data = receivedPack.str('data');
-          console.log('Edit Data: ' + D.Data);
+            currentRecord.Data = new RS1.RSData(receivedPack);
+          }
           packStore.set(new RS1.BufPack());
-            
-          
         }
-        }
-       
+
     });
 
     unsubscribe();
+    console.log('D RETURN' + D.getStr);
 
     return D;
 }
+
 
 // async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null): Promise<RS1.RSData> {
 //     const list: RS1.vList = new RS1.vList(D.Data);
@@ -379,7 +333,7 @@
       <div class="editButtons">
       <button id="list" on:click={() => EditList(currentRecord.List,null,true)}>List {currentRecord.List.desc}</button>
       <button id="pack">Pack {currentRecord.Pack.desc}</button>
-      <button id="data" on:click={() => EditList(currentRecord,null)}>Data: Type Specific</button>
+      <button id="data" on:click={() => EditList(new RS1.vList(currentRecord.Data),null)}>Data: Type Specific</button>
       </div>
       <!-- <label for="pack">Pack: </label>
       <input type="text" id="pack" name="pack" bind:value={currentRecord.Pack.summary} placeholder="Pack" readonly />
