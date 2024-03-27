@@ -22,6 +22,7 @@ onMount(() => {
 <a href="/dbeditor/">Database Editor</a>
 <a href="/apitesting/">API Testing</a>
 <a href="/vhelsing">VHelsing</a>
+<a href="/tileworks">TileWorks</a>
 <r-tile />
 <div bind:this={container}/>
 

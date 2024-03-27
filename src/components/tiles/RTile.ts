@@ -6,6 +6,6 @@ export class RTile extends LitElement {
   color = "cyan";
 
   render(){
-    return html`<h2 style=color:green >Hello from RTile!</h2>`;
+    return html`<div><h2 style=${this.color} >Hello from RTile!</h2></div>`;
   }
 }
