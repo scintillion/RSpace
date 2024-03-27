@@ -87,7 +87,7 @@
   
 
 
-  async function EditList(D: RS1.vList, EditContainer: HTMLElement | null, ListField: Boolean = false): Promise<RS1.RSData> {
+  async function EditList(D: RS1.vList, EditContainer: HTMLElement | null, isListField: Boolean = false): Promise<{D:RS1.vList,isListField: Boolean}> {
     let list: RS1.vList = new RS1.vList();
     console.log ('EditList:' + D.desc);
     let P = D.SavePack ();
@@ -158,90 +158,20 @@
         receivedPack = value;
     
         if (receivedPack.str('data')) {
+          D = new RS1.vList(receivedPack.str('data'));
           console.log('BUFPACK DATA' + receivedPack.str('data'))    
-          if (ListField) {
-            currentRecord.List = new RS1.vList(receivedPack.str('data'));;
-          }
-          else {
-            currentRecord.Data = new RS1.RSData(receivedPack);
-          }
+      
           packStore.set(new RS1.BufPack());
         }
 
     });
 
+    
     unsubscribe();
     console.log('D RETURN' + D.getStr);
 
-    return D;
+    return {D:D, isListField:isListField};
 }
-
-
-// async function EditList(D: RS1.RSData, EditContainer: HTMLElement | null): Promise<RS1.RSData> {
-//     const list: RS1.vList = new RS1.vList(D.Data);
-//     Pack = list.SavePack();
-
-//     const modalContent = document.createElement('div');
-
-//     const targetElement = EditContainer || modalContent;
-    
-//     modalContent.style.position = 'absolute';
-//     modalContent.style.top = '50%';
-//     modalContent.style.left = '50%';
-//     modalContent.style.transform = 'translate(-50%, -50%)';
-//     modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
-//     modalContent.style.padding = '20px';
-//     modalContent.style.borderRadius = '5px';
-//     document.body.appendChild(modalContent);
-
-//     const style = document.createElement('style');
-//     style.innerHTML = `
-//         @keyframes animatetop {
-//             from {top: -300px; opacity: 0}
-//             to {top: 50%; opacity: 1}
-//         }
-//     `;
-//     document.head.appendChild(style);
-
-//     modalContent.style.animationName = 'animatetop';
-//     modalContent.style.animationDuration = '0.4s';
-
-//     const editorComponent = new Editor({
-//         target: targetElement,
-//         props: {
-//             Pack,
-//         },
-//     });
-
-//     modalContent.style.display = 'block';
-
-//     editorComponent.$on('close', () => {
-//         //modalContent.style.display = 'none';
-//         modalContent.remove();
-//         subscribe();
-//     });
-
-//     const subscribe = packStore.subscribe(value => {
-//         receivedPack = value;
-//         if (receivedPack.str('data')) {   
-//           D.Data = receivedPack.str('data');
-//         }
-//     });
-
-//     return D;
-// }
-
-
-//   // Function to check and update the record
-// const checkAndUpdateRecord = async () => {
-//   const ReceivePack: RS1.BufPack = packStore.update(); // Get the bufpack from the packStore
-//   if (bufpack) {
-//     // Update the necessary record with the data in the bufpack
-//     // Replace this with your actual update logic
-//     // Example: currentRecord.updateFromBufpack(bufpack);
-//   }
-// };
-
 
   // handle conditional binding
   $: currentRecord = editingRecordId ? detailedResult : newRecord;
@@ -249,17 +179,6 @@
   // Fetch table names on mount
   onMount(async () => {
     tableNames = await RS1.ReqTiles();
-
-  //   const subscribe = packStore.subscribe(value => {
-  //     receivedPack = value;
-  //     currentRecord.Data = receivedPack.str('data');
-  //     //D.Data = receivedPack.str('data');
-  //     console.dir('received pack data' + receivedPack.str('data')); 
-  // })
-
-  // return subscribe;
-
-  
   });
 
  
@@ -331,17 +250,22 @@
       <label for="details">Details: </label>
       <input type="text" id="details" name="details" bind:value={currentRecord.Details} placeholder="Details" />
       <div class="editButtons">
-      <button id="list" on:click={() => EditList(currentRecord.List,null,true)}>List {currentRecord.List.desc}</button>
+        <button id="list" on:click={async () => {
+          const { D, isListField } = await EditList(currentRecord.List, null, true);
+          if (isListField) {
+              currentRecord.List = D;
+          }
+      }}>List {currentRecord.List.desc}</button>
       <button id="pack">Pack {currentRecord.Pack.desc}</button>
-      <button id="data" on:click={() => EditList(new RS1.vList(currentRecord.Data),null)}>Data: Type Specific</button>
+      <button id="data" on:click={async () => {
+        const { D, isListField } = await EditList(currentRecord.Data.type==='List' ? currentRecord.Data: new RS1.vList(currentRecord.Data), null, false);
+        if (!isListField) {
+            currentRecord.Data = D.LStr;
+            //D.toDB();
+            console.log('S$$$DATA$$$' + currentRecord.Data);
+        }
+    }}>Data: Type Specific</button>
       </div>
-      <!-- <label for="pack">Pack: </label>
-      <input type="text" id="pack" name="pack" bind:value={currentRecord.Pack.summary} placeholder="Pack" readonly />
-      <label for="details">List: </label>
-      <input type="text" id="list" name="list" bind:value={currentRecord.List.getStr} placeholder="list" readonly/>
-      <label for="data">Data: </label>
-     
-      <input type="text" id="data" name="data" bind:value={currentRecord.Data} placeholder="Data" /> -->
       <div id="specialdatadiv"></div>
      
       <div class="buttonsContainer">
@@ -351,13 +275,7 @@
           {#if addingNewRecord === false}
             <button on:click={() => selectedItemId && deleteRecord(selectedItemId)}>Delete</button>
           {/if}
-          <!-- <button on:click={() => EditList(currentRecord,null)}>Data: Type Specific</button> -->
-          
         </div>
-        <!-- <div class="buttons">
-          <button on:click={() => EditList(currentRecord.List,null,true)}>List {currentRecord.List.desc}</button>
-          <button>{currentRecord.Pack.desc}</button>
-        </div> -->
       </div>
     </div>
     
