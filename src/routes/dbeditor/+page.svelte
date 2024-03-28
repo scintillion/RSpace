@@ -258,7 +258,7 @@
       }}>List {currentRecord.List.desc}</button>
       <button id="pack">Pack {currentRecord.Pack.desc}</button>
       <button id="data" on:click={async () => {
-        const { D, isListField } = await EditList(currentRecord.Data.type==='List' ? currentRecord.Data: new RS1.vList(currentRecord.Data), null, false);
+        const { D, isListField } = await EditList(currentRecord.Data?.type==='List' ? currentRecord.Data: new RS1.vList(currentRecord.Data), null, false);
         if (!isListField) {
             currentRecord.Data = D.LStr;
             //D.toDB();
