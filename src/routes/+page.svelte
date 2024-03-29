@@ -23,7 +23,7 @@ onMount(() => {
 <a href="/apitesting/">API Testing</a>
 <a href="/vhelsing">VHelsing</a>
 <a href="/tileworks">TileWorks</a>
-<r-tile />
+<r-tile color="blue"/>
 <div bind:this={container}/>
 
 <style lang="scss">
