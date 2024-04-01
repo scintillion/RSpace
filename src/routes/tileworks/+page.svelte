@@ -10,7 +10,7 @@
 		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|column:1|gap:5|align-items:center|justify-content:center|\t',
 		'   RndBtn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|width:110|height:50|background:#1e1e1e|color:white|\t',
 		'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|\t',
-		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
+		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t',
 	];
 
 	const List: RS1.TileList = new RS1.TileList(TileStrings); // remove temporarily
@@ -18,10 +18,13 @@
 	onMount(() => {
 		let tiles = document.querySelector('.tilesabc');
 	});
+
+	let attrStr = `id="test" label="rtile"`;
+	let styleStr = `background:red; height: 300px; width: 300px; justify-content: center; align-items: center; display: flex;`;
 </script>
 
 <div class="tilesabc" style="color:cyan;height:200vh;width:200vw">
-<r-tile />
+	<r-tile {attrStr} {styleStr} />
 </div>
 
 <style>
