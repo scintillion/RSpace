@@ -509,7 +509,8 @@ export namespace RS1 {
 
 			switch (this.Type) {
 				case FMMember:
-					if (!(this.List = CL.ListByName(Str1))) this.Xtra = Str1 + ' = Bad List Name';
+					if ((this.List = CL.List(Str1)) === NILList)
+						this.Xtra = Str1 + ' = Bad List Name';
 					break;
 
 				case FMRange:
@@ -1636,6 +1637,18 @@ export namespace RS1 {
 			if (this._Childs) return this._Childs[0];
 		}
 
+		VIDStr (Sep=';',Delim='') {
+			if (!Delim)
+				Delim = NameDelim;
+
+			let VIDs = this.IDsToVIDs (), Str = '';
+
+			for (const v of VIDs)
+				Str += v.Name + Delim + v.Desc + Sep;
+
+			return Str.slice (0,-1);
+		}
+
 		Merge(AddList: vList | undefined): boolean {
 		    this.notNIL;
 
@@ -1846,7 +1859,7 @@ export namespace RS1 {
 			}
 		}
 
-		private InitList(Str1: string | string[]) {
+		InitList(Str1: string | string[]) {
 		    this.notNIL;
 
 			if (!Str1)
@@ -2654,15 +2667,31 @@ export namespace RS1 {
 		Output: IOType | undefined;
 	}
 
-	export class ListOfLists {
+	export class LoL {	//	ListOfLists
 		Lists: vList[] = [];
 
-		ListByName(Name: string): vList | undefined {
+		List (Name: string): vList {
 			for (const L of this.Lists)
 				if (L.Name === Name) return L;
+
+			return NILList;
 		}
 
-		Add(ListStr: string | string[]): vList | undefined {
+		addLists (Lists : vList | vList[]) : vList {
+			let Ls = (Array.isArray (Lists)) ? 
+				Lists as vList[] : [Lists as vList];
+
+			for (const L of Ls) {
+				let OldL = this.List (L.Name);
+				if (OldL !== NILList) // need to replace contents
+					OldL.InitList (L.getStr);
+				else this.Lists.push (L);
+			}
+
+			return (Ls.length === 1) ? Ls[0] : NILList;
+		}
+
+		Add(ListStr: string | string[] ): vList {
 			let ListStrs: string[] = (typeof ListStr === 'string') ? [ListStr] : ListStr;
 			let List;
 
@@ -2670,8 +2699,7 @@ export namespace RS1 {
 				this.Lists.push (List = new vList(L));
 			}
 
-			if (ListStrs.length <= 1)
-				return List;
+			return (this.Lists.length == 1) ? this.Lists[0] : NILList;
 		}
 
 		Merge(AOL: vList[]) {
@@ -2828,7 +2856,7 @@ export namespace RS1 {
 
 	//  ________________________________________________
 
-	export class RsLOL extends ListOfLists {
+	export class RsLoL extends LoL {
 		FM = this.Add('FM|Num|Int|Dollar|Ord|Range|Pair|Nums|Member|Set|Str|Strs|Upper|');
 
 		/*  Input Formats, defined by~FormatStr~
@@ -2878,7 +2906,7 @@ export namespace RS1 {
 		Test = this.Add('Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|');
 	}
 
-	export const CL = new RsLOL();
+	export const CL = new RsLoL();
 	const PL = CL.PL;
 
 	export class LID {
@@ -2902,9 +2930,9 @@ export namespace RS1 {
 
 			let ListVID: vID | undefined = CL.FM ? CL.FM.GetVID(this.ListType) : undefined;
 			if (ListVID) {
-				let List: vList | undefined = CL.ListByName(ListVID.Name);
+				let List = CL.List (ListVID.Name);
 
-				if (List) {
+				if (List !== NILList) {
 					let VID: vID | undefined = List.GetVID(this.ID);
 
 					RetStr = ListVID.Name + NameDelim + ListVID.Desc;

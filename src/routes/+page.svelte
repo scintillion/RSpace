@@ -1,7 +1,7 @@
 <script lang="ts">
 import { InitClient } from '$lib/API/client/request';
 import { onMount } from 'svelte';
-import { RTile } from '../components/tiles/RTile'
+import type { RTile } from '../components/tiles/RTile'
 // import { CoffeeMug } from '../components/tiles/coffeemug'
 
 var comp : HTMLElement;
@@ -11,6 +11,8 @@ onMount(() => {
 	console.log ('Entry InitClient!');
 	InitClient ();
 	comp = document.createElement ('r-tile');
+	// let RT = (comp as RTile);
+	// RT.setColor ('red');
 	container.appendChild (comp);
 });
 </script>
