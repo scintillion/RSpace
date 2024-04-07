@@ -2677,52 +2677,80 @@ export namespace RS1 {
 			return NILList;
 		}
 
-		addLists (Lists : vList | vList[]) : vList {
-			let Ls = (Array.isArray (Lists)) ? 
-				Lists as vList[] : [Lists as vList];
+/*
+		mergeLists (Lists : vList | vList[]) {
+			let Q = (Array.isArray (Lists)) ? Lists : [Lists];
+			let limit = Q.length, Ls = Array<vList>(limit);
 
-			for (const L of Ls) {
-				let OldL = this.List (L.Name);
-				if (OldL !== NILList) // need to replace contents
-					OldL.InitList (L.getStr);
-				else this.Lists.push (L);
-			}
+			for (let limit = Q.length, i = 0; i < limit; ++i)
+				Ls[i] = new vList (Q[i].getStr);
 
-			return (Ls.length === 1) ? Ls[0] : NILList;
+			if (!(this.Lists.length))
+				this.Lists = Ls;
+			else for (const L of Ls) {
+					let Old = this.List (L.Name);
+					if (Old !== NILList) // need to replace contents
+						Old.InitList (L.getStr);
+					else this.Lists.push (new vList (L.getStr));
+				}
 		}
 
-		Add(ListStr: string | string[] ): vList {
-			let ListStrs: string[] = (typeof ListStr === 'string') ? [ListStr] : ListStr;
-			let List;
-
-			for (const L of ListStrs) {
+		add(Str: string | string[] ): vList {
+			let Strs: string[] = (typeof Str === 'string') ? [Str] : Str;
+			let List = NILList;
+			for (const L of Strs)
 				this.Lists.push (List = new vList(L));
-			}
 
-			return (this.Lists.length == 1) ? this.Lists[0] : NILList;
+			return List;
 		}
+*/
 
-		Merge(AOL: vList[]) {
-			let ListLimit = this.Lists.length;
-			if (!ListLimit) {
-				//	empty list
-				this.Lists = AOL;
-				return;
+		add (Q : BufPack|vList[]|string|string[]|undefined, replace = false) {
+			if (!Q)
+				return NILList;
+
+			let List = NILList, Strs, len, i=0;
+
+			if (Array.isArray (Q)) {
+				len = Q.length;
+				if (!len)
+					return;
+
+				if ((typeof Q[0]) === 'string')
+					Strs = Q as string[];
+				else {
+					Strs = Array<string>(len);
+					for (const L of Q)
+						Strs[i++] = (L as vList).copy ().getStr;
+				}
+			}
+			else if ((typeof Q) === 'string') {
+				Strs = [Q as string];
+				len = 1;
+			}
+			else {	// BufPack
+				let Pack = Q as BufPack, len = Pack.Ds.length;
+				Strs = Array<string>(len);
+				for (const F of Pack.Ds)
+					Strs[i++] = F.Data as string;
 			}
 
-			for (let limit = AOL.length, i = 0; i < limit; ++i) {
-				let Name = AOL[i].Name;
-				let j = ListLimit;
-
-				while (--j >= 0) {
-					if (this.Lists[j].Name === Name) break;
+			for (const S of Strs) {
+				List = new vList (S);
+				if (replace) {
+					let Old = this.List(List.Name);
+					if (Old !== NILList) {
+						let index = this.Lists.indexOf (Old);
+						if (index >= 0) {
+							this.Lists[index] = List;
+							continue;
+						}
+					}
 				}
-
-				if (j < 0) {
-					this.Lists.push(AOL[i]);
-					++ListLimit;
-				}
+				this.Lists.push (List);
 			}
+
+			return List;
 		}
 
 		async Defines(FileName: string = 'Consts.ts') {
@@ -2857,7 +2885,7 @@ export namespace RS1 {
 	//  ________________________________________________
 
 	export class RsLoL extends LoL {
-		FM = this.Add('FM|Num|Int|Dollar|Ord|Range|Pair|Nums|Member|Set|Str|Strs|Upper|');
+		FM = this.add('FM|Num|Int|Dollar|Ord|Range|Pair|Nums|Member|Set|Str|Strs|Upper|');
 
 		/*  Input Formats, defined by~FormatStr~
 
@@ -2877,33 +2905,33 @@ export namespace RS1 {
             Unn - uppercase string
         */
 
-		PL = this.Add('|Number:#|String:$|ArrayBuffer:[|');
+		PL = this.add('|Number:#|String:$|ArrayBuffer:[|');
 
-		FT = this.Add(
-			'Ft|#:Num|I:Int|$:Dollar|P:Pair|O:Ord|A:Nums|%:Str|U:Upper|@:Member|R:Range|{:Set|'); // Added & tested full support for Num, Int, Str, Dollar, Nums, Range, Upper, Ord, Pair; Member Rough Support Added
+		FT = this.add(
+			'Ft|#:Num|I:Int|$:Dollar|P:Pair|O:Ord|A:Nums|%:Str|U:Upper|@:Member|R:Range|{:Set|'); // added & tested full support for Num, Int, Str, Dollar, Nums, Range, Upper, Ord, Pair; Member Rough Support Added
 		//
-		CT = this.Add('Ct:ConnectType|Data|Event|Action|Queue|DB|SQL:SQLite|Remote|Retail|');
+		CT = this.add('Ct:ConnectType|Data|Event|Action|Queue|DB|SQL:SQLite|Remote|Retail|');
 
-		LT = this.Add(
+		LT = this.add(
 			'Lt:ListType|Dt:DataType|Ev:Event|Ac:Action|Rt:Return|Td:TileDef|Ts:TileSize|Pr:Process|Mt:MessageType|Lg:Language|'
 		);
 
-		DT = this.Add(
+		DT = this.add(
 			'Dt:DataType|String:Free format string|Integer:Whole Number|Number:Whole or Real Number|'
 		);
-		EV = this.Add('Ev:Event|Click|Enter|Exit|DblClick|Swipe|Drop|Drag|');
-		RT = this.Add('Rt:Return|Ok|Fail|Equal|Unequal|Queue|');
-		TD = this.Add('Td:TileDef|Tile|LnEdit|TxtEdit|Btn|Img|Video|');
-		TS = this.Add(
+		EV = this.add('Ev:Event|Click|Enter|Exit|DblClick|Swipe|Drop|Drag|');
+		RT = this.add('Rt:Return|Ok|Fail|Equal|Unequal|Queue|');
+		TD = this.add('Td:TileDef|Tile|LnEdit|TxtEdit|Btn|Img|Video|');
+		TS = this.add(
 			'Ts:TileSize|Fixed|T:Top|TL:Top Left|TR:Top Right|B:Bottom|BL:Bottom Left|BR:Bottom Right|L:Left|R:Right|SH:Shared|'
 		);
 		// Note that Tile Alignment is probably same as Tile Size, at least for now!
-		Pr = this.Add('Pr:Process|Init|Read|Set|Clear|Default|');
-		MT = this.Add('Mt:MessageType|Input|Output|Event|Trigger|Action|');
-		AC = this.Add('Ac:Action|Init|Timer|Login|Logout|');
-		LG = this.Add('Lg:Language|En:English|Es:Espanol|Cn:Chinese|');
-		CY = this.Add('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
-		Test = this.Add('Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|');
+		Pr = this.add('Pr:Process|Init|Read|Set|Clear|Default|');
+		MT = this.add('Mt:MessageType|Input|Output|Event|Trigger|Action|');
+		AC = this.add('Ac:Action|Init|Timer|Login|Logout|');
+		LG = this.add('Lg:Language|En:English|Es:Espanol|Cn:Chinese|');
+		CY = this.add('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
+		Test = this.add('Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|');
 	}
 
 	export const CL = new RsLoL();
@@ -3529,6 +3557,12 @@ export namespace RS1 {
 				if (NotNull)
 					this.addField (NewField);
 				else this.pushField (NewField);
+			}
+		}
+
+		packData (Data : any[]) {
+			for (const D of Data) {
+				this.Ds.push (new PackField ('',D));
 			}
 		}
 
