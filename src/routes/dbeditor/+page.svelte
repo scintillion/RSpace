@@ -4,7 +4,8 @@
   import { InitClient } from '$lib/API/client/request';
   import Editor from '../../components/tiles/Editor.svelte';
   import { packStore } from '../../stores/packStore.js';
-  import { subscribe } from 'svelte/internal';
+  import { current_component, subscribe } from 'svelte/internal';
+  import PackFieldEditor from '$lib/PackFieldEditor.svelte';
   
   let step = 'selectTableAndType'; // Default step (view)
   let tableNames: string[] = [];
@@ -21,6 +22,7 @@
   let Pack: RS1.BufPack = new RS1.BufPack();
   let receivedPack: RS1.BufPack = new RS1.BufPack();
   let showEditor = false;
+  let showPackFieldEditor = false;
 
 
   InitClient();
@@ -53,6 +55,7 @@
   const saveChanges = async () => {
       const writeResult = await currentRecord.toDB();
       console.log(`Write result: ${writeResult}`);
+      console.log(`saved list` + currentRecord.List.desc)
       editingRecordId = null;
       selectedItemId = null;
       newRecord = new RS1.RSData();
@@ -88,10 +91,10 @@
 
 
   async function EditList(D: RS1.vList, EditContainer: HTMLElement | null, isListField: Boolean = false): Promise<{D:RS1.vList,isListField: Boolean}> {
-    let list: RS1.vList = new RS1.vList();
+    //let list: RS1.vList = new RS1.vList();
     console.log ('EditList:' + D.desc);
-    let P = D.SavePack ();
-    console.log ('  EditList Pack:\n',P.desc);
+    //let P = D.SavePack ();
+    //console.log ('  EditList Pack:\n',P.desc);
     console.log('D List val' + D.List)
     
     Pack = D.SavePack();
@@ -157,11 +160,12 @@
     const unsubscribe = packStore.subscribe(value => {
         receivedPack = value;
     
-        if (receivedPack.str('data')) {
+        if (receivedPack.str('data') !== '') {
           D = new RS1.vList(receivedPack.str('data'));
           console.log('BUFPACK DATA' + receivedPack.str('data'))    
       
           packStore.set(new RS1.BufPack());
+          console.log( 'BUFPACK DATA POST CLEANUP' + receivedPack.str('data'))
         }
 
     });
@@ -171,6 +175,69 @@
     console.log('D RETURN' + D.getStr);
 
     return {D:D, isListField:isListField};
+}
+
+async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
+
+  if (EditContainer) {
+        const editorComponent = new PackFieldEditor({
+            target: EditContainer,
+            props: {
+                D,
+            },
+        });
+    } else {
+        const modalBackground = document.createElement('div');
+        modalBackground.style.position = 'fixed';
+        modalBackground.style.top = '0';
+        modalBackground.style.left = '0';
+        modalBackground.style.width = '100%';
+        modalBackground.style.height = '100%';
+        modalBackground.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        modalBackground.style.zIndex = '1';
+        document.body.appendChild(modalBackground);
+
+        const modalContent = document.createElement('div');
+        modalContent.style.position = 'absolute';
+        modalContent.style.top = '40%';
+        modalContent.style.left = '50%';
+        modalContent.style.transform = 'translate(-50%, -50%)';
+        modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
+        modalContent.style.padding = '20px';
+        modalContent.style.borderRadius = '5px';
+        modalContent.style.zIndex = '1';
+        document.body.appendChild(modalContent);
+
+
+
+        const style = document.createElement('style');
+        style.innerHTML = `
+        @keyframes animatetop {
+          from {top: 100px; opacity: 0}
+          to {top: 40%; opacity: 1}
+        }
+        `;
+        document.head.appendChild(style);
+
+        modalContent.style.animationName = 'animatetop';
+        modalContent.style.animationDuration = '0.4s';
+
+        const editorComponent = new PackFieldEditor({
+          target: modalContent,
+          props: {
+            D,    
+          }
+        });
+
+        editorComponent.$on('close', () => {
+          modalContent.remove();
+          modalBackground.remove();
+        });
+
+        modalContent.style.display = 'block';
+
+      }
+  
 }
 
   // handle conditional binding
@@ -184,9 +251,6 @@
  
 </script>
 
-<!-- {#if showEditor} 
-  <Editor {Pack} on:close={closeSpecialDataEditor} />
-{/if} -->
 
 <main>
 {#if step === 'selectTableAndType'}
@@ -251,12 +315,13 @@
       <input type="text" id="details" name="details" bind:value={currentRecord.Details} placeholder="Details" />
       <div class="editButtons">
         <button id="list" on:click={async () => {
-          const { D, isListField } = await EditList(currentRecord.List, null, true);
+          const { D, isListField } = await EditList(currentRecord.List !== RS1.NILList ? currentRecord.List : new RS1.vList(), null, true);
           if (isListField) {
               currentRecord.List = D;
+              console.log('$$$LIST$$$' + currentRecord.List.desc);
           }
       }}>List {currentRecord.List.desc}</button>
-      <button id="pack">Pack {currentRecord.Pack.desc}</button>
+      <button id="pack" on:click={() => { showPackFieldEditor = true; let newPack = currentRecord.SavePack(); EditPack(newPack,null)}}>Pack {currentRecord.Pack.desc}</button>
       <button id="data" on:click={async () => {
         const { D, isListField } = await EditList(currentRecord.Data?.type==='List' ? currentRecord.Data: new RS1.vList(currentRecord.Data), null, false);
         if (!isListField) {
