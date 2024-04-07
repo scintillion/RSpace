@@ -24,7 +24,7 @@ export class Editor {
 		down: HTMLButtonElement;
 	}; // HTMLElement(s)
 	private selectContainer: HTMLDivElement;
-	private lol: RS1.ListOfLists;
+	private lol: RS1.LoL;
 	private formats: RS1.vList = RS1.CL.FT as RS1.vList;
 	
 
@@ -33,7 +33,7 @@ export class Editor {
 	constructor(
 		container: HTMLDivElement | null,
 		vList: RS1.vList,
-		ListOfLists: RS1.ListOfLists = RS1.CL,
+		ListOfLists: RS1.LoL = RS1.CL,
 		linkedvList?: RS1.vList
 	) {
 		// Constructor
@@ -202,7 +202,7 @@ export class Editor {
 		this.i.vID.style.cssText =
 			'display: block; width: 100px; height: 40px; border-radius: 10px; font-family: inherit; outline: none; border: none; padding-left: 10px; transition: 0.3s linear;';
 		this.i.list.onchange = () => {
-			const List = this.lol.ListByName(this.i.list.value) as RS1.vList;
+			const List = this.lol.List(this.i.list.value) as RS1.vList;
 			List.ToSelect(this.i.vID);			
 		};
 
@@ -471,7 +471,7 @@ export class Editor {
 }
 
 export class LOLEditor {
-	private LOL: RS1.ListOfLists;
+	private LOL: RS1.LoL;
 	private container: HTMLDivElement;
 	private select: HTMLSelectElement;
 	private selected: string;
@@ -483,7 +483,7 @@ export class LOLEditor {
 		return this.ListOfLists.TovList();
 	}
 
-	constructor(ListOfLists: RS1.ListOfLists, container: HTMLDivElement) {
+	constructor(ListOfLists: RS1.LoL, container: HTMLDivElement) {
 		this.LOL = ListOfLists;
 		this.container = container;
 
@@ -514,7 +514,7 @@ export class LOLEditor {
 		};
 	}
 
-	get ListOfLists(): RS1.ListOfLists {
+	get ListOfLists(): RS1.LoL {
 		return this.LOL;
 	}
 
@@ -599,15 +599,15 @@ export class LOLEditor {
 	}
 
 	private MergeList(): void {
-		const currentList = this.LOL.ListByName(this.selected) as RS1.vList;
+		const currentList = this.LOL.List(this.selected) as RS1.vList;
 		const mergeWith: string = prompt(
 			'Which list would you like to merge with? *(enter name, case sensitive)'
 		) as string;
-		currentList.Merge(this.LOL.ListByName(mergeWith));
+		currentList.Merge(this.LOL.List(mergeWith));
 	}
 
 	private LoadList(): void {
-		const list: RS1.vList = this.LOL.ListByName(this.selected) as RS1.vList;
+		const list: RS1.vList = this.LOL.List(this.selected) as RS1.vList;
 
 		if (list.Name === this.selected) {
 			if (this.editorComponent) {

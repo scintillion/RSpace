@@ -42,7 +42,7 @@
 	// const list3: RS1.vList = new RS1.vList(
 	// 	'Test3|Test3Name:[%=Jacob]Your Name|ListNum:[#=3]The List Number|'
 	// );
-	const LoL: RS1.ListOfLists = new RS1.ListOfLists();
+	const LoL: RS1.LoL = new RS1.LoL();
 	// LoL.Add(list1.Str);
 	// LoL.Add(list2.Str);
 	// LoL.Add(list3.Str);
