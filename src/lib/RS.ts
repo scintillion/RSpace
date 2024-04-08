@@ -414,6 +414,7 @@ export namespace RS1 {
 		return Strs;
 	}
 
+	type ListArgs	= BufPack|vList[]|string|string[]|undefined;
 	type SelectArgs = HTMLSelectElement | HTMLOListElement | HTMLUListElement | undefined;
 	type OptionArgs = HTMLOptionElement | undefined;
 	type IOArgs = BufPack | Function | undefined;
@@ -839,13 +840,11 @@ export namespace RS1 {
 				}
 				else {	// number array (IDs)
 					let A = M as Array<number>;
-					let len = A.length;
-					if (len) {
-						for (let i = 0; i < len;++i) {
-							NStr += A[i].toString () + ((i < len-1) ? ',' : '');
-						}
-					}
-					else NStr += 'NaN';
+					for (const A1 of A)
+						NStr += A1.toString () + ',';
+					if (NStr)
+						NStr = NStr.slice (0,-1);
+					else NStr = 'NaN';
 				}
 			}
 			else {		// single ID number
@@ -860,7 +859,7 @@ export namespace RS1 {
 				this.villa = _RegRID;
 		}
 
-		copy () {
+		get copy () {
 			return new RID (this.toStr);
 		}
 	}
@@ -892,7 +891,7 @@ export namespace RS1 {
 		PostLoad (P : BufPack) {}
 
 		get ID () { return this._rID !== NILRID ? this._rID.ID : 0; }
-		get RID () { return this._rID.copy (); }
+		get RID () { return this._rID.copy; }
 
 		get Tile () { return this._Tile; }
 		get Villa () { return this._rID.villa; }
@@ -1031,7 +1030,7 @@ export namespace RS1 {
 
 		NewThis () : RSData { return new RSData (); }
 
-		copy () {
+		get copy () {
 			let P = this.SavePack ();
 			return new RSData (P);
 		}
@@ -1080,7 +1079,7 @@ export namespace RS1 {
 
 		switch (SI.type) {
 			case 'List' : switch (SI.dType) {
-				case SiNew : return new vList (NILList.getStr);
+				case SiNew : return new vList (NILList.toStr);
 				case SiLoad : return new vList (SI.pack.str('data'));
 				case SiEdit : return new vList (SI.rsData.Data as string);
 				}
@@ -1561,7 +1560,7 @@ export namespace RS1 {
 			return undefined;
 		}
 
-		copy () : vID {
+		get copy () {
 			return new vID (this.ToStr (),this.List);
 		}
 	} // class vID
@@ -1601,7 +1600,7 @@ export namespace RS1 {
 			return this._Childs;
 		}
 
-		get getStr() {
+		get toStr() {
 			if (this.LType != CLType.Pack) return this.LStr;
 
 			if (!this.Childs) return '';
@@ -1616,7 +1615,7 @@ export namespace RS1 {
 			return Strs.join(this._Delim) + this._Delim;
 		}
 
-		PostSave (P : BufPack) { P.add (['data', this.getStr]); console.log ('PostSave vList'); }
+		PostSave (P : BufPack) { P.add (['data', this.toStr]); console.log ('PostSave vList'); }
 		PostLoad (P : BufPack) { this.LStr = P.str ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
 
 
@@ -2363,10 +2362,10 @@ export namespace RS1 {
 			}
 		}
 
-		NewThis () : RSData { return new vList (this.getStr); }
+		NewThis () : RSData { return new vList (this.toStr); }
 
-		copy () {
-			return new vList (this.getStr);
+		get copy () {
+			return new vList (this.toStr);
 		}
 	} // vList
 
@@ -2677,43 +2676,14 @@ export namespace RS1 {
 			return NILList;
 		}
 
-/*
-		mergeLists (Lists : vList | vList[]) {
-			let Q = (Array.isArray (Lists)) ? Lists : [Lists];
-			let limit = Q.length, Ls = Array<vList>(limit);
-
-			for (let limit = Q.length, i = 0; i < limit; ++i)
-				Ls[i] = new vList (Q[i].getStr);
-
-			if (!(this.Lists.length))
-				this.Lists = Ls;
-			else for (const L of Ls) {
-					let Old = this.List (L.Name);
-					if (Old !== NILList) // need to replace contents
-						Old.InitList (L.getStr);
-					else this.Lists.push (new vList (L.getStr));
-				}
-		}
-
-		add(Str: string | string[] ): vList {
-			let Strs: string[] = (typeof Str === 'string') ? [Str] : Str;
-			let List = NILList;
-			for (const L of Strs)
-				this.Lists.push (List = new vList(L));
-
-			return List;
-		}
-*/
-
-		add (Q : BufPack|vList[]|string|string[]|undefined, replace = false) {
+		add (Q : ListArgs, replace = false) {
 			if (!Q)
 				return NILList;
 
 			let List = NILList, Strs, len, i=0;
 
 			if (Array.isArray (Q)) {
-				len = Q.length;
-				if (!len)
+				if (!(len=Q.length))
 					return;
 
 				if ((typeof Q[0]) === 'string')
@@ -2721,7 +2691,7 @@ export namespace RS1 {
 				else {
 					Strs = Array<string>(len);
 					for (const L of Q)
-						Strs[i++] = (L as vList).copy ().getStr;
+						Strs[i++] = (L as vList).toStr;
 				}
 			}
 			else if ((typeof Q) === 'string') {
@@ -2753,7 +2723,22 @@ export namespace RS1 {
 			return List;
 		}
 
-		async Defines(FileName: string = 'Consts.ts') {
+		constructor (Lists:ListArgs=undefined) {
+			this.add (Lists);
+		}
+
+		get toStrs () : string[] {
+			let Strs = [];
+			for (const L of this.Lists)
+				Strs.push (L.toStr);
+			return Strs;
+		}
+
+		get copy () {
+			return new LoL (this.toStrs);
+		}
+
+		async Defines(FileName = 'Consts.ts') {
 			let DocStr = '\n\n\n/*  Documentation Names/Desc\t___________________\n\n';
 
 			let DefineStr = '/*\tDefines for vLists\t*/\n\n';
@@ -2855,7 +2840,7 @@ export namespace RS1 {
 			console.log ('IDList=' + IDList.toStr + '.');
 		}
 
-		TovList(): vList | undefined {
+		TovList(): vList {
 			let limit = this.Lists.length;
 
 			let LStrs: string[] = ['LL:ListOfLists'];
@@ -3192,7 +3177,7 @@ export namespace RS1 {
 				case tAB : return this._AB.slice (0);
 				case tData : AB = (this._data as BufPack).bufOut (); break;
 				case tPack : AB = this.Pack.bufOut (); break;
-				case tList : AB = str2ab (this.List.getStr); break;
+				case tList : AB = str2ab (this.List.toStr); break;
 				default : AB = NILAB; this._error = 'toArray Error, Type =' + this._type + '.';
 			}
 
@@ -3216,11 +3201,11 @@ export namespace RS1 {
 						switch (CName) {
 							case 'BufPack' :
 								Type = tPack;
-								this._data = (D as BufPack).copy ();
+								this._data = (D as BufPack).copy;
 								break;
 							case 'vList' :
 								Type = tList;
-								this._data = new vList ((D as vList).getStr);
+								this._data = new vList ((D as vList).toStr);
 								break;
 							case 'ArrayBuffer' :
 								Type = tAB;
@@ -3721,7 +3706,6 @@ export namespace RS1 {
 			let PAB = str2ab (Prefix);
 			let Bytes = PAB.byteLength;
 			let ByteStr = Bytes.toString ();
-			console.log ('FirstPAB ' + PAB.byteLength.toString () + ' Strlen=' + Prefix.length);
 			if (PAB.byteLength != Prefix.length)
 				log ('*******mismatch!');
 			Prefix = ByteStr + Prefix.slice (ByteStr.length);
@@ -3754,7 +3738,7 @@ export namespace RS1 {
 			return AB;
 		}
 
-		copy () : BufPack {
+		get copy () {
 			let AB = this.bufOut ();
 			let NewBP = new BufPack ();
 			NewBP.bufIn (AB);
@@ -3958,8 +3942,8 @@ export namespace RS1 {
 				switch (F.Type) {
 					case tNum : Object.assign (o,{ N : F.Num }); break;
 					case tStr : Object.assign (o,{ N : F.Str }); break;
-					case tPack : case tData : Object.assign (o, {N : F.Pack.copy () }); break;
-					case tList : Object.assign (o, {N : new vList (F.List.getStr)}); break;
+					case tPack : case tData : Object.assign (o, {N : F.Pack.copy }); break;
+					case tList : Object.assign (o, {N : new vList (F.List.toStr)}); break;
 						
 					default : Object.assign (o,{ N : F.AB.slice(0) }); break;
 				}
