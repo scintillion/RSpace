@@ -839,16 +839,14 @@ export namespace RS1 {
 					NStr += '?' + M as string;
 				}
 				else {	// number array (IDs)
-					let A = M as Array<number>;
+					let A = M as number[]
 					for (const A1 of A)
 						NStr += A1.toString () + ',';
-					if (NStr)
-						NStr = NStr.slice (0,-1);
-					else NStr = 'NaN';
+					NStr = NStr.slice (0,-1);
 				}
 			}
 			else {		// single ID number
-				NStr += this.ID ? this.ID.toString () : '0';
+				NStr += this.ID.toString ();
 			}
 
 			return NStr + '_' + VTStr;
@@ -3135,9 +3133,11 @@ export namespace RS1 {
 			return true;
 		}
 
-		get copy () {
+		copy (newName='') {
 			let AB = this.toAB;
-			return new PackField (this._name, AB, this._type);
+			if (!newName)
+				newName = this._name;
+			return new PackField (newName, AB, this._type);
 		}
 
 		from (Src : PackField) {
