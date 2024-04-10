@@ -3143,8 +3143,7 @@ export namespace RS1 {
 		from (Src : PackField) {
 			this._name = Src._name;
 			this._type = Src._type;
-			let AB = Src.toAB;
-			this.setByAB (AB, this._type);
+			this.setByAB (Src.toAB, this._type);
 		}
 
 		get Type () { return this._type; }
@@ -3182,6 +3181,13 @@ export namespace RS1 {
 			}
 
 			return this._AB = AB;
+		}
+
+		setName (N:string) {
+			if (this._name)
+				return;
+
+			this._name = N;
 		}
 
 		setData (D : PFData) {
