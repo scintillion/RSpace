@@ -3445,19 +3445,20 @@ export namespace RS1 {
 			let Fields=[], len = Name.length;
 			switch (Name[0]) {
 				case '_' :	// all with suffix
-					len = -len;
+					Name = Name.slice(1);
+					len = Name.length;
 					for (const F of this.Ds) {
 						if (F.Name.slice (len) === Name)
 							Fields.push (F);
 						}
 					return Fields;
-					break;
 
-				case '>' : return this.Ds.slice (0); break;
-				case '<' : return this.Cs.slice (0); break;
+				case '>' : return this.Ds.slice (0);
+				case '<' : return this.Cs.slice (0);
 				default : 
 						if (Name.slice(-1) !== '_')
-							return	[];
+							return [];
+						else Name = Name.slice (0,--len);
 
 						for (const F of this.Ds) {
 							if (F.Name.slice (0,len) === Name)
