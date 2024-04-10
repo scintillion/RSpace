@@ -3184,10 +3184,8 @@ export namespace RS1 {
 		}
 
 		setName (N:string) {
-			if (this._name)
-				return;
-
-			this._name = N;
+			if (this.notNIL  &&  !this._name)
+				this._name = N;
 		}
 
 		setData (D : PFData) {
