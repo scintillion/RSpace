@@ -3435,16 +3435,16 @@ export namespace RS1 {
 		}
 
 		fetch (Name='') : PackField[] {
-			// Name = '' (ALL), Name = 'ABC.' ALL with ABC prefix,
-			// Name = '.xyz' ALL with xyz suffix
+			// Name = '' (ALL), Name = 'ABC_' ALL with ABC prefix,
+			// Name = '_xyz' ALL with xyz suffix
 			// Name = '>', ALL Ds  '<' ALL Cs
 
 			if (!Name)
-				return (this.Cs.concat (this.Ds)).slice(0);
+				return this.Cs.concat (this.Ds);
 
 			let Fields=[], len = Name.length;
 			switch (Name[0]) {
-				case '.' :	// all with suffix
+				case '_' :	// all with suffix
 					len = -len;
 					for (const F of this.Ds) {
 						if (F.Name.slice (len) === Name)
@@ -3456,7 +3456,7 @@ export namespace RS1 {
 				case '>' : return this.Ds.slice (0); break;
 				case '<' : return this.Cs.slice (0); break;
 				default : 
-						if (Name.slice(-1) !== '.')
+						if (Name.slice(-1) !== '_')
 							return	[];
 
 						for (const F of this.Ds) {
