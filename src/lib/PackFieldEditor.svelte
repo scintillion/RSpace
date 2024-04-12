@@ -17,7 +17,7 @@ function setSelectedRow(row: RS1.PackField): RS1.PackField {
 
 function addNewRecord() {
   addingNewRecord = true;
-  selectedRow = RS1.NILField;
+  selectedRow = new RS1.PackField('','')
   step = 'editPack';
 }
 
@@ -35,7 +35,7 @@ function close() {
     
     <div class="selectContainer">
       {#each packArray as row (row)}
-        <div on:click={() => {setSelectedRow(row); step = 'editPack' ; addingNewRecord = false; console.log('selected row' + selectedRow.Name)}}>
+        <div on:click={() => {setSelectedRow(row); step = 'editPack' ; addingNewRecord = false; console.log('selected row' + selectedRow.Name); console.log('row type' + selectedRow.Type)}}>
           {row.desc}
         </div>
       {/each}
@@ -47,18 +47,45 @@ function close() {
     <div>
     <div class="fields" id="Line1">
       <label for="name">Name: </label>
-      <input type="text" id="name" name="name" bind:value={selectedRow.Name} placeholder="Name" readonly={addingNewRecord === false} />
+      <!-- <input type="text" id="name" name="name" bind:value={selectedRow.Name} placeholder="Name" readonly={addingNewRecord === false && selectedRow.Name !== ''} /> -->
+      <!-- <input type="text" id="name" name="name" bind:value={selectedRow.Name} placeholder="Name" /> -->
+      <!-- <input type="text" id="name" name="name" on:input={e => selectedRow.setName(e.target?.value === '' ? null : e.target.value)} placeholder="Name" /> -->
+      <input type="text" id="name" name="name" bind:value={selectedRow.Name} on:change={(e) => {
+        const target = e.target;
+        if (target instanceof HTMLInputElement && target.value !== '') {
+          selectedRow.setName(target.value);
+          console.log('row name' + selectedRow.Name);
+          console.log('target val' + target.value);
+        } 
+        }}
+        placeholder="Name"
+        readonly={addingNewRecord === false && selectedRow.Name !== ''}
+      />
       <label for="data">Data: </label>
-      <input type="text" id="data" name="data" bind:value={selectedRow.Data} placeholder="Description" />
+      <input type="text" id="data" name="data" bind:value={selectedRow.Data} 
+      on:change={(e) => {
+        const target = e.target;
+        if (target instanceof HTMLInputElement && target.value !== '') {
+          selectedRow.setData(target.value);
+          console.log('row name' + selectedRow.Data);
+          console.log('target val' + target.value);
+        } 
+        }}
+        placeholder="Description"
+      />
       <label for="type">Type: </label>
-      <select id="type" name="type" bind:value={selectedRow.Type} placeholder="Type">
+      <input type="text" name="type" bind:value={selectedRow.Type} placeholder="Type" />
+      <!-- <select id="type" name="type" bind:value={selectedRow.Type} placeholder="Type">
         {#each TypeArray as type}
           <option value={type}>{type}</option>
         {/each}
-      </select>
+      </select> -->
+      <label for="AB">ArrayBuffer:</label>
+      <input type="text" id="AB" name="AB" bind:value={selectedRow.AB} placeholder="ArrayBuffer" />
     </div>
     <div class="buttons">
       <button on:click={() => step = 'selectPack'}>Back</button>
+      <button on:click={() => {D.addField(selectedRow); console.log('Saved D' + D.desc); step = 'selectPack'}}>Save</button>
     </div>
   </div>
   

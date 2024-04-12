@@ -321,7 +321,8 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
               console.log('$$$LIST$$$' + currentRecord.List.desc);
           }
       }}>List {currentRecord.List.desc}</button>
-      <button id="pack" on:click={() => { showPackFieldEditor = true; let newPack = currentRecord.SavePack(); EditPack(newPack,null)}}>Pack {currentRecord.Pack.desc}</button>
+      <!-- <button id="pack" on:click={() => { showPackFieldEditor = true; let newPack = currentRecord.SavePack(); EditPack(newPack,null)}}>Pack {currentRecord.Pack.desc}</button> -->
+      <button id="pack" on:click={() => { showPackFieldEditor = true; EditPack(currentRecord.Pack,null)}}>Pack {currentRecord.Pack.desc}</button>
       <button id="data" on:click={async () => {
         const { D, isListField } = await EditList(currentRecord.Data?.type==='List' ? currentRecord.Data: new RS1.vList(currentRecord.Data), null, false);
         if (!isListField) {
