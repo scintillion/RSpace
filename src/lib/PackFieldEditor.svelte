@@ -25,6 +25,13 @@ const dispatch = createEventDispatcher();
 function close() {
 		dispatch('close');
 	}
+
+  let selectedType: RS1.PackField["Type"] = RS1.tNone
+  function handleTypeChange(event: any) {
+    const selectedType =  event.target.value;
+  }
+
+  
 </script>
 
 
@@ -61,25 +68,53 @@ function close() {
         placeholder="Name"
         readonly={addingNewRecord === false && selectedRow.Name !== ''}
       />
+      <label for="type">Type: </label>
+      <select id="type" name="type"  placeholder="Type" on:change={handleTypeChange} bind:value={selectedType} >
+        {#if addingNewRecord}
+          {#each TypeArray as type}
+            <option value={type}>{type}</option>
+          {/each}
+        {:else}
+          <option value={selectedRow.Type} selected>{selectedRow.Type}</option>
+        {/if}
+      </select>
       <label for="data">Data: </label>
       <input type="text" id="data" name="data" bind:value={selectedRow.Data} 
       on:change={(e) => {
         const target = e.target;
         if (target instanceof HTMLInputElement && target.value !== '') {
-          selectedRow.setData(target.value);
+  
+          switch (selectedType) {
+            case RS1.tStr:
+              selectedRow.setData(String(target.value));
+              break;
+            case RS1.tNum:
+              selectedRow.setData(Number(target.value));
+              break;
+            case RS1.tList:
+              let vList = new RS1.vList(target.value);
+              selectedRow.setData(vList);
+              console.log('vlist' + vList.desc);
+              break;
+            case RS1.tPack:
+              let Pack = new RS1.BufPack(target.value);
+              selectedRow.setData(Pack);
+            case RS1.tAB:
+              let AB = selectedRow.toAB;
+              selectedRow.setData(AB)
+            default:
+              selectedRow.setData(target.value);
+              break;
+          }
+          //selectedRow.setData(target.value);
           console.log('row name' + selectedRow.Data);
+          console.log('selected type' + selectedType);
           console.log('target val' + target.value);
         } 
         }}
         placeholder="Description"
       />
-      <label for="type">Type: </label>
-      <input type="text" name="type" bind:value={selectedRow.Type} placeholder="Type" />
-      <!-- <select id="type" name="type" bind:value={selectedRow.Type} placeholder="Type">
-        {#each TypeArray as type}
-          <option value={type}>{type}</option>
-        {/each}
-      </select> -->
+      
       <label for="AB">ArrayBuffer:</label>
       <input type="text" id="AB" name="AB" bind:value={selectedRow.AB} placeholder="ArrayBuffer" />
     </div>
