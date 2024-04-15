@@ -3,6 +3,7 @@
 </script>
 
 CLEdit!
+<r-tile />
 <CLEdit />
 
 <style lang="scss">
