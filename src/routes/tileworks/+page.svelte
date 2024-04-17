@@ -26,5 +26,6 @@
 
 <style>
 	.tilesabc {
+		color:green
 	}
 </style>

@@ -3490,6 +3490,9 @@ export namespace RS1 {
 		}
 
 		addField (F:PackField) {
+			if (this === NILPack)
+				return;
+			
 			let Name = F.Name;
 			let Fs = (!Name  || (Name >= '0')) ? this.Ds : this.Cs;
 

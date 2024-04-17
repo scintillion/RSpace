@@ -2,15 +2,20 @@
 	import { InitClient } from '$lib/API/client/request';
 	import { onMount } from 'svelte';
 	import { RTile } from '../components/tiles/RTile'
+	import CustomElement from '../components/tiles/CustomElement.svelte'
 	// import { CoffeeMug } from '../components/tiles/coffeemug'
 	
 	var comp : HTMLElement;
 	var container : HTMLElement;
 	
 	onMount(() => {
+		customElements.define('custom-element', CustomElement.CustomElement);
+
 		console.log ('Entry InitClient!');
 		InitClient ();
 		comp = document.createElement ('r-tile');
+		container.appendChild (comp);
+		comp = document.createElement ('custom-element');
 		container.appendChild (comp);
 	});
 	</script>
@@ -23,7 +28,8 @@
 	<a href="/apitesting/">API Testing</a>
 	<a href="/vhelsing">VHelsing</a>
 	<a href="/tileworks">TileWorks</a>
-	<r-tile color="blue"/>
+	<r-tile attrStr='QED' color="blue"/>
+	<custom-xxxelement ><h3>ABC</h3></custom-xxxelement>
 	<div bind:this={container}/>
 	
 	<style lang="scss">
