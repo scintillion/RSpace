@@ -9,7 +9,6 @@ export class RTile extends LitElement {
 
   render() {
     const div = document.createElement('div');
-
     console.log ('attrStr=' + this.attrStr);
     console.log ('styleStr=' + this.styleStr);
 
