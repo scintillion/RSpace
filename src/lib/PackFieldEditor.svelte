@@ -3,6 +3,7 @@ import { RS1 } from '$lib/RS';
 import { createEventDispatcher } from 'svelte';
 
 export let D: RS1.BufPack;
+console.log('Initial packfield D' + D.desc);
 let packArray = D.fetch('');
 console.log(packArray)
 let step = 'selectPack';
@@ -25,7 +26,13 @@ const dispatch = createEventDispatcher();
 function close() {
 		dispatch('close');
 	}
-
+function handleSave() {
+  D.addField(selectedRow);
+  console.log('Saved D' + D.desc);
+  dispatch('onPackChange', {value: D});
+  step = 'selectPack'
+  
+}
   let selectedType: RS1.PackField["Type"] = RS1.tNone
   function handleTypeChange(event: any) {
     const selectedType =  event.target.value;
@@ -54,9 +61,6 @@ function close() {
     <div>
     <div class="fields" id="Line1">
       <label for="name">Name: </label>
-      <!-- <input type="text" id="name" name="name" bind:value={selectedRow.Name} placeholder="Name" readonly={addingNewRecord === false && selectedRow.Name !== ''} /> -->
-      <!-- <input type="text" id="name" name="name" bind:value={selectedRow.Name} placeholder="Name" /> -->
-      <!-- <input type="text" id="name" name="name" on:input={e => selectedRow.setName(e.target?.value === '' ? null : e.target.value)} placeholder="Name" /> -->
       <input type="text" id="name" name="name" bind:value={selectedRow.Name} on:change={(e) => {
         const target = e.target;
         if (target instanceof HTMLInputElement && target.value !== '') {
@@ -120,7 +124,8 @@ function close() {
     </div>
     <div class="buttons">
       <button on:click={() => step = 'selectPack'}>Back</button>
-      <button on:click={() => {D.addField(selectedRow); console.log('Saved D' + D.desc); step = 'selectPack'}}>Save</button>
+      <!-- <button on:click={() => {D.addField(selectedRow); console.log('Saved D' + D.desc); step = 'selectPack'}}>Save</button> -->
+      <button on:click={handleSave}>Save</button>
     </div>
   </div>
   

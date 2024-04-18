@@ -6,6 +6,7 @@
   import { packStore } from '../../stores/packStore.js';
   import { current_component, subscribe } from 'svelte/internal';
   import PackFieldEditor from '$lib/PackFieldEditor.svelte';
+ 
   
   let step = 'selectTableAndType'; // Default step (view)
   let tableNames: string[] = [];
@@ -39,6 +40,7 @@
       step = 'editRecord'; 
       selectedItemId = id;
       addingNewRecord = false; 
+      console.log('starting pack:' + detailedResult.Pack.desc)
   };
 
   
@@ -55,7 +57,8 @@
   const saveChanges = async () => {
       const writeResult = await currentRecord.toDB();
       console.log(`Write result: ${writeResult}`);
-      console.log(`saved list` + currentRecord.List.desc)
+      console.log(`saved list:` + currentRecord.List.desc)
+      console.log('saved pack:' + currentRecord.Pack.desc)
       editingRecordId = null;
       selectedItemId = null;
       newRecord = new RS1.RSData();
@@ -178,6 +181,10 @@
 }
 
 async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
+  if (D === RS1.NILPack) {
+    D = new RS1.BufPack();
+  }
+  console.log('EditPack D' + D.desc);
 
   if (EditContainer) {
         const editorComponent = new PackFieldEditor({
@@ -225,7 +232,7 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
         const editorComponent = new PackFieldEditor({
           target: modalContent,
           props: {
-            D,    
+            D,
           }
         });
 
@@ -234,10 +241,17 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
           modalBackground.remove();
         });
 
+        editorComponent.$on('onPackChange', (event) => {
+          D = event.detail.value;
+          currentRecord.Pack = D;
+  
+          
+        });
+
         modalContent.style.display = 'block';
 
       }
-  
+  return {D};
 }
 
   // handle conditional binding
@@ -322,7 +336,11 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
           }
       }}>List {currentRecord.List.desc}</button>
       <!-- <button id="pack" on:click={() => { showPackFieldEditor = true; let newPack = currentRecord.SavePack(); EditPack(newPack,null)}}>Pack {currentRecord.Pack.desc}</button> -->
-      <button id="pack" on:click={() => { showPackFieldEditor = true; EditPack(currentRecord.Pack,null)}}>Pack {currentRecord.Pack.desc}</button>
+      <!-- <button id="pack" on:click={() => { showPackFieldEditor = true; EditPack(currentRecord.Pack,null)}}>Pack {currentRecord.Pack.desc}</button> -->
+      <button id="pack" on:click={async () => { showPackFieldEditor = true;
+         const {D} = await EditPack(currentRecord.Pack,null);
+         //currentRecord.Pack = D;
+          }}>Pack {currentRecord.Pack.desc}</button>
       <button id="data" on:click={async () => {
         const { D, isListField } = await EditList(currentRecord.Data?.type==='List' ? currentRecord.Data: new RS1.vList(currentRecord.Data), null, false);
         if (!isListField) {
