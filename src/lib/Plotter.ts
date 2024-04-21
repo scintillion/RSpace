@@ -45,19 +45,20 @@ export class Plotter {
 	}
 
 	private CreateTile(tile: RS1.TDE) {
+		let BT = 'Error: Invalid Tile';
 		if (!tile.aList) {
 			return '<p>Invalid</p>';
-			throw 'Error: Invalid Tile';
+			throw BT;
 		}
 
 		if (!tile.sList) {
 			return '<p>Invalid</p>';
-			throw 'Error: Invalid Tile';
+			throw BT;
 		}
 
 		if (!tile.List) {
 			return '<p>Invalid</p>';
-			throw 'Error: Invalid Tile';
+			throw BT;
 		}
 
 		let styles = ``;

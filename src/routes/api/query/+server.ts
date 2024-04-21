@@ -77,7 +77,7 @@ class DBKit {
 			switch (F.Type) {
 				case RS1.tNum : Values[nValues++] = F.Num; break;
 				case RS1.tStr : Values[nValues++] = F.Str; break;
-				default : Values[nValues++] = new Int8Array (F.AB);
+				default : Values[nValues++] = new Int8Array (F.toAB);
 			}								
 		}
 		Values = Values.slice (0,nValues);

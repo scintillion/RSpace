@@ -9,7 +9,7 @@ the RS base data class (including database operations) from which most other dat
 A nice overview of database operations can be found in page.svelte in the APItesting client area.
 
 
-## vList/vID/ListOfLists
+## vList/vID/LoL
 v{ariable}List is extended from RSData, its constructor accepts a string defining its name/desc pairs in the form: 
  {name:desc}|name1:desc1|…|nameN:descN|
 Where the last character in the string is the delimiter of the name:desc pairs (in the usual case, delimiter is '|').  This allows a list of variables (parameters) to be passed as a single string, and variable values can be quickly accessed in the vList by name `(GetStr (name), GetNum (name), GetDesc (name))`.  `GetVID(name)` will return the v{ariable}ID.  The elements of the list can also be directly loaded to a select/ListBox for display to the user.

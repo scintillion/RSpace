@@ -5,7 +5,7 @@
 
 	onMount(() => {
 		const container: HTMLDivElement = document.getElementById(
-			'ListOfListsContainer'
+			'LoLContainer'
 		) as HTMLDivElement;
 		const list1: RS1.vList = new RS1.vList(
 			'Test1|Name:[%=Jane]Your Name|XY:[#=1]A Number Value|'
@@ -16,20 +16,20 @@
 		const list3: RS1.vList = new RS1.vList(
 			'Test3|Name:[%=Jacob]Your Name|XY:[#=3]A Number Value|'
 		);
-		const LoL: RS1.ListOfLists = new RS1.ListOfLists();
-		LoL.Add(list1.Str);
-		LoL.Add(list2.Str);
-		LoL.Add(list3.Str);
+		const LoL: RS1.LoL = new RS1.LoL();
+		LoL.add(list1.Str);
+		LoL.add(list2.Str);
+		LoL.add(list3.Str);
 
 		const LoLEditor: LOLEditor = new LOLEditor(LoL, container);
 		LoLEditor.Populate();
 	});
 </script>
 
-<div id="ListOfListsContainer" />
+<div id="LoLContainer" />
 
 <style lang="scss">
-	#ListOfListsContainer {
+	#LoLContainer {
 		width: 100vw;
 		height: 100vh;
 		display: flex;

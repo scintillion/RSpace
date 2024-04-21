@@ -42,7 +42,7 @@ function DumpLists () {
 
   RS1.LstEdit.MainList = document.querySelector ('#MainList') as HTMLSelectElement;
   RS1.LstEdit.DropList = document.querySelector ('#DropList') as HTMLSelectElement;
-  RS1.LstEdit.ListSelect = document.querySelector ('#ListOfLists') as HTMLSelectElement;
+  RS1.LstEdit.ListSelect = document.querySelector ('#LoL') as HTMLSelectElement;
   RS1.LstEdit.TileSelect = document.querySelector ('#ListOfTiles') as HTMLSelectElement;
 
   if (RS1.CL.LT  && RS1.LstEdit.MainList)
@@ -58,7 +58,7 @@ function DumpLists () {
         LstEdit.FormatEdit = document.querySelector ('#FormatEdit');
         LstEdit.ValueEdit = document.querySelector ('#ValueEdit');
         LstEdit.DescEdit = document.querySelector ('#DescEdit');
-        LstEdit.ListSelect = document.querySelector ('#ListOfLists');
+        LstEdit.ListSelect = document.querySelector ('#LoL');
 */
 
   console.log ('Calling Defines!'); 
@@ -121,7 +121,7 @@ function DumpLists () {
           <option value="audi">Audi</option>
         </select>
 
-        <select id="ListOfLists" name="ListOfLists" size=10 style="width: 30%;">
+        <select id="LoL" name="LoL" size=10 style="width: 30%;">
           <option value="volvo">Volvo</option>
           <option value="saab">Saab</option>
           <option value="opel">Opel</option>

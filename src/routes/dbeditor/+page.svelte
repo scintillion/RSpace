@@ -175,7 +175,7 @@
 
     
     unsubscribe();
-    console.log('D RETURN' + D.getStr);
+    console.log('D RETURN' + D.GetStr);
 
     return {D:D, isListField:isListField};
 }

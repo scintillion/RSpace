@@ -54,7 +54,7 @@ function parseAttrString(attrStr: string) {
 import {LitElement, html} from 'lit';
 import {customElement,property} from 'lit/decorators.js';
 
-@customElement('r-tile')
+@customElement('QQQ-tile')
 export class RTile extends LitElement {
   color = 'pink';
 

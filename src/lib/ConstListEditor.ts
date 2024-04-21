@@ -33,14 +33,14 @@ export class Editor {
 	constructor(
 		container: HTMLDivElement | null,
 		vList: RS1.vList,
-		ListOfLists: RS1.LoL = RS1.CL,
+		LoL: RS1.LoL = RS1.CL,
 		linkedvList?: RS1.vList
 	) {
 		// Constructor
 		this.container = container as HTMLDivElement;
 		this.vList = vList as RS1.vList;
 
-		this.lol = ListOfLists;
+		this.lol = LoL;
 
 		// SelectBox
 		this.selectContainer = this.container.querySelector('.selectContainer') as HTMLDivElement;
@@ -480,11 +480,11 @@ export class LOLEditor {
 	private buttons: { Copy: HTMLButtonElement; Merge: HTMLButtonElement };
 
 	get CL(): RS1.vList | undefined {
-		return this.ListOfLists.TovList();
+		return this.LoL.TovList();
 	}
 
-	constructor(ListOfLists: RS1.LoL, container: HTMLDivElement) {
-		this.LOL = ListOfLists;
+	constructor(LoL: RS1.LoL, container: HTMLDivElement) {
+		this.LOL = LoL;
 		this.container = container;
 
 		this.select = this.container.ownerDocument.createElement('select');
@@ -514,7 +514,7 @@ export class LOLEditor {
 		};
 	}
 
-	get ListOfLists(): RS1.LoL {
+	get LoL(): RS1.LoL {
 		return this.LOL;
 	}
 

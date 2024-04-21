@@ -1,3 +1,5 @@
+import { add_transform } from "svelte/internal";
+
 export namespace RS1 {
 
 	/*
@@ -68,7 +70,7 @@ export namespace RS1 {
 
 	export const NameDelim = ':',PrimeDelim = '|',TabDelim = '\t',LineDelim = '\n',FormDelim = '\f';
 	export const FormatStart = '[',FormatEnd = ']';
-	export const tNone='?',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^',tID='+';
+	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^',tID='+',tDisk='*';
 
 	export enum CLType {
 		None,
@@ -915,7 +917,7 @@ export namespace RS1 {
 
 
 		LoadPack(P: BufPack) {
-			if (this === NILData)
+			if ((this === NILData)  ||  (P === NILPack))
 				return;
 
 			if (!P  ||  (P === NILPack))
@@ -961,6 +963,9 @@ export namespace RS1 {
 
 		PostSave (P : BufPack) {}
 		SavePack (P : BufPack = NILPack) {
+			if (this === NILData)
+				return NILPack;
+
 			if (!P  || (P === NILPack))
 				P = new BufPack ();
 
@@ -2032,7 +2037,7 @@ export namespace RS1 {
 			return Str ? Number(Str) : undefined;
 		}
 
-		GetStr(Name: string): string | undefined {
+		GetStr(Name: string) {
 			let Str = this.GetDesc(Name);
 			console.log('GetStr (' + Name + ') GetDesc returns "' + Str + '"');
 
@@ -2044,7 +2049,7 @@ export namespace RS1 {
 					else console.log(FormatEnd + ' not present!');
 				} else return Str;
 			}
-			return undefined;
+			return '';
 		}
 
 		static isListStr (Str:string) {
@@ -2664,7 +2669,7 @@ export namespace RS1 {
 		Output: IOType | undefined;
 	}
 
-	export class LoL {	//	ListOfLists
+	export class LoL {	//	LoL
 		Lists: vList[] = [];
 
 		List (Name: string): vList {
@@ -2841,7 +2846,7 @@ export namespace RS1 {
 		TovList(): vList {
 			let limit = this.Lists.length;
 
-			let LStrs: string[] = ['LL:ListOfLists'];
+			let LStrs: string[] = ['LL:LoL'];
 			let NewStr: string;
 
 			for (let i = 0; i < limit; ++i) {
@@ -3121,7 +3126,7 @@ export namespace RS1 {
 
 	export class PackField {
 		protected _name = '';
-		protected _type = ' ';
+		protected _type=tNone;
 		protected _data : any = NILAB;
 		protected _error = '';
 		protected _AB = NILAB;
@@ -3152,18 +3157,85 @@ export namespace RS1 {
 		get Num () { return (this._type === tNum) ? this._data as number : NaN; }
 
 		get AB () { return this._AB; }
-		get Pack () {
-			if (this._type !== tPack)
-				return NILPack;
 
-			return this._data ? this._data as BufPack : NILPack;
+		fromDisk (Type:string) {
+			if (this._type !== tDisk)
+				return this._data;
+			
+			switch (Type) {
+
+
+
+			}
+
+			return NILAB;
+		}
+
+		get rawAB () {
+			if ((this._type !== tAB)  ||  (this._data === NILAB))
+				return NILAB;
+
+			return this._AB;
+		}
+
+		get rawList () {
+			let AB = this.rawAB;
+
+			if (AB.byteLength  &&  AB !== NILAB) {
+				let Str = ab2str (AB);
+
+				if (Str)
+					return new vList (Str);
+			}
+
+			return NILList;
+		}
+
+		get rawPack () {
+			let AB = this.rawAB;
+
+			if (AB.byteLength  &&  AB !== NILAB) {
+				let Pack = new BufPack ();
+				Pack.bufIn (AB);
+				return Pack;
+			}
+			return NILPack;
+		}
+
+		get Pack () {
+			switch (this._type)
+			{
+				case tPack :	return this._data ? this._data as BufPack : NILPack;
+				case tDisk :
+					this._type = tPack;
+					let Pack = new BufPack ();
+					Pack.bufIn (this._data);
+					this._data = Pack;
+					return Pack;					
+			}
+			return NILPack;
 		 }
 		get rsPack () { return (this._type == tData) ? this._data as BufPack : NILPack; }
 		get List () {
-			if (this._type !== tList)
-				return NILList;
+			switch (this._type) {
+				case tList :	return this._data ? this._data as vList : NILList;
+				case tDisk :
+					this._type = tList;
+					if ((typeof this._data) === 'string') {
+						let List = new vList (this._data as string);
+						this._data = List;
+						return List;
+					}
 
-			return this._data ? this._data as vList : NILList; }
+					let Pack = new BufPack ();
+					
+					Pack.bufIn (this._data as ArrayBuffer);
+					let List = new vList (Pack);
+					this._data = List;
+					return List;					
+			}
+			return NILList;
+		 }
 
 		get Error () { return this._error; }
 		get Data () { return this._data; }
@@ -3174,9 +3246,17 @@ export namespace RS1 {
 				case tNum : AB = num2ab (this.Num); break;
 				case tStr : AB = str2ab (this.Str); break;
 				case tAB : return this._AB.slice (0);
-				case tData : AB = (this._data as BufPack).bufOut (); break;
+				case tData : 
+					if (this._data === NILData) {
+						AB = NILAB;
+						break;
+					}
+					let Pack = (this._data as RSData).SavePack ();
+					AB = Pack.bufOut ();
+					break;
+
 				case tPack : AB = this.Pack.bufOut (); break;
-				case tList : AB = str2ab (this.List.toStr); break;
+				case tList : AB = str2ab ((this._data as vList).toStr); break;
 				default : AB = NILAB; this._error = 'toArray Error, Type =' + this._type + '.';
 			}
 
@@ -3538,6 +3618,8 @@ export namespace RS1 {
 
 		    this.notNIL;
 
+			console.log ('BufPack.add');
+
 			if (Args.length & 1)
 				return;		// must always be matching pairs (Name/Data), odd params not allowed
 
@@ -3545,6 +3627,7 @@ export namespace RS1 {
 			{
 				let FldName = Args[i++] as string;
 				let Data = Args[i++];
+				console.log ('  PackField ' + FldName + '=' + Data);
 				let NewField = new PackField(FldName,Data);
 
 				if (NotNull)
@@ -3710,6 +3793,9 @@ export namespace RS1 {
 		}
 
 		bufOut (): ArrayBuffer {
+			if (this === NILPack)
+				return NILAB;
+
 			let Prefix = this.getPrefix();
 			let PAB = str2ab (Prefix);
 			let Bytes = PAB.byteLength;
@@ -3764,9 +3850,12 @@ export namespace RS1 {
 		}
 
 		bufIn (AB: ArrayBuffer) {
-		    this.notNIL;
+			this.notNIL;
 
 			this.clear ();
+
+			if ((AB === NILAB)  ||  !AB.byteLength)
+				return;
 
 			let BA = new Uint8Array (AB);
 
@@ -3924,7 +4013,7 @@ export namespace RS1 {
 
 			this.clear ();
 			
-			// console.log ('ObjectIn:Adding entries!');
+			console.log ('ObjectIn:Adding entries!');
 
 			let entries = Object.entries (O);
 			let AddArray = Array(entries.length << 1);
@@ -3934,11 +4023,11 @@ export namespace RS1 {
 				AddArray[count++] = entry[0];
 				AddArray[count++] = entry[1];
 
-				// console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
+				console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
 			}
 
 			this.add (AddArray);
-			// console.log ('ObjectIn Resultant BP:' + '\n' + this.Desc ());
+			console.log ('ObjectIn Resultant BP:' + '\n' + this.desc);
 		}
 
 		objectOut () : Object {
