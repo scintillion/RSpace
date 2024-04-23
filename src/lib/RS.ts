@@ -1,4 +1,4 @@
-import { add_transform } from "svelte/internal";
+// import { add_transform } from "svelte/internal";
 
 export namespace RS1 {
 
@@ -890,6 +890,14 @@ export namespace RS1 {
 
 		PostLoad (P : BufPack) {}
 
+		get size () {
+			let R = 0;
+			if (this.Name || this.Desc || this.Type  ||  (this._rID !== NILRID))
+				R = -1;
+
+			return R;
+		}
+
 		get ID () { return this._rID !== NILRID ? this._rID.ID : 0; }
 		get RID () { return this._rID.copy; }
 
@@ -931,7 +939,12 @@ export namespace RS1 {
 			this.Sub = P.str ('sub');
 			// this.ID = P.num ('.ID');
 			this.List = P.list ('list');
+			if (this.List === NILList)
+				this.List = new vList ();
+
 			this.Pack = P.pack('pack');
+			if (this.Pack === NILPack)
+				this.Pack = new BufPack ();
 
 			let ridStr = P.str ('.rid');
 			if (ridStr) {
@@ -1273,6 +1286,7 @@ export namespace RS1 {
 		}
 	}
 
+/*
 	export class TileCache {
 		First: vList | undefined;
 
@@ -1294,6 +1308,7 @@ export namespace RS1 {
 			return undefined;
 		}
 	}
+*/
 
 	export class pList {
 		IDType = '';
@@ -1568,6 +1583,15 @@ export namespace RS1 {
 		}
 	} // class vID
 
+	class vListXtra {
+		_count=0;
+		_Next: vList | undefined;
+		_IDs: number[] | undefined;
+		_NameIDs='';
+		_Childs:vList[]|undefined;
+		_Indent=0;
+	}
+	export const NILvListXtra = new vListXtra ();
 
 	export class vList extends RSData {
 		Type = 'List';
@@ -1575,7 +1599,6 @@ export namespace RS1 {
 		protected _Delim = PrimeDelim;
 		private _FirstDelim = 0;
 		protected _Count = 0;
-		protected _Next: vList | undefined;
 		protected _IDs: number[] | undefined;
 		_NameIDs = '';
 		LType: CLType = CLType.None;
@@ -1587,6 +1610,17 @@ export namespace RS1 {
 			   log ('NILList!'); return false;
 		   }
 		   return true;
+	   }
+
+	   get size () {
+			if (this._Count)
+				return this._Count;
+
+		    if (this.LStr.length > 2)
+				return 1;
+
+			let S = super.size;
+			return S;
 	   }
 
 	   get Count() {
@@ -1626,17 +1660,21 @@ export namespace RS1 {
 			return this._Indent;
 		}
 
-		get IDs(): vID[] | undefined {
-			return this.IDs;
+		get IDs(): vID[] {
+			return this.IDs ? this.IDs : [];
 		} // only sensible for RefList, returns undefined if not
+
+		/*
 		get Next() {
 			return this._Next;
 		}
+		*/
+
 		get Delim() {
 			return this._Delim;
 		}
-		get FirstChild(): vList | undefined {
-			if (this._Childs) return this._Childs[0];
+		get FirstChild(): vList {
+			return (this._Childs) ? this._Childs[0] : NILList;
 		}
 
 		VIDStr (Sep=';',Delim='') {
@@ -1993,7 +2031,8 @@ export namespace RS1 {
 			this.NameList();
 		}
 
-		constructor(Str1: string | string[] | BufPack = '', First: vList | undefined = undefined) {
+		constructor(Str1: string | string[] | BufPack = '') {
+			//	, First: vList | undefined = undefined) {
 			let Str, Strs, BP;
 			
 			super ();
@@ -2008,6 +2047,7 @@ export namespace RS1 {
 				this.InitList (BP.str ('data'));
 			}
 
+			/*
 			if (First) {
 				let Last = First;
 
@@ -2018,6 +2058,7 @@ export namespace RS1 {
 				this._Next = Last._Next;
 				Last._Next = this; // add our vList to the list of vLists
 			}
+			*/
 		}
 
 		GetDesc(Name: string): string | undefined {
@@ -3508,6 +3549,15 @@ export namespace RS1 {
 
 		Cs : PackField[] = [];
 		Ds : PackField[] = [];
+
+		get size () {	// > 0 indicates field count, 0 - empty, -1 = no fields but not null
+			let S = this.Cs.length + this.Ds.length;
+
+			if (S)
+				return S;
+
+			return (this._type  ||  this._details) ? -1 : 0;
+		}
 
 		get notNIL () {
 			if (this === NILPack) {
