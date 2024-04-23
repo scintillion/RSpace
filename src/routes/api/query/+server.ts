@@ -77,7 +77,7 @@ class DBKit {
 			switch (F.Type) {
 				case RS1.tNum : Values[nValues++] = F.Num; break;
 				case RS1.tStr : Values[nValues++] = F.Str; break;
-				default : Values[nValues++] = new Int8Array (F.toAB);
+				default : Values[nValues++] = new Int8Array (F.toAB1);
 			}								
 		}
 		Values = Values.slice (0,nValues);
@@ -195,6 +195,10 @@ class DBKit {
 				BP.add (['.rid', RID.toStr]);
 
 				console.log ('   Adding RID ' + RID.toStr + '\n' + BP.expand);
+
+				let BPCopy = new RS1.BufPack ();
+				BPCopy.bufIn (BP.bufOut ());
+				console.log ('   BPCopy =' + BPCopy.expand);
 
 				BPs[countBP++] = BP;
 				}

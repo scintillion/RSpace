@@ -3129,7 +3129,7 @@ export namespace RS1 {
 		protected _type=tNone;
 		protected _data : any = NILAB;
 		protected _error = '';
-		protected _AB = NILAB;
+		protected _AB1 = NILAB;
 
 		get notNIL () {
 			 if (this === NILField) {
@@ -3139,7 +3139,7 @@ export namespace RS1 {
 		}
 
 		copy (newName='') {
-			let AB = this.toAB;
+			let AB = this.toAB1;
 			if (!newName)
 				newName = this._name;
 			return new PackField (newName, AB, this._type);
@@ -3148,7 +3148,7 @@ export namespace RS1 {
 		from (Src : PackField) {
 			this._name = Src._name;
 			this._type = Src._type;
-			this.setByAB (Src.toAB, this._type);
+			this.setByAB (Src.toAB1, this._type);
 		}
 
 		get Type () { return this._type; }
@@ -3156,7 +3156,10 @@ export namespace RS1 {
 		get Str () { return (this._type === tStr) ? this._data as string : ''; }
 		get Num () { return (this._type === tNum) ? this._data as number : NaN; }
 
-		get AB () { return this._AB; }
+		get AB () {
+			// return this._AB;
+			return (this._AB1 !== NILAB) ? this._AB1 : this.toAB1;
+		}
 
 		fromDisk (Type:string) {
 			if (this._type !== tDisk)
@@ -3175,7 +3178,7 @@ export namespace RS1 {
 			if ((this._type !== tAB)  ||  (this._data === NILAB))
 				return NILAB;
 
-			return this._AB;
+			return this.AB;
 		}
 
 		get rawList () {
@@ -3205,8 +3208,8 @@ export namespace RS1 {
 		get Pack () {
 			switch (this._type)
 			{
-				case tPack :	return this._data ? this._data as BufPack : NILPack;
-				case tDisk :
+				case tPack :	return this._data ? this._data as BufPack : new BufPack ();
+				case tAB :
 					this._type = tPack;
 					let Pack = new BufPack ();
 					Pack.bufIn (this._data);
@@ -3214,25 +3217,20 @@ export namespace RS1 {
 					return Pack;					
 			}
 			return NILPack;
-		 }
+		}
+
+
 		get rsPack () { return (this._type == tData) ? this._data as BufPack : NILPack; }
 		get List () {
 			switch (this._type) {
-				case tList :	return this._data ? this._data as vList : NILList;
-				case tDisk :
-					this._type = tList;
-					if ((typeof this._data) === 'string') {
-						let List = new vList (this._data as string);
-						this._data = List;
-						return List;
-					}
-
-					let Pack = new BufPack ();
-					
-					Pack.bufIn (this._data as ArrayBuffer);
-					let List = new vList (Pack);
-					this._data = List;
-					return List;					
+				case tList :	return this._data ? this._data as vList : new vList ();
+				case tAB : case tStr : 
+					let Str = this._data;
+					if (!Str)
+						return new vList ();
+					if (typeof (Str) !== 'string')
+						Str = ab2str (Str);
+					return new vList (Str);
 			}
 			return NILList;
 		 }
@@ -3240,12 +3238,23 @@ export namespace RS1 {
 		get Error () { return this._error; }
 		get Data () { return this._data; }
 
-		get toAB () {
-			let AB : ArrayBuffer;
+		setAB (AB:ArrayBuffer|null = NILAB) { 
+			if (AB) 
+				return this._AB1 = (AB === NILAB) ? this.toAB1 : AB as ArrayBuffer;
+			else return this._AB1 = NILAB;
+		}
+
+		get toAB1 () {
+			let AB = this._AB1;
+			if (AB !== NILAB)
+				return AB;
+
 			switch (this._type) {
-				case tNum : AB = num2ab (this.Num); break;
-				case tStr : AB = str2ab (this.Str); break;
-				case tAB : return this._AB.slice (0);
+				case tNum : AB = this._AB1 = num2ab (this._data as number); break;
+				case tStr : AB = this._AB1 = str2ab (this._data as string); break;
+				case tAB :  AB = (this._data as ArrayBuffer).slice (0);
+					console.log ('  toAB ' + this._name + '[=' + AB.byteLength.toString ());
+					return AB;
 				case tData : 
 					if (this._data === NILData) {
 						AB = NILAB;
@@ -3260,7 +3269,7 @@ export namespace RS1 {
 				default : AB = NILAB; this._error = 'toArray Error, Type =' + this._type + '.';
 			}
 
-			return this._AB = AB;
+			return AB;
 		}
 
 		setName (N:string) {
@@ -3270,14 +3279,15 @@ export namespace RS1 {
 
 		setData (D : PFData) {
 		    this.notNIL;
+			this._AB1 = NILAB;
 
 			let Type;
 			switch (typeof (D)) {
-				case 'string' : Type = tStr; this._data = D; break;
-				case 'number' : Type = tNum; this._data = D; break;
+				case 'number' : Type = tNum; break;
+				case 'string' : Type = tStr; break;
 				default :
 					if (!D) {
-						this._data = NILAB;
+						D = NILAB;
 						Type = tAB;
 					} else
 					{
@@ -3285,25 +3295,25 @@ export namespace RS1 {
 						switch (CName) {
 							case 'BufPack' :
 								Type = tPack;
-								this._data = (D as BufPack).copy;
+								D = (D as BufPack).copy;
 								break;
 							case 'vList' :
 								Type = tList;
-								this._data = new vList ((D as vList).toStr);
+								D = new vList ((D as vList).toStr);
 								break;
 							case 'ArrayBuffer' :
 								Type = tAB;
-								this._AB = (D as ArrayBuffer).slice (0);
+								D = this.setAB ((D as ArrayBuffer)).slice (0);
 								break;
 							case 'Buffer' :
 								Type = tAB;
 								let TBuf = (D as Int8Array).slice(0);
-								this._AB = ABfromArray (TBuf);
+								D = this.setAB (ABfromArray (TBuf));
 								break;
 							default :
 								if (D instanceof RSData) {
 									Type = tData;
-									this._data = (D as RSData).SavePack ();
+									D = (D as RSData).SavePack ();
 									log ('setData:Not allowed without TypeLists, field='+this._name);
 									// we cannot directly create the appropriate
 									// RSData record because we don't have TypeLists
@@ -3317,13 +3327,17 @@ export namespace RS1 {
 						}
 			}
 			this._type = Type;
+			this._data = D;
+			return this.setAB ();
 		}
 
 		clear () {
 			let D : any;
+			this._AB1 = NILAB;
+			
 			switch (this._type) {
-				case tStr : D = ''; break;
 				case tNum : D = NaN; break;
+				case tStr : D = ''; break;
 				case tPack : D = new BufPack (); break;
 				case tAB : D = new ArrayBuffer (0); break;
 				case tList : D = new vList (''); break;
@@ -3331,16 +3345,19 @@ export namespace RS1 {
 					D = NILAB;
 			}
 			this._data = D;
+			this.setAB ();
 		}
 
 
 		private setByAB (AB : ArrayBuffer,Type1 : string) {
 		    this.notNIL;
+			this._AB1 = NILAB;
 
 			let D;
 			switch (Type1) {
-				case tStr : D = ab2str (AB); break;
 				case tNum : D = ab2num (AB); break;
+
+				case tStr : D = ab2str (AB); break;
 				case tPack : case tData :
 					let Pack = new BufPack (); Pack.bufIn (AB);
 					D = Pack;
@@ -3361,6 +3378,7 @@ export namespace RS1 {
 
 			this._data = D;
 			this._type = Type1;
+			return this.setAB ();
 		}
 
 		private _setByBuf (Type : string, InBuffer : Int8Array | ArrayBuffer, Start = -1, nBytes = -1) {
@@ -3411,7 +3429,7 @@ export namespace RS1 {
 				case tPack : case tData : case tAB :
 					 Str += '(' ;
 					 if (this._type === tAB) {
-							Str += this._AB.byteLength.toString () + ')';
+							Str += this._AB1.byteLength.toString () + ')';
 							break;
 					 }
 
@@ -3435,12 +3453,12 @@ export namespace RS1 {
 					case tNum : return this.Num === Ref.Num;
 					case tStr : return this.Str === Ref.Str;
 					case tAB :
-						let limit = this._AB.byteLength;
-						if (Ref._AB.byteLength != limit)
+						let limit = this._AB1.byteLength;
+						if (Ref._AB1.byteLength != limit)
 							return false;
 
-						let B = new Uint8Array (this._AB);
-						let R = new Uint8Array (Ref._AB);
+						let B = new Uint8Array (this._AB1);
+						let R = new Uint8Array (Ref._AB1);
 
 						for (let i = limit; --i >= 0;) {
 							if (B[i] !== R[i])
@@ -3468,7 +3486,7 @@ export namespace RS1 {
 					break;
 				case tAB : break;
 
-				default : Str += ' DEFAULT AB, Type =' + this._type + ' ' + this._AB.byteLength.toString () + ' bytes'; break;
+				default : Str += ' DEFAULT AB, Type =' + this._type + ' ' + this._AB1.byteLength.toString () + ' bytes'; break;
 			}
 
 			if (this._error)
@@ -3486,6 +3504,7 @@ export namespace RS1 {
 	export class BufPack {
 		_type = '';
 		_details = '';
+		_ABLimit = 100;
 
 		Cs : PackField[] = [];
 		Ds : PackField[] = [];
@@ -3680,15 +3699,13 @@ export namespace RS1 {
 			return NILField;
 		}
 
-		toABs ()
+		toABs1 ()
 		{
 		    this.notNIL;
+			let Fields = this.Cs.concat (this.Ds);
 
-			for (const F of this.Cs)
-				F.toAB;
-
-			for (const F of this.Ds)
-				F.toAB;
+			for (const F of Fields)
+				F.setAB (F.toAB1);
 		}
 
 		update (N : string, V : any){
@@ -3739,8 +3756,6 @@ export namespace RS1 {
 
 			let Str = this.summary;
 			Lines.push(Str);
-			Lines.push ('Prefix = ' + Pref);
-
 
 			for (const F of this.Cs) {
 				Lines.push ('  C::' + F.desc);
@@ -3773,8 +3788,6 @@ export namespace RS1 {
 		}
 
 		private getPrefix(): string {
-			this.toABs ();
-
 			let PFs = this.Cs.concat (this.Ds);
 
 			let Prefix = '    ';
@@ -3803,6 +3816,10 @@ export namespace RS1 {
 			if (PAB.byteLength != Prefix.length)
 				log ('*******mismatch!');
 			Prefix = ByteStr + Prefix.slice (ByteStr.length);
+			console.log ('bufOut desc1:' + this.desc);
+			console.log ('BufOUT Prefix =' + Prefix);
+			console.log ('bufOut Names1=' + this.names);
+
 			PAB = str2ab (Prefix);
 			// console.log ('SecondPAB ' + PAB.byteLength.toString ());
 
@@ -3812,19 +3829,30 @@ export namespace RS1 {
 			for (let F of Fields)
 				Bytes += F.AB.byteLength;
 
+			console.log ('bufOut Names2=' + this.names);
 			let AB = new ArrayBuffer (Bytes);
+
+			console.log ('bufOut desc2:' + this.desc);
+			console.log ('  bufOut NEW Prefix=' + this.getPrefix ());
 
 			// console.log ('AB = ' + AB + ' bytes = ' + AB.byteLength.toString ());
 
 			let BA = new Uint8Array (AB);
 			BA.set (PAB);
 			let Pos = PAB.byteLength;
+			let Str = '  BufOut, fields=';
 
+			console.log ('bufOut Names3=' + this.names);
 			for (let F of Fields) {
+				Str += ' ' + F.desc;
 				BA.set (new Uint8Array (F.AB), Pos);
 				// console.log ('  BufOut Name:' + F.Name + ' Size ' + F.Size.toString () + ' ' + F.Type);
 				Pos += F.AB.byteLength;
 			}
+			console.log ('  bufOut:' + Str);
+			console.log ('GOOD bufOut desc3:' + this.desc);
+			console.log ('GOOD! bufOut Names4=' + this.names);
+			console.log ('BAD! bufOut Names4=' + this.names);
 
 			if (Bytes < PAB.byteLength)
 				throw 'BufOUT';
@@ -3854,7 +3882,7 @@ export namespace RS1 {
 
 			this.clear ();
 
-			if ((AB === NILAB)  ||  !AB.byteLength)
+			if (!AB  ||  (AB === NILAB)  ||  !AB.byteLength)
 				return;
 
 			let BA = new Uint8Array (AB);
@@ -3959,6 +3987,14 @@ export namespace RS1 {
 			this._details = '';
 		}
 
+		freeABs () {
+			let Fs = this.Cs.concat (this.Ds), Lim = this._ABLimit;
+			for (const F of Fs) {
+				if (F.AB.byteLength > Lim)
+					F.setAB (null);
+			}
+		}
+
 		get multi () {
 			if (this._type  &&  (this._type[0] === '*'))
 				return this.Ds.length;
@@ -4049,6 +4085,18 @@ export namespace RS1 {
 			console.log ('New Object = ' + o);
 			return o; 
 		}
+
+		get names () {
+			let Fields = this.Cs.concat (this.Ds);
+			let nFields = Fields.length;
+
+			let Str = 'Names[' + nFields.toString () + ']=';
+			for (const F of Fields) {
+				Str += F.NameVal + ' ';
+			}
+
+			return Str;
+		}		
 	}
 
 	export const NILPack = new BufPack ('','NILPack');
