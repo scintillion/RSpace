@@ -1,5 +1,3 @@
-// import { add_transform } from "svelte/internal";
-
 export namespace RS1 {
 
 	
@@ -49,7 +47,7 @@ export namespace RS1 {
 	function NILPackFunc (P : BufPack) { return P; }
 
 	interface ABReq { (AB : ArrayBuffer) : Promise<ArrayBuffer> }
-	interface StrReq { (Query : string) : Promise<RS1.BufPack> }
+	interface StrReq { (Query : string) : Promise<BufPack> }
 	interface PackReq { (Pack : BufPack) : Promise<BufPack> }
 	interface DataReq { (D : RSData) : Promise<RSData> }
 	interface RIDReg { (R: RID) : void }
@@ -643,6 +641,12 @@ export namespace RS1 {
 			return '';
 		}
 
+		get toVIDs () {
+			let Strs = this._str.split (PrimeDelim);
+
+			return [];
+		}
+
 		get toStr () {
 			return this._str;
 		}
@@ -702,7 +706,7 @@ export namespace RS1 {
 		}
 	}
 	
-	export async function ReqPack (BP : RS1.BufPack) : Promise<RS1.BufPack>{
+	export async function ReqPack (BP : BufPack) : Promise<BufPack>{
 	  if (_ReqPack) {
 		  let returnBP = await _ReqPack (BP);
 		  // console.log ('ReqPack.BP = ' + BP.desc);
@@ -721,7 +725,7 @@ export namespace RS1 {
 		return true;
 	}
 	
-	export async function ReqStr (Query : string, Tile:string) : Promise<RS1.BufPack> {
+	export async function ReqStr (Query : string, Tile:string) : Promise<BufPack> {
 		if (!Tile)
 			return NILPack;
 
@@ -1198,7 +1202,7 @@ export namespace RS1 {
 			let ridStr = P.str ('.rid');
 			if (ridStr) {
 				this._rID = new RID (ridStr);
-				RS1.log ('Assigning RID "' + ridStr + '" to ' + this.desc)
+				log ('Assigning RID "' + ridStr + '" to ' + this.desc)
 			}
 
 			if (!this.List || !this.Pack)
@@ -1291,7 +1295,7 @@ export namespace RS1 {
 			let P = this.SavePack ();
 				P.xAdd ('Q',this.ID ? 'U' : 'I');
 
-			P = await RS1.ReqPack (P);
+			P = await ReqPack (P);
 			return P.num ('changes') > 0;
 		}
 
@@ -2936,7 +2940,7 @@ export namespace RS1 {
 			TL = new TileList('', NewTileList);
 			console.log('TileList is read from NewTileList');
 
-			if (RS1.LstEdit.TileSelect) TL.ToSelect(RS1.LstEdit.TileSelect);
+			if (LstEdit.TileSelect) TL.ToSelect(LstEdit.TileSelect);
 
 			let TString = TL.LStr;
 
