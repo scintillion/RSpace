@@ -657,6 +657,21 @@ export namespace RS1 {
 		get toStr () {
 			return this._str;
 		}
+
+		static SortVIDs(VIDs: vID[]) {
+			let limit = VIDs.length;
+			var Temp: vID;
+
+			for (let i = 0; ++i < limit; ) {
+				for (let j = i; --j >= 0; ) {
+					if (VIDs[j].Desc > VIDs[j + 1].Desc) {
+						Temp = VIDs[j];
+						VIDs[j] = VIDs[j + 1];
+						VIDs[j + 1] = Temp;
+					} else break;
+				}
+			}
+		}
 	}
 
 
@@ -1895,21 +1910,6 @@ export namespace RS1 {
 			return new vID(FoundStr, this);
 		}
 
-		SortVIDs(VIDs: vID[]) {
-			let limit = VIDs.length;
-			var Temp: vID;
-
-			for (let i = 0; ++i < limit; ) {
-				for (let j = i; --j >= 0; ) {
-					if (VIDs[j].Desc > VIDs[j + 1].Desc) {
-						Temp = VIDs[j];
-						VIDs[j] = VIDs[j + 1];
-						VIDs[j + 1] = Temp;
-					} else break;
-				}
-			}
-		}
-
 		ByIDs(IDs: number[], Sort: boolean = false): vID[] {
 			if (!IDs) {
 				// copy all in list
@@ -1924,7 +1924,8 @@ export namespace RS1 {
 				if (VID) VIDs.push(VID);
 			}
 
-			if (Sort) this.SortVIDs(VIDs);
+			if (Sort) 
+				this.SortVIDs(VIDs);
 
 			return VIDs;
 		}
@@ -2439,6 +2440,21 @@ export namespace RS1 {
 			}
 
 			return VIDs;
+		}
+
+		SortVIDs(VIDs: vID[]) {
+			let limit = VIDs.length;
+			var Temp: vID;
+
+			for (let i = 0; ++i < limit; ) {
+				for (let j = i; --j >= 0; ) {
+					if (VIDs[j].Desc > VIDs[j + 1].Desc) {
+						Temp = VIDs[j];
+						VIDs[j] = VIDs[j + 1];
+						VIDs[j + 1] = Temp;
+					} else break;
+				}
+			}
 		}
 
 		ToSortedVIDs(): vID[] {
