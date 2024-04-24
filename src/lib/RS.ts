@@ -70,7 +70,7 @@ export namespace RS1 {
 
 	export const NameDelim = ':',PrimeDelim = '|',TabDelim = '\t',LineDelim = '\n',FormDelim = '\f';
 	export const FormatStart = '[',FormatEnd = ']';
-	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^',tID='+',tDisk='*';
+	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^',tCore='+',tDisk='*';
 
 	export enum CLType {
 		None,
@@ -119,6 +119,110 @@ export namespace RS1 {
 	export var _RegRID = '';
 
 	const InitStr = 'InitReq must be called before Request Operations!';
+
+	export class qList {
+		private _str=''
+
+		constructor (S=PrimeDelim) {
+			this._str = S;
+		}
+
+		get count () {
+			let n = this._str.split ('|').length - 2;
+			return n > 0 ? n : 0;
+		}
+
+		get listName () {
+			let end = this._str.indexOf(PrimeDelim);
+			if (end < 0)
+				return '';
+
+			let name = this._str.slice (0,end);
+			end = name.indexOf (NameDelim);
+			if (end >= 0)
+				name = name.slice (0,end);
+
+			return name;
+		}
+
+		get listDesc () {
+			let end = this._str.indexOf(PrimeDelim);
+			if (end < 0)
+				return '';
+
+			let start = this._str.indexOf(NameDelim);
+			if ((start >= 0)  &&  (start < end)) {
+				return this._str.slice (start + 1,end);
+			}
+
+			return '';
+		}
+
+		private find (name:string) {
+			let str = PrimeDelim + name + NameDelim;
+			return this._str.indexOf (str);
+		}
+
+		value (name:string) {
+			let str = PrimeDelim + name + NameDelim;
+			let nPos = this._str.indexOf (str);
+
+			if (nPos < 0)
+				return '';
+
+			let endPos = this._str.indexOf (PrimeDelim,nPos += name.length + 2);
+			if (endPos >= 0)
+				return this._str.slice (nPos,endPos);
+			return '';
+		}
+
+		num (name:string) {
+			let numStr = this.value (name);
+			return Number (numStr);
+		}
+
+		del (name:string) {
+			let str = PrimeDelim + name + NameDelim;
+			let nPos = this._str.indexOf (str);
+
+			if (nPos < 0)
+				return;
+
+			let endPos = this._str.indexOf (PrimeDelim,++nPos);
+			if (endPos < 0)
+				return;
+
+			this._str = this._str.slice (0,nPos) + this._str.slice (endPos);
+		}
+
+		add (name:string,value:string) {
+			this.del (name);
+			this._str += name + NameDelim + value + PrimeDelim;
+
+		}
+		set (name:string,value:string) {
+			this.add (name,value);
+		}
+
+		nameByValue (value:string) {
+			let str = NameDelim + value + PrimeDelim;
+			let vPos = this._str.indexOf (str);
+			if (vPos < 0)
+				return '';
+
+			for (let nPos = vPos; --nPos >= 0;)
+				if (this._str[nPos] === PrimeDelim)
+					return this._str.slice (nPos + 1,vPos);
+
+			return '';
+		}
+
+		get toStr () {
+			return this._str;
+		}
+	}
+
+
 
 	function NData () { return new RSData () }
 
@@ -866,21 +970,23 @@ export namespace RS1 {
 
 	export const NILRID = new RID ('');
 
-	export class IData {
+	export class RSCore {
 		ID = 0;
 		Name = '';
 		Desc = '';
+		protected _type = 'Core';
+
+		get Type () { return this._type; }
 	}
 
-	export class RSData {
+	export class RSData extends RSCore {
 		Name = '';
 		Desc = '';
-		Type = '';
+		_type = 'Data';
 		private _rID = NILRID;
 		_Tile = 'S';
 		Sub = '';
 		Str = '';
-//		ID = 0;
 		List = NILList;
 		Pack = NILPack;
 		Details = '';
@@ -898,7 +1004,7 @@ export namespace RS1 {
 			return R;
 		}
 
-		get ID () { return this._rID !== NILRID ? this._rID.ID : 0; }
+//		get ID () { return this._rID !== NILRID ? this._rID.ID : 0; }
 		get RID () { return this._rID.copy; }
 
 		get Tile () { return this._Tile; }
@@ -933,7 +1039,7 @@ export namespace RS1 {
 
 			this.Name = P.str ('name');
 			this.Desc = P.str ('desc');
-			this.Type = P.str ('type');
+			this._type = P.str ('type');
 			this.setTile (P.str ('.T'));
 			this.Str = P.str ('str');
 			this.Sub = P.str ('sub');
@@ -965,6 +1071,8 @@ export namespace RS1 {
 		}
 
 		constructor (P = NILPack) {
+			super ();
+
 			if (!this.Pack)
 				log ('RSData.NILs!');
 
@@ -1164,7 +1272,7 @@ export namespace RS1 {
 				let Pack = In as BufPack;
 				let Data = new RSData();
 				Data.Name = Pack.str('name');
-				Data.Type = Pack.str('type');
+				Data._type = Pack.str('type');
 				Data.Str = Pack.str('str');
 			} else {
 				// must be class for conversion
@@ -1329,14 +1437,14 @@ export namespace RS1 {
 						this.IDType = tPack;
 					else if (SampleID instanceof (RSData))
 						this.IDType = tData;
-					else if (SampleID instanceof IData)
-						this.IDType = tID;
+					else if (SampleID instanceof RSCore)
+						this.IDType = tCore;
 					else this.IDType = tNone;
 			}
 		}
 
 		index (ID : number|string) {
-			if ((this.IDType === tNum)  ||  (this.IDType === tID))
+			if (this.IDType === tNum)
 				return this.numIDs.indexOf (ID as number);
 			else return this.strIDs.indexOf (ID as string);
 		}
@@ -1594,7 +1702,7 @@ export namespace RS1 {
 	export const NILvListXtra = new vListXtra ();
 
 	export class vList extends RSData {
-		Type = 'List';
+		_type = 'List';
 		LStr = '';
 		protected _Delim = PrimeDelim;
 		private _FirstDelim = 0;
