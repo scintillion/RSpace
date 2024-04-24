@@ -4,7 +4,7 @@
   import { InitClient } from '$lib/API/client/request';
   import Editor from '../../components/tiles/Editor.svelte';
   import { packStore } from '../../stores/packStore.js';
-  import { current_component, subscribe } from 'svelte/internal';
+  // import { subscribe } from 'svelte/internal';
   import PackFieldEditor from '$lib/PackFieldEditor.svelte';
  
   
