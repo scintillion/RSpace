@@ -643,8 +643,15 @@ export namespace RS1 {
 
 		get toVIDs () {
 			let Strs = this._str.split (PrimeDelim);
+			let VIDs = new Array<vID> (Strs.length);
 
-			return [];
+			let count = 0;
+			for (const S of Strs) {
+				if ((count++)  &&  (S))
+					VIDs[count-1] = new vID (S);
+			}
+
+			return VIDs;
 		}
 
 		get toStr () {
