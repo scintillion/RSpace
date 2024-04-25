@@ -298,8 +298,8 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
     <h1>Record</h1>
     <div class="selectContainer">
       {#each summaryResult as row (row)}
-        <div on:click={() => startEditing(row.ID)} class:selected={row.ID === editingRecordId}>
-          <span id="id">ID: {row.ID}</span> Name: {row.Name} Description: {row.Desc}
+        <div on:click={() => startEditing(row.RID.ID)} class:selected={row.RID.ID === editingRecordId}>
+          <span id="id">ID: {row.RID.ID}</span> Name: {row.Name} Description: {row.Desc}
         </div>
       {/each}
     </div>
@@ -317,7 +317,7 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
       <label for="desc">Desc: </label>
       <input type="text" id="desc" name="desc" bind:value={currentRecord.Desc} placeholder="Description" />
       <label for="type">Type: </label>
-      <select bind:value={subFilter} disabled={addingNewRecord=== false}>
+      <select bind:value={currentRecord._type} disabled={addingNewRecord=== false}>
           <option value=""></option>
           <option value="List">List</option>
       </select>
@@ -331,6 +331,7 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
         <button id="list" on:click={async () => {
           const { D, isListField } = await EditList(currentRecord.List !== RS1.NILList ? currentRecord.List : new RS1.vList(), null, true);
           if (isListField) {
+              currentRecord.List = new RS1.vList();
               currentRecord.List = D;
               console.log('$$$LIST$$$' + currentRecord.List.desc);
           }
@@ -342,8 +343,11 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
          //currentRecord.Pack = D;
           }}>Pack {currentRecord.Pack.desc}</button>
       <button id="data" on:click={async () => {
-        const { D, isListField } = await EditList(currentRecord.Data?.type==='List' ? currentRecord.Data: new RS1.vList(currentRecord.Data), null, false);
+        // const { D, isListField } = await EditList(currentRecord.Data?._type==='List' ? new RS1.vList(currentRecord.Data) : new RS1.vList(), null, false);
+        // const { D, isListField } = await EditList(!currentRecord.Data ? new RS1.vList() : new RS1.vList(currentRecord.Data), null, false);
+        const { D, isListField } = await EditList(currentRecord.Data === undefined ? new RS1.vList() : new RS1.vList(currentRecord.Data), null, false);
         if (!isListField) {
+            //currentRecord.Data = new RS1.vList();
             currentRecord.Data = D.LStr;
             //D.toDB();
             console.log('S$$$DATA$$$' + currentRecord.Data);

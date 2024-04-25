@@ -256,7 +256,7 @@ export class Editor {
 		// Update vList
 		this.vList.UpdateVID(vID);
 		this.CLToSelect();
-		vID = vID.copy ();
+		vID = vID.copy ;
 		vID.List = this.vList;
 		this.ClearRef();
 		console.log('Create', vID);
@@ -288,7 +288,7 @@ export class Editor {
 
 		this.vList.UpdateVID(vID);
 		this.CLToSelect();
-		vID = vID.copy ();
+		vID = vID.copy ;
 		vID.List = this.vList;
 		this.ClearRef();
 		console.log('Create', vID);
@@ -370,7 +370,7 @@ export class Editor {
 	}
 
 	private CopyVID(vID: RS1.vID) {
-		const newvID = vID.copy ();
+		const newvID = vID.copy ;
 		vID.List = this.vList;
 
 		newvID.Name = `${newvID.Name} Copy`;
@@ -593,7 +593,7 @@ export class LOLEditor {
 		const newList: RS1.vList = this.LOL.ListByName(
 			this.select.value
 		)?.copy ();//  as RS1.vList;
-		this.LOL.Add(newList.Str);
+		this.LOL.add(newList.Str);
 		console.log(this.CL);
 		this.Reload();
 	}

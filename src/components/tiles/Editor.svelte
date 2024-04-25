@@ -4,7 +4,7 @@
 	import { RS1 } from '../../lib/RS';
 	import { packStore } from '../../stores/packStore.js';
 	import { createEventDispatcher } from 'svelte';
-    import { subscribe } from 'svelte/internal';
+    //import { subscribe } from 'svelte/internal';
 
 	let CLString: string = '';
 	export let Pack: RS1.BufPack;
@@ -73,7 +73,7 @@
       
     // });
 
-    	return unsubscribe; 
+    	//return unsubscribe; 
 	});
 
 	// let name = "";
