@@ -22,6 +22,40 @@ export namespace RS1 {
 		Pack
 	}
 
+	export class strPair {
+		a:string;b:string;
+
+		constructor (a:string,b:string) {
+			this.a = a;
+			this.b = b;
+		}
+
+		static namedesc (str:string) {
+			let nPos = str.indexOf(NameDelim);
+
+			if (nPos < 0)
+				return new strPair (str,'');
+
+			return new strPair (str.slice (0,nPos),str.slice (nPos+1));
+		}
+	}
+	export class numPair {
+		a:number;b:number;
+
+		constructor (a:number,b:number) {
+			this.a=a;
+			this.b=b;
+		}
+	}
+	export class strsPair {
+		a:string[];b:string[];
+
+		constructor (a:string[],b:string[]) {
+			this.a=a;
+			this.b=b;
+		}
+	}
+
 	var _editTile = 'S';
 
 	export function setEditTile (T='S') { _editTile = T; myTile = T; }
@@ -433,10 +467,12 @@ export namespace RS1 {
 			} else	this.Name = Str;
 
 			if (Desc1) {
-				let FmtStr = FmtStrFromDesc(Desc1);
-				if (FmtStr) {
-					Desc1 = Desc1.slice(FmtStr.length + 2);
-					this.Fmt = new IFmt(FmtStr);
+				if (Desc1[0] === FormatStart) {
+					let FmtStr = FmtStrFromDesc(Desc1);
+					if (FmtStr) {
+						Desc1 = Desc1.slice(FmtStr.length + 2);
+						this.Fmt = new IFmt(FmtStr);
+					}
 				}
 			} else Desc1 = this.Name;
 
@@ -556,10 +592,11 @@ export namespace RS1 {
 
 	export class qList {
 		private qstr=''
-		private d=PrimeDelim
+
+		private get d() { return this.qstr[this.qstr.length-1]; }
 
 		fromStr (Str:string) {
-			this.d = (this.qstr = Str).slice (-1);
+			this.qstr = Str;
 		}
 
 		get size () { return this.qstr.length > 1; }	// not NULL list
@@ -573,57 +610,64 @@ export namespace RS1 {
 			return n > 0 ? n : 0;
 		}
 
-		get listName () {
-			let end = this.qstr.indexOf(this.d);
-			if (end < 0)
-				return '';
-
-			let name = this.qstr.slice (0,end);
-			end = name.indexOf (NameDelim);
-			if (end >= 0)
-				name = name.slice (0,end);
-
-			return name;
+		get namedesc () : strPair {
+			let str = this.qstr.slice(0,this.qstr.indexOf(this.d));
+			return strPair.namedesc(str);
 		}
 
-		get listDesc () {
-			let end = this.qstr.indexOf(this.d);
-			if (end < 0)
-				return '';
+		setName (name='') { 
+			let nd = this.namedesc;
+			if (nd.b)
+				name += NameDelim + nd.b;
 
-			let start = this.qstr.indexOf(NameDelim);
-			if ((start >= 0)  &&  (start < end)) {
-				return this.qstr.slice (start + 1,end);
-			}
-
-			return '';
+			this.fromStr (name + this.qstr.slice (this.qstr.indexOf (this.d)));
 		}
+
+		setDesc (desc='') { 
+			let nd = this.namedesc;
+			this.fromStr (nd.a + (desc ? (NameDelim + desc) : '') + this.qstr.slice (this.qstr.indexOf(this.d)));
+		}
+
+		get Name () { return this.namedesc.a; }
+
+		get Desc () { return this.namedesc.b; }
 
 		num (name:string|number) {
 			return Number (this.desc (name));
 		}
 
 		find (name:string|number) {
-			let str = this.d + name.toString () + NameDelim;
+			let D = this.d, str = D + name.toString () + NameDelim;
 			let nPos = this.qstr.indexOf (str);
 			if (nPos >= 0)
 				return nPos;
-			str = str.slice (0,-1) + this.d;
+			str = str.slice (0,-1) + D;
 			return this.qstr.indexOf (str);
 		}
 
-		del (name:string|number) {
+		prepost (name:string|number) {
 			let nPos = this.find (name);
 			if (nPos >= 0) {
-				let endPos = this.qstr.indexOf (this.d,++nPos);
-				if (endPos >= 0)
-					this.qstr = this.qstr.slice (0,nPos) + this.qstr.slice (endPos);
+				let dPos = this.qstr.indexOf (this.d,++nPos);
+				if (dPos >= 0)
+					return new strPair (this.qstr.slice (0,nPos),this.qstr.slice (dPos));
 			}
+
+			return new strPair ('','');
+		}
+
+		del (name:string|number) {
+			let pair = this.prepost (name);
+			if (pair.a)
+				this.qstr = pair.a + pair.b;
 		}
 
 		add (name:string|number,desc:string|number) {
-			this.del (name);
-			this.qstr += name + NameDelim + desc.toString () + this.d;
+			let vStr = name.toString () + NameDelim + desc.toString (), pair = this.prepost(name);
+
+			if (pair.a)
+				this.qstr = pair.a + vStr + pair.b;
+			else this.qstr += vStr + this.d;
 		}
 
 		set (name:string|number,desc:string|number) {
@@ -666,19 +710,54 @@ export namespace RS1 {
 			return '';
 		}
 
-		get toVIDs () {
+		get VIDStrs () : string[] {
 			let Strs = this.qstr.split (this.d);
+			return Strs.slice (1,-1);
+		}
+
+		fromRaw (VIDStrs:string[]=[]) {
+			let D = this.d, NameDesc = this.qstr.slice (0,this.qstr.indexOf(D)+1);
+			let VIDStr = VIDStrs.join (D);
+			this.qstr = NameDesc + (VIDStr ? (VIDStr + D) : '');
+		}
+
+		get splitNames () : strsPair {
+			let raw = this.VIDStrs, names=new Array<string> (raw.length),count=0;
+
+			for (const s of raw) {
+				let dPos = s.indexOf(NameDelim);
+				names[count++] = (dPos >= 0) ? s.slice (0,dPos) : s;
+			}
+
+			return new strsPair (names,raw);
+		}
+
+		get names () { return this.splitNames.a; }
+
+		merge (addend : qList) {
+			let dest = this.splitNames, add = addend.splitNames;
+
+			for (let lim = add.a.length, i = 0; i < lim;++i) {
+				let j = dest.a.indexOf (add.a[i]);
+				if (j >= 0) 	// need to replace
+					dest.b[j] = add.b[i];
+				else {
+					dest.a.push (add.a[i]);
+					dest.b.push (add.b[i]);
+				}
+			}
+
+			this.fromRaw (dest.b);
+		}
+
+		get toVIDs () {
+			let Strs = this.VIDStrs;
 			let VIDs = new Array<vID> (Strs.length);
 
 			let count = 0;
 			for (const S of Strs) {
-				if ((count++)  &&  (S))
-					VIDs[count-1] = new vID (S);
+				VIDs[count++] = new vID (S);
 			}
-
-			if (VIDs.length)
-				VIDs.length = VIDs.length - 1;
-
 			return VIDs;
 		}
 
