@@ -435,6 +435,7 @@ export namespace RS1 {
 	}
 
 	export const NILFmt = new IFmt ('');
+
 	  export class vID  {
 		// often abbreviated as VID
 		List=NILList;
@@ -1855,26 +1856,30 @@ export namespace RS1 {
 	}
 
 	class vListXtra {
-		_count=0;
-		_Next: vList | undefined;
-		_IDs: number[] | undefined;
-		_NameIDs='';
-		_Childs:vList[]|undefined;
-		_Indent=0;
-	}
-	export const NILvListXtra = new vListXtra ();
+		vL = NILList;
+		count=0;
+		IDs: number[] | undefined;
+		NameIDs='';
+		Childs:vList[]|undefined;
+		_FirstDelim = -1;
+		Delim = PrimeDelim;
+		Indent=0;
+		LType: CLType = CLType.None;
 
+		constructor (vL : vList) { this.vL = vL; }
+
+		get FirstDelim () {
+			if (this._FirstDelim < 0)
+				this._FirstDelim = this.vL.toStr.indexOf (this.vL.Delim);
+
+			return this._FirstDelim;
+		}
+	}
 	export class vList extends RSData {
+		x = NILvLX;
 		_type = 'List';
 		LStr = '';
-		protected _Delim = PrimeDelim;
-		private _FirstDelim = 0;
-		protected _Count = 0;
-		protected _IDs: number[] | undefined;
-		_NameIDs = '';
-		LType: CLType = CLType.None;
 		protected _Childs: vList[] | undefined;
-		protected _Indent = 0;
 
 		get notNIL () {
 			if (this === NILList) {
@@ -1883,9 +1888,16 @@ export namespace RS1 {
 		   return true;
 	   }
 
+	   get _Delim () {
+			if (this.x !== NILvLX)
+				return this.x.Delim;
+
+			return this.LStr.slice (-1);
+	   }
+
 	   get size () {
-			if (this._Count)
-				return this._Count;
+			if (this.x.count)
+				return this.x.count;
 
 		    if (this.LStr.length > 2)
 				return 1;
@@ -1895,7 +1907,9 @@ export namespace RS1 {
 	   }
 
 	   get Count() {
-			return this._Count;
+			if (this.x !== NILvLX)
+				return this.x.count;
+			return 0;
 		}
 
 		get desc ():string {
@@ -1909,7 +1923,7 @@ export namespace RS1 {
 		}
 
 		get toStr() {
-			if (this.LType != CLType.Pack) return this.LStr;
+			if (this.x.LType != CLType.Pack) return this.LStr;
 
 			if (!this.Childs) return '';
 
@@ -1928,7 +1942,7 @@ export namespace RS1 {
 
 
 		get Indent() {
-			return this._Indent;
+			return this.x.Indent;
 		}
 
 		get IDs(): vID[] {
@@ -2033,7 +2047,7 @@ export namespace RS1 {
 				return false;
 
 			this.LStr.replace(OldDelim, NewDelim);
-			this._Delim = NewDelim;
+			this.x.Delim = NewDelim;
 			return true;
 		}
 
@@ -2050,7 +2064,7 @@ export namespace RS1 {
 		ByIDs(IDs: number[], Sort: boolean = false): vID[] {
 			if (!IDs) {
 				// copy all in list
-				let i = this._Count;
+				let i = this.x.count;
 				IDs = new Array(i);
 				while (--i >= 0) IDs[i] = i + 1;
 			}
@@ -2070,10 +2084,10 @@ export namespace RS1 {
 		NameList(UseList = 1): string {
 		    this.notNIL;
 
-			if (UseList && this._NameIDs) return this._NameIDs;
+			if (UseList && this.x.NameIDs) return this.x.NameIDs;
 
 			let Str1 = this.LStr;
-			let Start = this._FirstDelim - 1;
+			let Start = this.x.FirstDelim - 1;
 			let Delim1 = this._Delim;
 			let ID = 0;
 			let NameStr = Delim1;
@@ -2090,8 +2104,8 @@ export namespace RS1 {
 				NameStr += NewStr + NameDelim + ID.toString() + Delim1;
 			}
 
-			this._NameIDs = NameStr;
-			this._Count = ID;
+			this.x.NameIDs = NameStr;
+			this.x.count = ID;
 			return NameStr;
 		}
 
@@ -2118,7 +2132,7 @@ export namespace RS1 {
 		}
 
 		NameByID(ID: number) {
-			if (ID <= 0 || ID > this._Count) return '';
+			if (ID <= 0 || ID > this.x.count) return '';
 
 			let Str = this.NameList();
 			let Delim1 = this._Delim;
@@ -2134,13 +2148,13 @@ export namespace RS1 {
 		}
 
 		Dump(DumpStr: string) {
-			if (this.Name && this._Indent)
+			if (this.Name && this.x.Indent)
 				console.log(
 					DumpStr +
 						'Dump:' +
 						this.Name +
 						' Indent = ' +
-						this._Indent?.toString() +
+						this.x.Indent?.toString() +
 						' #C =' +
 						this.Childs
 						? this.Childs?.length.toString()
@@ -2162,8 +2176,8 @@ export namespace RS1 {
 			if (!Str1)
 				Str1 = PrimeDelim;
 
-			this._NameIDs = '';
-			this._Indent = 0;
+			this.x.NameIDs = '';
+			this.x.Indent = 0;
 
 			if (Array.isArray(Str1)) Str1 = Str1.join('\n') + '\n';
 
@@ -2174,15 +2188,15 @@ export namespace RS1 {
 			if (Ch <= '9') {
 				if (Ch <= ' ') {
 					while (Ch === ' ' || Ch === '\t') {
-						this._Indent++;
+						this.x.Indent++;
 						Ch = Str1[++NamePos];
 					}
 				} else if (Ch >= '0') {
 					let Zero = '0'.charCodeAt(0);
-					this._Indent = Ch.charCodeAt(0) - Zero;
+					this.x.Indent = Ch.charCodeAt(0) - Zero;
 					if ((Ch = Str1[++NamePos]) >= '0' && Ch <= '9') {
 						// second digit (only two allowed)
-						this._Indent = this._Indent * 10 + Ch.charCodeAt(0) - Zero;
+						this.x.Indent = this.x.Indent * 10 + Ch.charCodeAt(0) - Zero;
 						++NamePos;
 					}
 				}
@@ -2190,13 +2204,13 @@ export namespace RS1 {
 
 			let Delim1 = Str1[StrLen - 1];
 
-			this._FirstDelim = -1;
+			this.x._FirstDelim = -1;
 
 			if (!isDelim(Delim1)) {
 				let i = NamePos;
 				while (i < StrLen)
 					if (isDelim((Delim1 = Str1[i]))) {
-						this._FirstDelim = i;
+						this.x._FirstDelim = i;
 						Str1 += Delim1; // add (missing) delim to end of string
 						++StrLen;
 						break;
@@ -2205,19 +2219,19 @@ export namespace RS1 {
 				if (i >= StrLen) return; // panic, no Delim
 			}
 
-			this._Delim = Delim1;
+			this.x.Delim = Delim1;
 			// Note that delimiter is typically '|', placed at end of string, but \0 could
 			// be used if one wished to allow '|' to appear within the const description
 
 			this._Childs = undefined;
-			this._IDs = undefined;
+			this.x.IDs = undefined;
 
-			if (this._FirstDelim < 0) this._FirstDelim = Str1.indexOf(Delim1, NamePos);
+			if (this.x.FirstDelim < 0) this.x._FirstDelim = Str1.indexOf(Delim1, NamePos);
 
 			if (Delim1 < ' ') {
 				// special case, embedded vLists!
-				this._Count = 0;
-				this.LType = CLType.Pack;
+				this.x.count = 0;
+				this.x.LType = CLType.Pack;
 
 				let Strs = Str1.split(Delim1);
 				let limit = Strs.length;
@@ -2239,7 +2253,7 @@ export namespace RS1 {
 				}
 			}
 
-			let NameStr = Str1.slice(NamePos, this._FirstDelim);
+			let NameStr = Str1.slice(NamePos, this.x.FirstDelim);
 
 			let i = NameStr.indexOf(NameDelim);
 			if (i >= 0) {
@@ -2265,24 +2279,24 @@ export namespace RS1 {
 
 			if (Delim1 < ' ') return; // done processing, vList with kids...
 
-			let FirstChar = Str1[this._FirstDelim + 1];
+			let FirstChar = Str1[this.x.FirstDelim + 1];
 
 			let IDList = isDigit(FirstChar);
-			this.LType = IDList ? CLType.ID : CLType.Std;
+			this.x.LType = IDList ? CLType.ID : CLType.Std;
 
 			if (IDList) {
 				let N = 0, limit = StrLen - 1;
 				let Pos: number[] = Array(99);
 				Pos[0] = 0;
 
-				for (let i = this._FirstDelim - 1; ++i < limit; ) {
+				for (let i = this.x.FirstDelim - 1; ++i < limit; ) {
 					if (Str1[i] === Delim1) {
 						Pos[++N] = Number(Str1.slice(i + 1, i + 25));
 					}
 				}
-				this._Count = N;
+				this.x.count = N;
 				Pos.length = N + 1;
-				this._IDs = Pos;
+				this.x.IDs = Pos;
 			}
 
 			this.NameList();
@@ -2293,6 +2307,9 @@ export namespace RS1 {
 			let Str, Strs, BP;
 			
 			super ();
+
+			this.x = new vListXtra (this);
+
 			if ((typeof Str1) === 'string') {
 				this.InitList (Str1 as string);
 			}
@@ -2320,7 +2337,7 @@ export namespace RS1 {
 
 		GetDesc(Name: string): string | undefined {
 			let SearchStr = this._Delim + Name + NameDelim; // e.g. '|NameXYZ:''
-			let Pos1 = this.LStr.indexOf(SearchStr, this._FirstDelim);
+			let Pos1 = this.LStr.indexOf(SearchStr, this.x.FirstDelim);
 			if (Pos1 >= 0) {
 				let StartPos = Pos1 + SearchStr.length;
 				let EndPos = this.LStr.indexOf(this._Delim, StartPos);
@@ -2363,9 +2380,9 @@ export namespace RS1 {
 			let Str = this.LStr;
 
 			let SearchStr = Delim + VID.Name;
-			let Pos = Str.indexOf(SearchStr + Delim, this._FirstDelim);
+			let Pos = Str.indexOf(SearchStr + Delim, this.x.FirstDelim);
 			if (Pos < 0) {
-				Pos = Str.indexOf(SearchStr + NameDelim, this._FirstDelim);
+				Pos = Str.indexOf(SearchStr + NameDelim, this.x.FirstDelim);
 			}
 
 			if (Pos >= 0) {
@@ -2397,15 +2414,15 @@ export namespace RS1 {
 		private GetNamePos(Name: string): number {
 			let SearchStr = this._Delim + Name; // e.g. '|NameXYZ:''
 
-			let Pos1 = this.LStr.indexOf(SearchStr + NameDelim, this._FirstDelim);
+			let Pos1 = this.LStr.indexOf(SearchStr + NameDelim, this.x.FirstDelim);
 			if (Pos1 >= 0) return Pos1;
 
-			return this.LStr.indexOf(SearchStr + this._Delim, this._FirstDelim);
+			return this.LStr.indexOf(SearchStr + this._Delim, this.x.FirstDelim);
 		}
 
 		Bubble(Name: string, dir: number) {
 			// check for special easy case - list of Childs
-			if (this.LType == CLType.Pack) {
+			if (this.x.LType == CLType.Pack) {
 				if (!this._Childs) return;
 
 				for (let i = this._Childs.length; --i >= 0; )
@@ -2495,7 +2512,7 @@ export namespace RS1 {
 			// PrefixMatch the first characters of Desc, allows for
 			// Type,ABC to match based on "Type," starting the Desc
 			// does not work if [Format] is present
-			let Pos1 = this.LStr.indexOf(SearchStr, this._FirstDelim);
+			let Pos1 = this.LStr.indexOf(SearchStr, this.x.FirstDelim);
 			if (Pos1 >= 0) {
 				for (let D = this._Delim, i = Pos1; --i > 0; ) {
 					if (this.LStr[i] === D) return this.VIDByPos(i + 1);
@@ -2508,7 +2525,7 @@ export namespace RS1 {
 		NameByDesc(Desc: string) {
 			let SearchStr = NameDelim + Desc + this._Delim;
 
-			let Pos1 = this.LStr.indexOf(SearchStr, this._FirstDelim);
+			let Pos1 = this.LStr.indexOf(SearchStr, this.x.FirstDelim);
 			if (Pos1 >= 0) {
 				for (let i = Pos1; --i > 0; ) {
 					if (this.LStr[i] === this._Delim) return this.LStr.slice(i + 1, Pos1);
@@ -2563,7 +2580,7 @@ export namespace RS1 {
 		IDsToVIDs(IDs: number[] | undefined=undefined): vID[] {
 			if (!IDs) {
 				// if undefined, use every element (IDs 1..N)
-				let limit = this._Count;
+				let limit = this.x.count;
 				IDs = new Array(limit);
 				for (let i = limit; --i >= 0; IDs[i] = i + 1);
 			}
@@ -2586,7 +2603,7 @@ export namespace RS1 {
 		}
 
 		RefListToVIDs(Ref: vList): vID[] | undefined {
-			if (Ref._IDs) return this.IDsToVIDs(Ref._IDs);
+			if (Ref.x.IDs) return this.IDsToVIDs(Ref.x.IDs);
 			return undefined;
 		}
 
@@ -2663,6 +2680,7 @@ export namespace RS1 {
 
 	export const NILList = new vList ('NIL|');
 	export const NILVID = new vID ('NIL:NIL',NILList);
+	export const NILvLX = new vListXtra (NILList);
 
 	export class vFast {
 		Names : Array<string>=[];
@@ -2795,7 +2813,7 @@ export namespace RS1 {
 			super(Str1 as string);
 
 			if (List) {
-				if (List.LType != CLType.Pack || !List.Childs) {
+				if (List.x.LType != CLType.Pack || !List.Childs) {
 					this.tiles = [];
 					return;
 				}
