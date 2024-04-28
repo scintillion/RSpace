@@ -38,6 +38,32 @@ function handleSave() {
     const selectedType =  event.target.value;
   }
 
+function handleDownload() {
+  let AB = selectedRow.toAB1;
+  RS1.DownloadAB(selectedRow.Name,AB);
+}
+
+async function handleUpload(event: Event & { currentTarget: HTMLInputElement }) {
+  const files = (event.currentTarget as HTMLInputElement).files;
+  if ( files !== null && files.length > 0) {
+    try {
+      const file = files[0];
+      const arrayBuffer = await RS1.UploadAB(file);
+      addNewRecord();
+
+      let Decoder = new TextDecoder('utf-8');
+      let ABText = Decoder.decode(arrayBuffer);
+
+      console.log("AB data" + ABText);
+      selectedRow.setData(ABText);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  }
+
+  
+}
+
   
 </script>
 
@@ -104,7 +130,7 @@ function handleSave() {
               let Pack = new RS1.BufPack(target.value);
               selectedRow.setData(Pack);
             case RS1.tAB:
-              let AB = selectedRow.toAB;
+              let AB = selectedRow.toAB1;
               selectedRow.setData(AB)
             default:
               selectedRow.setData(target.value);
@@ -126,6 +152,11 @@ function handleSave() {
       <button on:click={() => step = 'selectPack'}>Back</button>
       <!-- <button on:click={() => {D.addField(selectedRow); console.log('Saved D' + D.desc); step = 'selectPack'}}>Save</button> -->
       <button on:click={handleSave}>Save</button>
+      <button on:click={handleDownload}>Download</button>
+      <button>
+        <label for="file-upload">Upload</label>
+        <input id="file-upload" type="file" on:change={handleUpload} style="display: none;" />
+      </button>
     </div>
   </div>
   
