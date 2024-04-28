@@ -1078,6 +1078,39 @@ export namespace RS1 {
 		e.click();
 	}
 
+	export function DownloadAB(filename: string, binaryData: ArrayBuffer) {
+		var blob = new Blob([binaryData], { type: 'application/octet-stream' });
+		var url = URL.createObjectURL(blob);
+	
+		var e = document.createElement('a');
+		e.setAttribute('href', url);
+		e.setAttribute('download', filename);
+		e.style.display = 'none';
+		e.click();
+	
+		URL.revokeObjectURL(url); 
+	}
+
+	export function UploadAB(file: File): Promise<ArrayBuffer> {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+	
+			reader.onload = () => {
+				if (reader.result instanceof ArrayBuffer) {
+					resolve(reader.result);
+				} else {
+					reject(new Error('Error reading file as ArrayBuffer'));
+				}
+			};
+	
+			reader.onerror = () => {
+				reject(new Error('Error reading file'));
+			};
+	
+			reader.readAsArrayBuffer(file);
+		});
+	}
+
 	export function isDigit(ch: string): boolean {
 		if (ch)
 			ch = ch[0];
