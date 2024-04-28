@@ -1091,26 +1091,6 @@ export namespace RS1 {
 		URL.revokeObjectURL(url); 
 	}
 
-	export function UploadAB(file: File): Promise<ArrayBuffer> {
-		return new Promise((resolve, reject) => {
-			const reader = new FileReader();
-	
-			reader.onload = () => {
-				if (reader.result instanceof ArrayBuffer) {
-					resolve(reader.result);
-				} else {
-					reject(new Error('Error reading file as ArrayBuffer'));
-				}
-			};
-	
-			reader.onerror = () => {
-				reject(new Error('Error reading file'));
-			};
-	
-			reader.readAsArrayBuffer(file);
-		});
-	}
-
 	export function isDigit(ch: string): boolean {
 		if (ch)
 			ch = ch[0];
@@ -2653,10 +2633,7 @@ export namespace RS1 {
 		Init (str='|') { this.qstr = str; }
 
 		get toStr () {
-			if ((this.x !== NILvLX)  &&  this.x.Delim !== PrimeDelim)
-				return this.x.toStr;
-
-			return this.qstr;
+			return (this.x === NILvLX)  ||  (this.x.Delim === PrimeDelim) ? this.qstr : this.x.toStr;
 		}
 
 		constructor(Str1: string | string[] | BufPack = '') {

@@ -175,7 +175,7 @@
 
     
     unsubscribe();
-    console.log('D RETURN' + D.GetStr);
+    console.log('D RETURN' + D.x.GetStr);
 
     return {D:D, isListField:isListField};
 }
@@ -348,7 +348,7 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
         const { D, isListField } = await EditList(currentRecord.Data === undefined ? new RS1.vList() : new RS1.vList(currentRecord.Data), null, false);
         if (!isListField) {
             //currentRecord.Data = new RS1.vList();
-            currentRecord.Data = D.LStr;
+            currentRecord.Data = D.qstr;
             //D.toDB();
             console.log('S$$$DATA$$$' + currentRecord.Data);
         }
