@@ -2625,6 +2625,13 @@ export namespace RS1 {
 		}
 
 	}
+
+	export class zList extends qList {
+		x = NILvLX;
+
+	}
+
+
 	export class vList extends RSData {
 		x = NILvLX;
 		_type = 'List';
@@ -2654,19 +2661,6 @@ export namespace RS1 {
 				let BP = Str1 as BufPack;
 				this.x.InitList (BP.str ('data'));
 			}
-
-			/*
-			if (First) {
-				let Last = First;
-
-				this._Next = undefined;
-
-				while (Last._Next && Last._Next.Name != this.Name) Last = Last._Next;
-
-				this._Next = Last._Next;
-				Last._Next = this; // add our vList to the list of vLists
-			}
-			*/
 		}
 
 	} // vList
