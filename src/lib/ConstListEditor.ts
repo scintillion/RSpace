@@ -105,9 +105,9 @@ export class Editor {
 		// public/Populate
 		this.CLToSelect();
 
-		const FirstVID: RS1.vID = this.vList.ToSortedVIDs()[0] as RS1.vID;
+		const FirstVID: RS1.vID = this.vList.x.ToSortedVIDs()[0] as RS1.vID;
 
-		const vIDs = this.vList.ToSortedVIDs();
+		const vIDs = this.vList.x.ToSortedVIDs();
 		this.selectbox.onchange = () => {
 			console.log(this.vList.Str);
 			const selected = this.selectbox.value;
@@ -135,7 +135,7 @@ export class Editor {
 			this.selectbox.innerHTML = '';
 		}
 
-		this.vList.ToSelect(this.selectbox);
+		this.vList.x.ToSelect(this.selectbox);
 		this.selectContainer.appendChild(this.selectbox);
 	}
 
@@ -163,7 +163,7 @@ export class Editor {
 			if (vID.Fmt) {
 				const rawFMT = vID.Fmt as RS1.IFmt;
 				const format1: string = rawFMT.TypeStr;
-				const format = this.formats.GetDesc(rawFMT.Ch) as string;
+				const format = this.formats.x.GetDesc(rawFMT.Ch) as string;
 				
 				if (format === 'Member') {
 					this.LoadMemberAndSetFields();
@@ -198,12 +198,12 @@ export class Editor {
 		this.i.list.style.cssText =
 			'display: block; width: 100px; height: 40px; border-radius: 10px; font-family: inherit; outline: none; border: none; padding-left: 10px; transition: 0.3s linear;';
 		const CL = this.lol.TovList() as RS1.vList;
-		CL.ToSelect(this.i.list);
+		CL.x.ToSelect(this.i.list);
 		this.i.vID.style.cssText =
 			'display: block; width: 100px; height: 40px; border-radius: 10px; font-family: inherit; outline: none; border: none; padding-left: 10px; transition: 0.3s linear;';
 		this.i.list.onchange = () => {
 			const List = this.lol.List(this.i.list.value) as RS1.vList;
-			List.ToSelect(this.i.vID);			
+			List.x.ToSelect(this.i.vID);			
 		};
 
 		if (field === 'Set') {
@@ -221,7 +221,7 @@ export class Editor {
 	}
 
 	private CreateVID(): void {
-		const format: string = this.formats.NameByDesc(
+		const format: string = this.formats.x.NameByDesc(
 			this.RemovePossibleDelim(this.i.fmt.value)
 		) as string;
 		let value: string = this.RemovePossibleDelim(this.i.value.value) as string;
@@ -254,7 +254,7 @@ export class Editor {
 		vID.Desc = validDesc;
 
 		// Update vList
-		this.vList.UpdateVID(vID);
+		this.vList.x.UpdateVID(vID);
 		this.CLToSelect();
 		vID = vID.copy ;
 		vID.List = this.vList;
@@ -286,7 +286,7 @@ export class Editor {
 			vID.Fmt.setXtra(XtraStr);
 		}
 
-		this.vList.UpdateVID(vID);
+		this.vList.x.UpdateVID(vID);
 		this.CLToSelect();
 		vID = vID.copy ;
 		vID.List = this.vList;
@@ -306,7 +306,7 @@ export class Editor {
 	}
 
 	private UpdateVID(name: string): void {
-		const format: string = this.formats.NameByDesc(
+		const format: string = this.formats.x.NameByDesc(
 			this.RemovePossibleDelim(this.i.fmt.value)
 		) as string;
 		let value: string | number = this.RemovePossibleDelim(this.i.value.value);;
@@ -346,13 +346,13 @@ export class Editor {
 		let vID = new RS1.vID(`${name}:${validDesc}`, this.vList);
 
 		if (updatedName) {
-			this.vList.UpdateVID(vID, true);
+			this.vList.x.UpdateVID(vID, true);
 			// vID.SetName(updatedName);
 			console.log(this.vList);
 			this.setVIDName(vID,updatedName)
 		}
 
-		this.vList.UpdateVID(vID, false);
+		this.vList.x.UpdateVID(vID, false);
 		this.CLToSelect();
 		//vID = vID.Copy(this.vList);
 		console.log(this.vList.Str);
@@ -363,8 +363,8 @@ export class Editor {
 	}
 
 	private DeleteVID(name: string): void {
-		const vID: RS1.vID = this.vList.GetVID(name) as RS1.vID;
-		this.vList.UpdateVID(vID, true);
+		const vID: RS1.vID = this.vList.x.GetVID(name) as RS1.vID;
+		this.vList.x.UpdateVID(vID, true);
 		this.CLToSelect();
 		console.log(this.vList.Str);
 	}
@@ -374,7 +374,7 @@ export class Editor {
 		vID.List = this.vList;
 
 		newvID.Name = `${newvID.Name} Copy`;
-		this.vList.UpdateVID(newvID, false);
+		this.vList.x.UpdateVID(newvID, false);
 		this.ClearRef();
 		this.Populate();
 		console.log(this.vList.Str);
@@ -382,11 +382,11 @@ export class Editor {
 
 	private MoveElement(direction: string, vID: RS1.vID): void {
 		if (direction === 'up') {
-			this.vList.Bubble(vID.Name, -1);
+			this.vList.x.Bubble(vID.Name, -1);
 			this.CLToSelect(true);
 			return;
 		} else if (direction === 'down') {
-			this.vList.Bubble(vID.Name, 1);
+			this.vList.x.Bubble(vID.Name, 1);
 			this.CLToSelect(true);
 			return;
 		} else return;
@@ -603,7 +603,7 @@ export class LOLEditor {
 		const mergeWith: string = prompt(
 			'Which list would you like to merge with? *(enter name, case sensitive)'
 		) as string;
-		currentList.Merge(this.LOL.List(mergeWith));
+		currentList.x.Merge(this.LOL.List(mergeWith));
 	}
 
 	private LoadList(): void {
