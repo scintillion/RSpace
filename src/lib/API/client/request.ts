@@ -71,13 +71,27 @@ export async function InitClient () {
     F.clear ();
     let List = new RS1.vList ();
     let v = new RS1.vID ('ABC:DEF');
-    List.UpdateVID (v);
-    console.log ('List=' + List.getStr);
+    List.x.UpdateVID (v);
+    console.log ('List=' + List.toStr);
 
     let OutPack = new RS1.BufPack ();
     OutPack.xAdd ('H',RS1.myVilla);
     let InPack = await RS1.ReqPack (OutPack);
     RS1.mySession = InPack.num('!H');
     console.log ('mySession = ' + RS1.mySession.toString ());
+
+    let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
+    console.log (Q.desc ('XYZ'));
+    console.log (Q.num ('ABC').toString ());
+    console.log (Q.count.toString ());
+    console.log ('Names=' + Q.names);
+    let ND = Q.splitNames;
+    console.log ('ND=' + ND.b);
+    console.log ('As=' + ND.a);
+    let V = new RS1.vID ('DEF:ghq');
+    Q.set ('DEF','ghq');
+    Q.set ('XYZ',987);
+    ND = Q.splitNames;
+    console.log ('ND=' + ND.b);
 }
 

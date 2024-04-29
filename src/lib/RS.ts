@@ -11,7 +11,7 @@ export namespace RS1 {
 	type StoreBuffer = string | ArrayBuffer | Function | undefined;
 
 	export const NameDelim = ':',PrimeDelim = '|',TabDelim = '\t',LineDelim = '\n',FormDelim = '\f';
-	export const FormatStart = '[',FormatEnd = ']';
+	export const FormatStart = '[',FormatEnd = ']',SysPrefix='/';
 	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^',tCore='+',tDisk='*';
 
 	export enum CLType {
@@ -4409,6 +4409,32 @@ export namespace RS1 {
 	}
 
 	export const NILPack = new BufPack ('','NILPack');
+
+	export class Nug extends BufPack {
+		l = NILqList;
+
+		constructor (In:ArrayBuffer|string='') {
+			super ();
+			let Str = '';
+
+			let Input = typeof (In);
+			if (Input === 'string') {	// ONLY list, BufPack is empty
+				Str = Input as string;
+			}
+			else {	//	AB
+				let AB = In as ArrayBuffer;
+				if (AB.byteLength > 0) {
+					this.bufIn (AB);
+					
+					let F = this.getField (SysPrefix+SysPrefix);
+					if (F)
+						Str = F.Str;
+				}
+			}
+
+			this.l = new qList (Str);
+		}
+	}
 
 	export class SQL {
 		bSelDel (Tile : string, ID : number, Query : string) : BufPack {
