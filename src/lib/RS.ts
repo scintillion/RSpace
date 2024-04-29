@@ -592,11 +592,11 @@ export namespace RS1 {
 	} // class vID
 
 	export class qList {
-		private qstr=''
+		protected qstr=''
 
-		private get d() { return this.qstr[this.qstr.length-1]; }
+		protected get d() { return this.qstr[this.qstr.length-1]; }
 
-		fromStr (Str:string) {
+		fromStr (Str=PrimeDelim) {
 			this.qstr = Str;
 		}
 
@@ -616,13 +616,13 @@ export namespace RS1 {
 			return n > 0 ? n : 0;
 		}
 
-		get namedesc () : strPair {
-			let str = this.qstr.slice(0,this.qstr.indexOf(this.d));
+		namedesc (start=0) {
+			let str = this.qstr.slice(start,this.qstr.indexOf(this.d,start));
 			return strPair.namedesc(str);
 		}
 
 		setName (name='') { 
-			let nd = this.namedesc;
+			let nd = this.namedesc();
 			if (nd.b)
 				name += NameDelim + nd.b;
 
@@ -630,23 +630,24 @@ export namespace RS1 {
 		}
 
 		setDesc (desc='') { 
-			let nd = this.namedesc;
+			let nd = this.namedesc();
 			this.fromStr (nd.a + (desc ? (NameDelim + desc) : '') + this.qstr.slice (this.qstr.indexOf(this.d)));
 		}
 
-		get Name () { return this.namedesc.a; }
+		get Name () { return this.namedesc().a; }
 
-		get Desc () { return this.namedesc.b; }
+		get Desc () { return this.namedesc().b; }
 
 		num (name:string|number) {
 			return Number (this.desc (name));
 		}
 
 		find (name:string|number) {
-			let D = this.d, str = D + name.toString () + NameDelim;
+			let D = this.d, str = D + name.toString ()+NameDelim;
 			let nPos = this.qstr.indexOf (str);
 			if (nPos >= 0)
 				return nPos;
+
 			str = str.slice (0,-1) + D;
 			return this.qstr.indexOf (str);
 		}
@@ -1875,8 +1876,10 @@ export namespace RS1 {
 	}
 
 	class vListXtra {
-		vL = NILList;
+		vL : vList = NILList;
 		qL = NILqList;
+		// zL = new zList ();
+
 		count=0;
 		IDs: number[] | undefined;
 		NameIDs='';
@@ -1888,7 +1891,7 @@ export namespace RS1 {
 		Name=''
 		Desc=''
 
-		constructor (vL : vList) { this.vL = vL; }
+		constructor (vL = NILList) { this.vL = vL; }
 
 		InitList(Str1: string | string[]) {
 		    this.notNIL;
@@ -2629,6 +2632,32 @@ export namespace RS1 {
 	export class zList extends qList {
 		x = NILvLX;
 
+		Init (str='|') { this.qstr = str; }
+
+		get toStr () {
+			return (this.x === NILvLX)  ||  (this.x.Delim === PrimeDelim) ? this.qstr : this.x.toStr;
+		}
+
+		constructor(Str1: string | string[] | BufPack = '') {
+			//	, First: vList | undefined = undefined) {
+			let Str, Strs, BP;
+			
+			super ();
+
+			this.x = new vListXtra ();
+
+			if ((typeof Str1) === 'string') {
+				this.x.InitList (Str1 as string);
+			}
+			else if (Array.isArray (Str1)) {
+				this.x.InitList (Str1 as string[]);
+			}
+			else {
+				let BP = Str1 as BufPack;
+				this.x.InitList (BP.str ('data'));
+			}
+		}
+
 	}
 
 
@@ -2663,6 +2692,8 @@ export namespace RS1 {
 			}
 		}
 
+		PostSave (P : BufPack) { P.add (['data', this.toStr]); console.log ('PostSave vList'); }
+		PostLoad (P : BufPack) { this.qstr = P.str ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
 	} // vList
 
 	export const NILList = new vList ('NIL|');
