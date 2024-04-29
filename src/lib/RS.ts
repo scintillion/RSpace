@@ -1092,6 +1092,26 @@ export namespace RS1 {
 		URL.revokeObjectURL(url); 
 	}
 
+	export function UploadAB(file: File): Promise<ArrayBuffer> {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+
+			reader.onload = () => {
+				if (reader.result instanceof ArrayBuffer) {
+					resolve(reader.result);
+				} else {
+					reject(new Error('Error reading file as ArrayBuffer'));
+				}
+			};
+
+			reader.onerror = () => {
+				reject(new Error('Error reading file'));
+			};
+
+			reader.readAsArrayBuffer(file);
+		});
+	}
+
 	export function isDigit(ch: string): boolean {
 		if (ch)
 			ch = ch[0];

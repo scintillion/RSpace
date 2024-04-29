@@ -12,9 +12,11 @@
 	//let SpecialData: RS1.RSData = new RS1.RSData();
 	let SpecialData: RS1.vList = new RS1.vList();
 	//CLString = Pack.str('data');
-	SpecialData.LoadPack(Pack);
+	//SpecialData.LoadPack(Pack);
+	SpecialData.PostLoad(Pack)
 	//CLString = SpecialData.Data.LStr;
-	CLString = SpecialData.LStr;
+	CLString = SpecialData.qstr;
+	console.log('CLString' + CLString);
 	//let showEditorfields = true;
 
 	const unsubscribe = packStore.subscribe(value => {
@@ -30,6 +32,10 @@
 	function close() {
 		dispatch('close');
 		unsubscribe;
+	}
+
+	function handleSave() {
+		dispatch('save');
 	}
 	
 
@@ -178,7 +184,7 @@
 			  <label for="sub">Sub:</label>
 			  <input type="text" id="sub" bind:value={sub} on:input={handleSubChange} readOnly={sub !== ""}>
 			</div> -->
-				<button id="save">Save</button>
+				<button id="save" on:click={handleSave}>Save</button>
 				<button id="del">Delete</button>
 				<button id="clear">Clear</button>
 				<button id="copy">Copy</button>
