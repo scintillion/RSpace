@@ -47,6 +47,13 @@ export namespace RS1 {
 			this.b=b;
 		}
 	}
+
+	export class NFD {	// name, format, desc strings
+		name='';
+		format='';
+		desc='';
+	}
+
 	export class strsPair {
 		a:string[];b:string[];
 
@@ -595,12 +602,19 @@ export namespace RS1 {
 		protected qstr=''
 
 		protected get d() { return this.qstr[this.qstr.length-1]; }
+		get delim () { return this.qstr[this.qstr.length-1]; }
+
+		get toStr () {
+			return this.qstr;
+		}
 
 		fromStr (Str=PrimeDelim) {
 			this.qstr = Str;
 		}
 
 		get size () { return this.qstr.length > 1; }	// not NULL list
+
+		get firstDelim () { return this.qstr.indexOf(this.d); }
 
 		get descStr () {
 			let Type = this.desc ('Type');
@@ -616,9 +630,38 @@ export namespace RS1 {
 			return n > 0 ? n : 0;
 		}
 
+		namedescstr (start=0) {
+			return this.qstr.slice(start,this.qstr.indexOf(this.d,start));
+		}
+
+
 		namedesc (start=0) {
-			let str = this.qstr.slice(start,this.qstr.indexOf(this.d,start));
+			let str = this.namedescstr (start);
 			return strPair.namedesc(str);
+		}
+
+		getNFD (pos:number) {
+			let format ='';
+			let ND = this.namedesc (pos);
+			let desc = ND.b;
+			if (desc) {
+				if (desc[0]===FormatStart) {
+					let FEnd = desc.indexOf(FormatEnd);
+					if (FEnd >= 0)	{	// found it!
+						format = desc.slice (1,FEnd);
+						desc = desc.slice (FEnd+1);
+					}
+				}
+			}
+
+			if (!desc)
+				desc = ND.a;	// name
+
+			let nfd = new NFD ();
+			nfd.name = ND.a;
+			nfd.format = format;
+			nfd.desc = desc;
+			return nfd;
 		}
 
 		setName (name='') { 
@@ -626,7 +669,7 @@ export namespace RS1 {
 			if (nd.b)
 				name += NameDelim + nd.b;
 
-			this.fromStr (name + this.qstr.slice (this.qstr.indexOf (this.d)));
+			this.fromStr (name + this.qstr.slice (nd.length));
 		}
 
 		setDesc (desc='') { 
@@ -777,15 +820,9 @@ export namespace RS1 {
 			return Lines;
 		}
 
-		get toStr () {
-			return this.qstr;
-		}
-
 		get toVList () {
 			return new vList (this.qstr);
 		}
-
-		get delim () { return this.d; }
 
 		fromVList (L : vList) {
 			this.fromStr (L.x.toStr);
