@@ -52,6 +52,43 @@ export namespace RS1 {
 		name='';
 		format='';
 		desc='';
+
+		fromVIDStr (str='') {
+			this.name='';
+			this.format='';
+			this.desc='';
+
+			if (!str)
+				return;
+
+			let pre = '', post = '', pos = str.indexOf(NameDelim);
+			if (pos >= 0) {
+				this.name = str.slice (0,pos);
+				post = str.slice (pos + 1);
+				if (post[0] !== FormatStart) {
+					this.desc = post;
+					return;
+				}
+
+				pos = post.indexOf(FormatEnd);
+				if (pos < 0) {
+					this.format = post.slice (1);
+					return;
+				}
+
+				this.format = post.slice (1,pos);
+				this.desc = post.slice (pos + 1);
+			}
+		}
+
+		get toVIDStr () {
+			let str = this.name + NameDelim;
+			if (this.format  ||  this.desc)
+				str += NameDelim;
+			if (this.format)
+				str += FormatStart + this.format + FormatEnd;
+			return str + this.desc;
+		}
 	}
 
 	export class strsPair {
@@ -612,6 +649,12 @@ export namespace RS1 {
 			this.qstr = Str;
 		}
 
+		constructor (Str=PrimeDelim) {
+			if (Str)
+				this.fromStr (Str);
+			else this.fromStr (PrimeDelim)
+		}
+
 		get size () { return this.qstr.length > 1; }	// not NULL list
 
 		get firstDelim () { return this.qstr.indexOf(this.d); }
@@ -619,10 +662,6 @@ export namespace RS1 {
 		get descStr () {
 			let Type = this.desc ('Type');
 			return this.Name + '[Type=' + Type + ']' + (this.Desc? (':'+this.Desc):''); 
-		}
-
-		constructor (Str=PrimeDelim) {
-			this.fromStr (Str);
 		}
 
 		get count () {
@@ -640,10 +679,13 @@ export namespace RS1 {
 			return strPair.namedesc(str);
 		}
 
-		getNFD (pos:number) {
-			let format ='';
-			let ND = this.namedesc (pos);
-			let desc = ND.b;
+		getNFD (posOrStr:number|string) {
+			let str = (typeof posOrStr === 'number') ? this.namedescstr (posOrStr) : posOrStr;
+
+
+			let ND = strPair.namedesc(str);
+
+			let format='',desc = ND.b;
 			if (desc) {
 				if (desc[0]===FormatStart) {
 					let FEnd = desc.indexOf(FormatEnd);
@@ -664,17 +706,18 @@ export namespace RS1 {
 			return nfd;
 		}
 
-		setName (name='') { 
-			let nd = this.namedesc();
-			if (nd.b)
-				name += NameDelim + nd.b;
+		setNameOrDesc (name='',ifDesc=false) {
+			let pos = this.qstr.indexOf(this.d);
+			let head = this.qstr.slice (0,pos), tail = this.qstr.slice (pos);
+			let nd = strPair.namedesc(head);
+			let desc = nd.b;
 
-			this.fromStr (name + this.qstr.slice (nd.length));
-		}
+			if (ifDesc) {
+				desc = name;
+				name = nd.a;
+			}
 
-		setDesc (desc='') { 
-			let nd = this.namedesc();
-			this.fromStr (nd.a + (desc ? (NameDelim + desc) : '') + this.qstr.slice (this.qstr.indexOf(this.d)));
+			this.fromStr (name + (desc ? (NameDelim + desc) : '') + tail);
 		}
 
 		get Name () { return this.namedesc().a; }
