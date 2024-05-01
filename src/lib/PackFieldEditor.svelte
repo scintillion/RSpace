@@ -33,10 +33,21 @@ function handleSave() {
   step = 'selectPack'
   
 }
-  let selectedType: RS1.PackField["Type"] = RS1.tNone
+
+function handleDelete() {
+  D.delField(selectedRow);
+  packArray = D.fetch('');
+  step = 'selectPack';
+}
+  let selectedType: RS1.PackField["Type"] 
   function handleTypeChange(event: any) {
     const selectedType =  event.target.value;
   }
+  
+function handleClear() {
+  selectedRow.clear();
+  selectedRow = selectedRow;
+}  
 
 function handleDownload() {
   let AB = selectedRow.toAB1;
@@ -152,6 +163,8 @@ async function handleUpload(event: Event & { currentTarget: HTMLInputElement }) 
       <button on:click={() => step = 'selectPack'}>Back</button>
       <!-- <button on:click={() => {D.addField(selectedRow); console.log('Saved D' + D.desc); step = 'selectPack'}}>Save</button> -->
       <button on:click={handleSave}>Save</button>
+      <button on:click={handleClear}>Clear</button>
+      <button on:click={handleDelete}>Delete</button>
       <button on:click={handleDownload}>Download</button>
       <button>
         <label for="file-upload">Upload</label>
@@ -229,5 +242,10 @@ async function handleUpload(event: Event & { currentTarget: HTMLInputElement }) 
      color: white;
      transition:   0.3s linear;
    }
-
+   .buttons {
+     display: flex;
+     flex-wrap: wrap;
+     justify-content: center;
+     gap: 10px;
+   }
 </style>
