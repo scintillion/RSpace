@@ -81,6 +81,8 @@ export namespace RS1 {
 			}
 		}
 
+		constructor (str='') { this.fromVIDStr(str); }
+
 		get toVIDStr () {
 			let str = this.name + NameDelim;
 			if (this.format  ||  this.desc)
@@ -679,31 +681,8 @@ export namespace RS1 {
 			return strPair.namedesc(str);
 		}
 
-		getNFD (posOrStr:number|string) {
-			let str = (typeof posOrStr === 'number') ? this.namedescstr (posOrStr) : posOrStr;
-
-
-			let ND = strPair.namedesc(str);
-
-			let format='',desc = ND.b;
-			if (desc) {
-				if (desc[0]===FormatStart) {
-					let FEnd = desc.indexOf(FormatEnd);
-					if (FEnd >= 0)	{	// found it!
-						format = desc.slice (1,FEnd);
-						desc = desc.slice (FEnd+1);
-					}
-				}
-			}
-
-			if (!desc)
-				desc = ND.a;	// name
-
-			let nfd = new NFD ();
-			nfd.name = ND.a;
-			nfd.format = format;
-			nfd.desc = desc;
-			return nfd;
+		getNFD (start=0) {
+			return new NFD (this.namedescstr (start));
 		}
 
 		setNameOrDesc (name='',ifDesc=false) {
@@ -896,6 +875,10 @@ export namespace RS1 {
 					} else break;
 				}
 			}
+		}
+
+		newRef (name='') {
+			return new qList (name+NameDelim+'@'+this.Name);
 		}
 	}
 
@@ -2134,7 +2117,7 @@ export namespace RS1 {
 
 		get qstr () {
 			if (this.vL !== NILList)
-				return this.vL.x.toStr;
+				return this.vL.qstr;
 			else if (this.qL !== NILqList)
 				return this.qL.toStr;
 			else return '|';
