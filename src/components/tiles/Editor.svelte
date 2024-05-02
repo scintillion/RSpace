@@ -21,7 +21,7 @@
 
 	const unsubscribe = packStore.subscribe(value => {
       		receivedPack = value;
-      		//console.dir('store pack' + receivedPack.str('data')); 
+      		console.dir('store pack' + receivedPack.str('data')); 
       
     });
 
@@ -31,13 +31,9 @@
 
 	function close() {
 		dispatch('close');
-		unsubscribe;
+		dispatch('save', {value: receivedPack});
+		//unsubscribe;
 	}
-
-	function handleSave() {
-		dispatch('save');
-	}
-	
 
 	// const list1: RS1.vList = new RS1.vList(
 	// 	'Test1|Test1Name:[%=Jane]Your Name|ListNum:[#=1]The List Number|'
@@ -184,7 +180,7 @@
 			  <label for="sub">Sub:</label>
 			  <input type="text" id="sub" bind:value={sub} on:input={handleSubChange} readOnly={sub !== ""}>
 			</div> -->
-				<button id="save" on:click={handleSave}>Save</button>
+				<button id="save">Save</button>
 				<button id="del">Delete</button>
 				<button id="clear">Clear</button>
 				<button id="copy">Copy</button>

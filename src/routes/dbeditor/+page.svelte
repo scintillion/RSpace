@@ -152,30 +152,45 @@
 
         modalContent.style.display = 'block';
 
+        editorComponent.$on('save', (event) => {
+            // console.log('Save alert from dbeditor')
+            // console.log('dispatch data' + event.detail.value.str('data'))
+            if (isListField) {
+                let Pack1 = event.detail.value;
+                D = new RS1.vList(Pack1.str('data'));
+                currentRecord.List = D;
+            }
+            else {
+                let Pack1 = event.detail.value;
+                 D = new RS1.vList(Pack1.str('data'));
+                currentRecord.Data = D.qstr;
+                // console.log('dispatch data1' + currentRecord.Data)
+            }
+          })
+
         editorComponent.$on('close', () => {
         modalContent.remove();
         modalBackground.remove();
-        unsubscribe();
+        //unsubscribe();
     });
 
     }
     
-    const unsubscribe = packStore.subscribe(value => {
-        receivedPack = value;
+    // const unsubscribe = packStore.subscribe(value => {
+    //     receivedPack = value;
     
-        if (receivedPack.str('data') !== '') {
-          D = new RS1.vList(receivedPack.str('data'));
-          console.log('BUFPACK DATA' + receivedPack.str('data'))    
+    //     if (receivedPack.str('data') !== '') {
+    //       D = new RS1.vList(receivedPack.str('data'));
+    //       console.log('BUFPACK DATA' + receivedPack.str('data'))    
       
-          packStore.set(new RS1.BufPack());
-          console.log( 'BUFPACK DATA POST CLEANUP' + receivedPack.str('data'))
-        }
+    //       packStore.set(new RS1.BufPack());
+    //       console.log( 'BUFPACK DATA POST CLEANUP' + receivedPack.str('data'))
+    //     }
 
-    });
+    // });
 
     
-    unsubscribe();
-    console.log('D RETURN' + D.x.GetStr);
+    //unsubscribe();
 
     return {D:D, isListField:isListField};
 }
@@ -346,12 +361,12 @@ async function EditPack(D: RS1.BufPack, EditContainer: HTMLElement | null) {
         // const { D, isListField } = await EditList(currentRecord.Data?._type==='List' ? new RS1.vList(currentRecord.Data) : new RS1.vList(), null, false);
         // const { D, isListField } = await EditList(!currentRecord.Data ? new RS1.vList() : new RS1.vList(currentRecord.Data), null, false);
         const { D, isListField } = await EditList(currentRecord.Data === undefined ? new RS1.vList() : new RS1.vList(currentRecord.Data), null, false);
-        if (!isListField) {
-            //currentRecord.Data = new RS1.vList();
-            currentRecord.Data = D.qstr;
-            //D.toDB();
-            console.log('S$$$DATA$$$' + currentRecord.Data);
-        }
+        // if (!isListField) {
+        //     //currentRecord.Data = new RS1.vList();
+        //     currentRecord.Data = D.qstr;
+        //     //D.toDB();
+        //     console.log('S$$$DATA$$$' + currentRecord.Data);
+        // }
     }}>Data: Type Specific</button>
       </div>
       <div id="specialdatadiv"></div>
