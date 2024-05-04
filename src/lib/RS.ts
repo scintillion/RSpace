@@ -2613,10 +2613,9 @@ export namespace RS1 {
 		}
 
 		GetVID(IDorName: string | number): vID | undefined {
-			let SearchStr;
+			// let Name: string = (typeof IDorName !== 'number') ? IDorName : this.NameByID(IDorName);
 
-			let Name: string = (typeof IDorName !== 'number') ? IDorName : this.NameByID(IDorName);
-			let Pos1 = this.GetNamePos(Name);
+			let Pos1 = this.GetNamePos(IDorName);
 
 			if (Pos1 >= 0) {
 				// we found it
@@ -3309,7 +3308,10 @@ export namespace RS1 {
 			let Pos1 = this.qstr.indexOf(SearchStr, this.firstDelim);
 			if (Pos1 >= 0) {
 				for (let D = this.Delim, i = Pos1; --i > 0; ) {
-					if (this.qstr[i] === D) return this.VIDByPos(i + 1);
+					if (this.qstr[i] === D) {
+						let Str = this.namedescstr (i+1);
+						return new vID (Str);
+						}
 				}
 
 				return undefined;
@@ -3342,7 +3344,7 @@ export namespace RS1 {
 		}
 
 		GetLine(ID: any, Delim1: string = ''): string {
-			let VID: vID | undefined = this.GetVID(ID);
+			let VID: vID | undefined = this.getVID(ID);
 			return VID ? VID.ToLine(Delim1) : '';
 		}
 
@@ -3369,27 +3371,13 @@ export namespace RS1 {
 					IDs[i] = VIDs[i].ID;
 				}
 
-				return this.IDsToRefList(IDs);
+				throw "Not complete, line below!"
+				//return this.IDsToRefList(IDs);
 			} else return undefined;
 		}
 
 		IDsToVIDs(IDs: number[] | undefined=undefined): vID[] {
-			if (!IDs) {
-				// if undefined, use every element (IDs 1..N)
-				let limit = this.count;
-				IDs = new Array(limit);
-				for (let i = limit; --i >= 0; IDs[i] = i + 1);
-			}
-
-			let VIDs: vID[] = new Array(IDs.length);
-			let VID: vID | undefined;
-
-			for (let i = IDs.length; --i >= 0; ) {
-				VID = this.GetVID(IDs[i]);
-				if (VID) VIDs[i] = VID;
-			}
-
-			return VIDs;
+			return this.toVIDs;
 		}
 
 		ToSortedVIDs(): vID[] {
@@ -3404,6 +3392,9 @@ export namespace RS1 {
 		}
 
 		IDsToLines(IDs: number[], Delim: string): string[] {
+			return [];
+
+		/*
 			let i = IDs.length;
 			let Lines: string[] = new Array(i);
 			let VID: vID | undefined;
@@ -3414,6 +3405,7 @@ export namespace RS1 {
 			}
 
 			return Lines;
+			*/
 		}
 
 	/*
