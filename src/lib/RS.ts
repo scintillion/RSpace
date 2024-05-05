@@ -25,38 +25,62 @@ export namespace RS1 {
 	export class strPair {
 		a:string;b:string;
 
-		constructor (a:string,b:string) {
-			this.a = a;
-			this.b = b;
+		constructor (a1='',b1='') {
+			this.a = a1; this.b = b1;
 		}
 
+		fromStr (str='',sep=':') {
+			let pos = str.indexOf(sep);
+			if (pos >= 0) {
+				this.a = str.slice (0,pos);
+				this.b = str.slice (pos+1);
+			}
+			else {
+				this.a = str;
+				this.b = '';
+			}
+		}	
+		
+		toStr (sep=':') {
+			return this.a + sep + this.b;
+		}
 
 		static New (str='',sep=':') {
-			if (!str)
-				return new strPair ('','');
-
-			let pos = str.indexOf(sep);
-			if (pos < 0)
-				return new strPair (str,'');
-
-
+			let pair = new strPair ();
+			pair.fromStr (str,sep);
+			return pair;
 		}		
 
 		static namedesc (str:string) {
-			let nPos = str.indexOf(NameDelim);
-
-			if (nPos < 0)
-				return new strPair (str,'');
-
-			return new strPair (str.slice (0,nPos),str.slice (nPos+1));
+			return this.New (str);
 		}
 	}
+
 	export class numPair {
 		a:number;b:number;
 
 		constructor (a:number,b:number) {
 			this.a=a;
 			this.b=b;
+		}
+
+		fromStr (str='',sep=',') {
+			if (!str) {
+				this.a = NaN;  this.b = NaN; return;
+			}
+
+			let pair = strPair.New (str,sep);
+			this.a = Number (pair.a); this.b = Number (pair.b);
+		}
+
+		toStr (sep=',') {
+			return this.a.toString () + sep + this.b.toString ();
+		}
+
+		static New (str='',sep=',') {
+			let pair = new numPair(0,0);
+			pair.fromStr (str,sep);
+			return pair;
 		}
 	}
 
@@ -97,7 +121,7 @@ export namespace RS1 {
 		constructor (str='') { this.fromStr(str); }
 
 		get toStr () {
-			let str = this.name + NameDelim;
+			let str = this.name;
 			if (this.format  ||  this.desc)
 				str += NameDelim;
 			if (this.format)
