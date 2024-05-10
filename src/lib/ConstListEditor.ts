@@ -107,6 +107,7 @@ export class Editor {
 
 		const FirstVID: RS1.vID = this.vList.x.ToSortedVIDs()[0] as RS1.vID;
 
+		//const vIDs = this.vList.x.ToSortedVIDs();
 		const vIDs = this.vList.x.ToSortedVIDs();
 		this.selectbox.onchange = () => {
 			console.log(this.vList.Str);
@@ -135,7 +136,7 @@ export class Editor {
 			this.selectbox.innerHTML = '';
 		}
 
-		this.vList.x.ToSelect(this.selectbox);
+		this.vList.toSelect(this.selectbox);
 		this.selectContainer.appendChild(this.selectbox);
 	}
 
@@ -198,12 +199,12 @@ export class Editor {
 		this.i.list.style.cssText =
 			'display: block; width: 100px; height: 40px; border-radius: 10px; font-family: inherit; outline: none; border: none; padding-left: 10px; transition: 0.3s linear;';
 		const CL = this.lol.TovList() as RS1.vList;
-		CL.x.ToSelect(this.i.list);
+		CL.toSelect(this.i.list);
 		this.i.vID.style.cssText =
 			'display: block; width: 100px; height: 40px; border-radius: 10px; font-family: inherit; outline: none; border: none; padding-left: 10px; transition: 0.3s linear;';
 		this.i.list.onchange = () => {
 			const List = this.lol.List(this.i.list.value) as RS1.vList;
-			List.x.ToSelect(this.i.vID);			
+			List.toSelect(this.i.vID);			
 		};
 
 		if (field === 'Set') {
@@ -221,7 +222,7 @@ export class Editor {
 	}
 
 	private CreateVID(): void {
-		const format: string = this.formats.x.NameByDesc(
+		const format: string = this.formats.nameByDesc(
 			this.RemovePossibleDelim(this.i.fmt.value)
 		) as string;
 		let value: string = this.RemovePossibleDelim(this.i.value.value) as string;
@@ -306,7 +307,7 @@ export class Editor {
 	}
 
 	private UpdateVID(name: string): void {
-		const format: string = this.formats.x.NameByDesc(
+		const format: string = this.formats.nameByDesc(
 			this.RemovePossibleDelim(this.i.fmt.value)
 		) as string;
 		let value: string | number = this.RemovePossibleDelim(this.i.value.value);;
