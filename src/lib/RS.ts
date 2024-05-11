@@ -1902,10 +1902,10 @@ export namespace RS1 {
 
 				if (this.Childs) {
 					this.Childs.forEach((Child) => {
-						if (Child.Name === 'a') {
+						if (Child.x.Name === 'a') {
 							this.aList = Child;
 							console.log('\taList =' + Child.qstr);
-						} else if (Child.Name === 's') {
+						} else if (Child.x.Name === 's') {
 							this.sList = Child;
 							console.log('\tsList =' + Child.qstr);
 						} else if (Child.Name === 'v') this.vList = Child;
@@ -2174,10 +2174,12 @@ export namespace RS1 {
 					}
 				}
 			}
-
-			let NameStr = Str1.slice(NamePos, this.vL.firstDelim);
-
-			let i = NameStr.indexOf(NameDelim);
+		
+			//let NameStr = Str1.slice(NamePos, this.vL.firstDelim);
+			let NameStr = Str1.slice(NamePos, this._firstDelim);
+		
+			//let i = NameStr.indexOf(NameDelim);
+			let i = NameStr.indexOf(PrimeDelim);
 			if (i >= 0) {
 				this.Desc = NameStr.slice(i + 1);
 				this.Name = NameStr.slice(0, i);
@@ -2189,7 +2191,7 @@ export namespace RS1 {
 						break;
 					}
 
-				this.Desc = this.Name = NameStr;
+				this.Desc = this.Name = NameStr;	
 			}
 
 			console.log('InitList (' + this.Name + '), NameStr =' + NameStr + '.');

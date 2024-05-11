@@ -7,6 +7,13 @@
 	// var comp : HTMLElement;
 	// var container : HTMLElement;
 //	<div bind:this ={container}/>
+
+const TileStrings: string[] =[
+		'T\ta|class:Tile|\ts|background:red|width:50px|height:50px|\t',
+	];
+
+
+	
 	
 	onMount(() => {
 		console.log ('Entry InitClient!');
@@ -26,15 +33,7 @@
 	<a href="/vhelsing">VHelsing</a>
 	<a href="/tileworks">TileWorks</a>
 	<!-- <r-tile attrStr='QED' color="blue"/> -->
-	
-	<r-tile attrStr="id=tileID class='tileClass'" styleStr="display:flex; flex-direction:row; align-items:start; justify-content:space-between; width:100px; height:25px; background-color:red">
-		<r-tile styleStr="display:flex; flex-direction:column; align-items:center; justify-content:center; width:25px; height:25px; background-color:blue">
-			<r-tile>L</r-tile>
-		</r-tile>
-		<r-tile styleStr="display:flex; flex-direction:column; align-items:center; justify-content:center; width:25px; height:25px; background-color:blue">
-			<r-tile>R</r-tile>
-		</r-tile>
-	</r-tile>
+	<r-tile tileString = {TileStrings}>	</r-tile>
 	
 	<style lang="scss">
 		a {

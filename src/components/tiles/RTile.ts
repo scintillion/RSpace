@@ -1,5 +1,6 @@
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { RS1 } from '$lib/RS';
 
 // @customElement('r-tile')
 // export class RTile extends LitElement {
@@ -70,7 +71,29 @@ export class RTile extends LitElement {
  color = 'cyan';
  @property() attrStr: string = '';
  @property() styleStr: string = '';
+ @property() tileString: string[] = [];  
+ @property() Tlist: RS1.TileList = new RS1.TileList('');
+ 
+ assign(tileString: string[]) {
+   this.Tlist = new RS1.TileList(tileString);
+   console.log('TileString = ' + tileString);
+   this.Tlist.tiles.forEach((tile: RS1.TDE) => {
+    console.log('attr stringx' + tile.aList?.x.Desc);
+     this.styleStr = this.replacestyledelim(tile.sList?.x.Desc);
+     this.attrStr = this.replaceattrdelim(tile.aList?.x.Desc);
+     const attrs = this.parseAttrString(this.attrStr);
+      for (const [key, value] of Object.entries(attrs)) {
+        this.setAttribute(key, value);
+      }
+     
+   })
+   console.log('styleStr = ' + this.styleStr);
+   console.log('attrStr = ' + this.attrStr);
 
+ }
+ 
+ 
+ 
  parseAttrString(attrStr: string) {
     const attrs = {};
     if (!attrStr) {
@@ -90,16 +113,44 @@ export class RTile extends LitElement {
     return attrs;
  }
 
- updated(changedProperties: Map<string, any>) {
-    if (changedProperties.has('attrStr')) {
-      const attrs = this.parseAttrString(this.attrStr);
-      for (const [key, value] of Object.entries(attrs)) {
-        this.setAttribute(key, value);
-      }
-    }
- }
+//  updated(changedProperties: Map<string, any>) {
+//     if (changedProperties.has('attrStr')) {
+//       const attrs = this.parseAttrString(this.attrStr);
+//       for (const [key, value] of Object.entries(attrs)) {
+//         this.setAttribute(key, value);
+//       }
+//     }
+//  }
+
+replacestyledelim(inputString: string | undefined): string {
+  if (inputString === undefined) {
+    console.log('No string');
+    return '';
+  }
+  else {
+  return inputString?.replace(/\|/g, ';');
+  }
+}
+
+replaceattrdelim(inputString: string | undefined): string {
+  if (inputString === undefined) {
+    console.log('No attr string');
+    return '';
+  }
+  else {
+    let modifiedString = inputString.replace(/:/g, '=');
+    // Replace '|' with ' ' (space)
+    modifiedString = modifiedString.replace(/\|/g, ' ');
+    return modifiedString;
+  }
+}
+
+
+
+
 
  render() {
+  this.assign(this.tileString);
     return html`
       <div style="${this.styleStr}">
         <slot></slot>
@@ -107,6 +158,9 @@ export class RTile extends LitElement {
     `;
  }
 }
+
+
+
 
 
   
