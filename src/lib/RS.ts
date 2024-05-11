@@ -90,32 +90,35 @@ export namespace RS1 {
 		desc='';
 
 		fromStr (str='') {
-			this.name='';
-			this.format='';
-			this.desc='';
-
-			if (!str)
+			this.format = '';
+			if (!str) {
+				this.name='';
+				this.desc='';
 				return;
-
-			let pre = '', post = '', pos = str.indexOf(NameDelim);
-			if (pos >= 0) {
-				this.name = str.slice (0,pos);
-				post = str.slice (pos + 1);
-				if (post[0] !== FormatStart) {
-					this.desc = post;
-					return;
-				}
-
-				pos = post.indexOf(FormatEnd);
-				if (pos < 0) {
-					this.format = post.slice (1);
-					return;
-				}
-
-				this.format = post.slice (1,pos);
-				this.desc = post.slice (pos + 1);
 			}
-			else this.name = str;
+
+			let pos = str.indexOf(NameDelim);
+			if (pos < 0) {
+				this.name = str;
+				this.desc = '';
+				return;
+			}
+			
+			this.name = str.slice (0,pos);
+			let post = str.slice (pos + 1);
+			if (post[0] !== FormatStart) {
+				this.desc = post;
+				return;
+			}
+
+			pos = post.indexOf(FormatEnd);
+			if (pos < 0) {
+				this.format = post.slice (1);
+				return;
+			}
+
+			this.format = post.slice (1,pos);
+			this.desc = post.slice (pos + 1);
 		}
 
 		constructor (str='') { this.fromStr(str); }
@@ -1908,7 +1911,7 @@ export namespace RS1 {
 						} else if (Child.Name === 'v') this.vList = Child;
 						else if (Child.Name === 'j') this.jList = Child;
 
-						console.log('   TDE Child[' + Child.Name + ']=' + Child.qstr + '.');
+						console.log('   TDE Child[' + Child.Name + ']==' + Child.qstr + '.');
 					});
 				}
 
@@ -2145,7 +2148,7 @@ export namespace RS1 {
 			this.Childs = undefined;
 			this.IDs = undefined;
 
-			if (this.vL.firstDelim < 0) this._firstDelim = Str1.indexOf(Delim1, NamePos);
+			if (this.vL.firstDelim <= 0) this._firstDelim = Str1.indexOf(Delim1, NamePos);
 
 			if (Delim1 < ' ') {
 				// special case, embedded vLists!
@@ -3555,9 +3558,10 @@ export namespace RS1 {
 				let BP = Str1 as BufPack;
 				this.x.InitList (BP.str ('data'));
 			}
+
 		}
 
-		PostSave (P : BufPack) { P.add (['data', this.toStr]); console.log ('PostSave vList'); }
+		PostSave (P : BufPack) { P.add (['data', this.toStr]); }
 		PostLoad (P : BufPack) { this.qstr = P.str ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
 
 // ------------------ qList functions ---------------------
@@ -4693,7 +4697,7 @@ export namespace RS1 {
 				case tNum : AB = this._AB1 = num2ab (this._data as number); break;
 				case tStr : AB = this._AB1 = str2ab (this._data as string); break;
 				case tAB :  AB = (this._data as ArrayBuffer).slice (0);
-					console.log ('  toAB ' + this._name + '[=' + AB.byteLength.toString ());
+					// console.log ('  toAB ' + this._name + '[=' + AB.byteLength.toString ());
 					return AB;
 				case tData : 
 					if (this._data === NILData) {
@@ -5086,7 +5090,7 @@ export namespace RS1 {
 
 		    this.notNIL;
 
-			console.log ('BufPack.add');
+			// console.log ('BufPack.add');
 
 			if (Args.length & 1)
 				return;		// must always be matching pairs (Name/Data), odd params not allowed
@@ -5095,7 +5099,7 @@ export namespace RS1 {
 			{
 				let FldName = Args[i++] as string;
 				let Data = Args[i++];
-				console.log ('  PackField ' + FldName + '=' + Data);
+				// console.log ('  PackField ' + FldName + '=' + Data);
 				let NewField = new PackField(FldName,Data);
 
 				if (NotNull)
@@ -5265,12 +5269,8 @@ export namespace RS1 {
 			if (PAB.byteLength != Prefix.length)
 				log ('*******mismatch!');
 			Prefix = ByteStr + Prefix.slice (ByteStr.length);
-			console.log ('bufOut desc1:' + this.desc);
-			console.log ('BufOUT Prefix =' + Prefix);
-			console.log ('bufOut Names1=' + this.names);
 
 			PAB = str2ab (Prefix);
-			// console.log ('SecondPAB ' + PAB.byteLength.toString ());
 
 			let Fields = this.Cs.concat (this.Ds);
 			let limit = Fields.length;
@@ -5278,30 +5278,18 @@ export namespace RS1 {
 			for (let F of Fields)
 				Bytes += F.AB.byteLength;
 
-			console.log ('bufOut Names2=' + this.names);
 			let AB = new ArrayBuffer (Bytes);
-
-			console.log ('bufOut desc2:' + this.desc);
-			console.log ('  bufOut NEW Prefix=' + this.getPrefix ());
-
-			// console.log ('AB = ' + AB + ' bytes = ' + AB.byteLength.toString ());
 
 			let BA = new Uint8Array (AB);
 			BA.set (PAB);
 			let Pos = PAB.byteLength;
 			let Str = '  BufOut, fields=';
 
-			console.log ('bufOut Names3=' + this.names);
 			for (let F of Fields) {
 				Str += ' ' + F.desc;
 				BA.set (new Uint8Array (F.AB), Pos);
-				// console.log ('  BufOut Name:' + F.Name + ' Size ' + F.Size.toString () + ' ' + F.Type);
 				Pos += F.AB.byteLength;
 			}
-			console.log ('  bufOut:' + Str);
-			console.log ('GOOD bufOut desc3:' + this.desc);
-			console.log ('GOOD! bufOut Names4=' + this.names);
-			console.log ('BAD! bufOut Names4=' + this.names);
 
 			if (Bytes < PAB.byteLength)
 				throw 'BufOUT';
