@@ -2145,6 +2145,8 @@ export namespace RS1 {
 			// Note that delimiter is typically '|', placed at end of string, but \0 could
 			// be used if one wished to allow '|' to appear within the const description
 
+			console.log ('InitList (' + Str1 + ')');
+
 			this.Childs = undefined;
 			this.IDs = undefined;
 
@@ -3717,9 +3719,9 @@ export namespace RS1 {
             return Strs.slice (1,-1);
         }
 
-        fromRaw (VIDStrs:string[]=[]) {
+        fromRaw (vStrs:string[]=[]) {
             let D = this.d, NameDesc = this.qstr.slice (0,this.qstr.indexOf(D)+1);
-            let VIDStr = VIDStrs.join (D);
+            let VIDStr = vStrs.join (D);
             this.qstr = NameDesc + (VIDStr ? (VIDStr + D) : '');
         }
 
@@ -3949,6 +3951,8 @@ export namespace RS1 {
 		constructor(Str1: string[] | string, List: vList | undefined = undefined) {
 			let limit, count = 0;
 
+			console.log ('TileList (' + Str1 as string + ')');
+
 			super(Str1 as string);
 
 			if (List) {
@@ -4030,7 +4034,7 @@ export namespace RS1 {
 		ToString(): string {
 			let Tiles = this.tiles;
 			let limit = Tiles.length;
-			let Str = '';
+			let Str = 'TOSTR:';
 
 			for (let i = 0; ++i < limit; ) {
 				let me = Tiles[i];

@@ -63,26 +63,26 @@ export class Plotter {
 
 		let styles = ``;
 		let index = this.list.tiles.indexOf(tile);
-		const cssProperties = tile.sList.IDsToVIDs(undefined);
+		const cssProperties = tile.sList.toVIDs;
 		cssProperties.forEach((property) => {
 			if (property.Name !== 'row' && property.Name !== 'column') {
 				if (this.CheckNum(property.Desc)) {
 					styles += `${property.Name}:${property.Desc}px;`;
 				} else styles += `${property.Name}:${property.Desc};`;
 			} else {
-				if (tile.sList?.GetNum(property.Name) === 1) {
+				if (tile.sList?.x.GetNum(property.Name) === 1) {
 					styles += `flex-direction:${property.Name};`;
 				}
 			}
 		});
 
-		const properties = tile.aList.IDsToVIDs(undefined);
+		const properties = tile.aList.toVIDs;
 		let attributes: any = {};
 		properties.forEach((property) => {
 			attributes[property.Name] = property.Desc;
 		});
 
-		let content = tile.aList?.GetDesc('inner') !== undefined ? tile.aList?.GetDesc('inner') : '';
+		let content = tile.aList?.x.GetDesc('inner') !== undefined ? tile.aList?.x.GetDesc('inner') : '';
 
 		const componentName = tile.List.Name + '_TC';
 		const component = components[componentName as keyof typeof components];
