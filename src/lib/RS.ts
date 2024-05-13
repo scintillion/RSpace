@@ -1876,7 +1876,7 @@ export namespace RS1 {
 		level = 0;
 		tileID: TileID | undefined;
 		TList: vList | undefined;
-		Childs: vList[] | undefined;
+		Lists: vList[] | undefined;
 		aList: vList | undefined;
 		sList: vList | undefined;
 		vList: vList | undefined;
@@ -1889,6 +1889,19 @@ export namespace RS1 {
 		first = 0;
 		last = 0;
 
+		listByName (Name='') {
+			if (!this.Lists)
+				return undefined;
+
+			for (const C of this.Lists) {
+				if (C.x.Name === Name) {
+					console.log ('  CBN(' + Name + ')=' + C.toStr);
+					return C;
+				}
+			}
+			return undefined;
+		}
+
 		constructor(Str: string, List1: vList | undefined = undefined) {
 			super();
 
@@ -1898,26 +1911,24 @@ export namespace RS1 {
 				this.TList = List1;
 				// console.log('TDE List[' + this.List.Name + ']=' + this.List.Str + '.');
 
-				this.Childs = List1.x.Childs;
+				this.Lists = List1.x.Childs;
+				this.aList = this.listByName ('a');
+				this.sList = this.listByName ('s');
+				this.vList = this.listByName ('v');
+				this.jList = this.listByName ('j');
 
-				if (this.Childs) {
-					this.Childs.forEach((Child) => {
-						if (Child.x.Name === 'a') {
-							this.aList = Child;
-							console.log('\taList =' + Child.qstr);
-						} else if (Child.x.Name === 's') {
-							this.sList = Child;
-							console.log('\tsList =' + Child.qstr);
-						} else if (Child.Name === 'v') this.vList = Child;
-						else if (Child.Name === 'j') this.jList = Child;
-
-						console.log('   TDE Child[' + Child.Name + ']==' + Child.qstr + '.');
-					});
+				if (this.Lists) {
+					for (const C of this.Lists)
+						console.log ('   TDE Child:' + C.x.Name + '=' + C.toStr);
 				}
 
 				this.level = List1.x.Indent;
 				this.tileID = new TileID(List1.Name);
 			}
+		}
+
+		get toStr () {
+			return 'TDEStr!'
 		}
 	}
 
@@ -2241,6 +2252,57 @@ export namespace RS1 {
 			else if (this.qL !== NILqList)
 				return this.qL.toStr;
 			else return '|';
+		}
+
+		get toRaw () : string[] {
+			let Strs = this.qstr.split (this.Delim);
+			return Strs.slice (1,-1);
+		}
+
+		fromRaw (VIDStrs:string[]=[]) {
+			let D = this.Delim, NameDesc = this.qstr.slice (0,this.qstr.indexOf(D)+1);
+			let VIDStr = VIDStrs.join (D);
+			this.vL.Init (NameDesc + (VIDStr ? (VIDStr + D) : ''));
+		}
+
+		get toVIDs () {
+			let Strs = this.toRaw;
+			let VIDs = new Array<vID> (Strs.length);
+
+			let count = 0;
+			for (const S of Strs) {
+				VIDs[count++] = new vID (S);
+			}
+			return VIDs;
+		}
+
+		static VIDsToLines(VIDs: vID[], Delim: string): string[] {
+			let i = VIDs.length;
+			let Lines: string[] = new Array(i);
+
+			while (--i >= 0) Lines[i] = VIDs[i].ToLine(Delim);
+
+			return Lines;
+		}
+
+		get toVList () {
+			return new vList (this.qstr);
+		}
+
+		toVIDList (Sep=';',Delim='') {
+			if (!Delim)
+				Delim = NameDelim;
+
+			let VIDs = this.toVIDs, Str = '';
+
+			for (const v of VIDs)
+				Str += v.Name + Delim + v.Desc + Sep;
+
+			return Str.slice (0,-1);
+		}
+
+		fromVList (L : vList) {
+			this.InitList (L.x.toStr);
 		}
 
 		GetNamePos(Name: string|number): number {
@@ -2696,47 +2758,10 @@ export namespace RS1 {
 			} else return undefined;
 		}
 
-		IDsToVIDs(IDs: number[] | undefined=undefined): vID[] {
-			if (!IDs) {
-				// if undefined, use every element (IDs 1..N)
-				let limit = this.count;
-				IDs = new Array(limit);
-				for (let i = limit; --i >= 0; IDs[i] = i + 1);
-			}
-
-			let VIDs: vID[] = new Array(IDs.length);
-			let VID: vID | undefined;
-
-			for (let i = IDs.length; --i >= 0; ) {
-				VID = this.GetVID(IDs[i]);
-				if (VID) VIDs[i] = VID;
-			}
-
-			return VIDs;
-		}
-
 		ToSortedVIDs(): vID[] {
-			let VIDs = this.IDsToVIDs(undefined);
+			let VIDs = this.toVIDs;
 			qList.SortVIDs(VIDs);
 			return VIDs;
-		}
-
-		RefListToVIDs(Ref: vList): vID[] | undefined {
-			if (Ref.x.IDs) return this.IDsToVIDs(Ref.x.IDs);
-			return undefined;
-		}
-
-		IDsToLines(IDs: number[], Delim: string): string[] {
-			let i = IDs.length;
-			let Lines: string[] = new Array(i);
-			let VID: vID | undefined;
-
-			while (--i >= 0) {
-				VID = this.GetVID(IDs[i]);
-				Lines[i] = VID ? VID.ToLine(Delim) : '';
-			}
-
-			return Lines;
 		}
 
 		ToDC(): string {
@@ -2779,7 +2804,7 @@ export namespace RS1 {
 		}
 
 		ToSelect(Select: HTMLSelectElement | HTMLOListElement | HTMLUListElement) {
-			let VIDs = this.IDsToVIDs(undefined);
+			let VIDs = this.toVIDs;
 			let VIDLen = VIDs.length;
 
 			if (Select instanceof HTMLSelectElement) {
@@ -2966,181 +2991,6 @@ export namespace RS1 {
 		get FirstChild(): vList {
 			return (this.Childs) ? this.Childs[0] : NILList;
 		}
-
-        /*
-		VIDStr (Sep=';',Delim='') {
-			if (!Delim)
-				Delim = NameDelim;
-
-			let VIDs = this.IDsToVIDs (), Str = '';
-
-			for (const v of VIDs)
-				Str += v.Name + Delim + v.Desc + Sep;
-
-			return Str.slice (0,-1);
-		}
-
-
-		Merge(AddList: vList | undefined): boolean {
-		    this.notNIL;
-
-			let DestStrs = this.qstr.split(this.Delim);
-			DestStrs.length = DestStrs.length - 1;
-			let Destlimit = DestStrs.length;
-			let Appended = 0, Replaced = 0;
-			
-			console.log('Merging Dest:');
-
-			for (let i = 0; i < Destlimit; ++i) console.log('Q1  ' + DestStrs[i]);
-
-			if (!AddList) return false;
-
-			let AddStrs = AddList.qstr.split(AddList.x.Delim);
-
-			let Addlimit = AddStrs.length - 1; // don't use last!
-			console.log('Adding List');
-			for (let i = 0; i < Addlimit; ++i) console.log('Q2  ' + AddStrs[i]);
-
-			let NameD, Name;
-
-			for (let i = 0; ++i < Addlimit; ) {
-				let Pos = AddStrs[i].indexOf(NameDelim);
-				let Replacer = Pos >= 0;
-				Name = Replacer ? AddStrs[i].slice(0, Pos) : AddStrs[i];
-				NameD = Name + NameDelim;
-
-				for (let j = 0; ++j < Destlimit; ) {
-					if (DestStrs[j].startsWith(Name)) {
-						// at least partial match, is it full?
-						if (DestStrs[j].startsWith(NameD) || DestStrs[j] == Name) {
-							// TRUE match
-							if (Replacer || DestStrs[j] == Name) {
-								// need to replace
-								// console.log('Replacing with ' + AddStrs[i]);
-								DestStrs[j] = AddStrs[i];
-								++Replaced;
-								Name = ''; // done, no more processing
-							} else {
-								Name = '';
-								break; // TRUE match, not replaced, we are done
-							}
-						}
-					}
-				}
-
-				// not found, need to add at end...
-				if (Name) {
-					// still active
-					// console.log('Appending ' + AddStrs[i]);
-					++Appended;
-					DestStrs.push(AddStrs[i]);
-				}
-			}
-
-			if (Replaced || Appended) {
-				let NewStr = DestStrs.join(this.Delim) + this.Delim;
-				this.InitList(NewStr);
-			}
-
-			return false;
-		}
-
-		private VIDByPos(Pos1: number): vID | undefined {
-			if (Pos1 < 0) return undefined;
-
-			let EndPos = this.qstr.indexOf(this.Delim, Pos1);
-			if (EndPos < 0) return undefined;
-
-			let FoundStr = this.qstr.slice(Pos1, EndPos);
-			return new vID(FoundStr);
-		}
-
-		ByIDs(IDs: number[], Sort: boolean = false): vID[] {
-			if (!IDs) {
-				// copy all in list
-				let i = this.count;
-				IDs = new Array(i);
-				while (--i >= 0) IDs[i] = i + 1;
-			}
-
-			let VIDs: vID[] = [];
-			for (let i = IDs.length; --i >= 0; ) {
-				let VID = this.GetVID(IDs[i]);
-				if (VID) VIDs.push(VID);
-			}
-
-			if (Sort) 
-				qList.SortVIDs(VIDs);
-
-			return VIDs;
-		}
-		
-		NameList(UseList = 1): string {
-		    this.notNIL;
-
-			if (UseList && this.NameIDs) return this.NameIDs;
-
-			let Str1 = this.qstr;
-			let Start = this.firstDelim - 1;
-			let Delim1 = this.Delim;
-			let ID = 0;
-			let NameStr = Delim1;
-
-			while ((Start = Str1.indexOf(Delim1, Start)) >= 0) {
-				let EndDelim = Str1.indexOf(Delim1, ++Start);
-				if (EndDelim < 0) break;
-				let NewStr = Str1.slice(Start, EndDelim);
-
-				let EndName = NewStr.indexOf(NameDelim);
-				if (EndName >= 0) NewStr = NewStr.slice(0, EndName);
-
-				++ID;
-				NameStr += NewStr + NameDelim + ID.toString() + Delim1;
-			}
-
-			this.NameIDs = NameStr;
-			this._count = ID;
-			return NameStr;
-		}
-
-		IDByName(Name: string) {
-			let Delim1 = this.Delim;
-			let SearchStr = Delim1 + Name + NameDelim;
-			let NameList = this.NameList();
-			let Pos = NameList.indexOf(SearchStr);
-			if (Pos >= 0) {
-				let Start = Pos + SearchStr.length;
-				let End = Start;
-				let Str;
-
-				while (NameList[++End] != Delim1);
-
-				let Num = Number((Str = NameList.slice(Start, End)));
-				if (isNaN(Num)) {
-					// console.log('QQQNameList 999 Str=' + Str + ' Name=' + Name + ' NameList=' + NameList);
-					Num = 999;
-				}
-				return Num;
-			}
-			return 0;
-		}
-
-		NameByID(ID: number) {
-			if (ID <= 0 || ID > this.count) return '';
-
-			let Str = this.NameList();
-			let Delim1 = this.Delim;
-			let SearchStr = ':' + ID.toString() + Delim1;
-			let Pos = Str.indexOf(SearchStr);
-			if (Pos >= 0) {
-				let Start = Pos;
-				while (Str[--Start] != Delim1);
-				return Str.slice(Start + 1, Pos);
-			}
-
-			return '';
-		}
-*/
 
 		Dump(DumpStr: string) {
 			if (this.Name && this.Indent)
@@ -3407,90 +3257,11 @@ export namespace RS1 {
 			} else return undefined;
 		}
 
-		IDsToVIDs(IDs: number[] | undefined=undefined): vID[] {
-			return this.toVIDs;
-		}
-
 		ToSortedVIDs(): vID[] {
-			let VIDs = this.IDsToVIDs(undefined);
+			let VIDs = this.toVIDs;
 			qList.SortVIDs(VIDs);
 			return VIDs;
 		}
-
-		RefListToVIDs(Ref: vList): vID[] | undefined {
-			if (Ref.x.IDs) return this.IDsToVIDs(Ref.x.IDs);
-			return undefined;
-		}
-
-		IDsToLines(IDs: number[], Delim: string): string[] {
-			return [];
-
-		/*
-			let i = IDs.length;
-			let Lines: string[] = new Array(i);
-			let VID: vID | undefined;
-
-			while (--i >= 0) {
-				VID = this.GetVID(IDs[i]);
-				Lines[i] = VID ? VID.ToLine(Delim) : '';
-			}
-
-			return Lines;
-			*/
-		}
-
-	/*
-		ToDC(): string {
-			let VIDs = this.ToSortedVIDs();
-			let limit = VIDs.length, FmtStr = '';
-
-			let LineStr = '// ' + this.Name + NameDelim + this.Desc + '="' + this.qstr + '"\n';
-			let Line = 'export const ';
-			for (let i = 0; i < limit; ++i) {
-				Line += VIDs[i].ToDC(this.Name) + ',';
-
-				let VID = VIDs[i];
-				if (VID.Fmt) {
-					// print out format
-					FmtStr += '//\t' + VID.Name + ' ~' + VID.Fmt.Ch;
-
-					if (VID.Fmt.Xtra) FmtStr += ' Xtra="' + VID.Fmt.Xtra + '"';
-
-					if (VID.Fmt.Num) FmtStr += ' Num=' + VID.Fmt.Num.toString();
-
-					if (VID.Fmt.Type) FmtStr += ' Type=' + VID.Fmt.Type.toString();
-
-					FmtStr += '\n';
-				}
-			}
-
-			Line = Line.slice(0, Line.length - 1) + ';';
-			while (Line.length > 70) {
-				let i = 70;
-				while (--i && Line[i] !== ',');
-
-				LineStr += Line.slice(0, ++i) + '\n\t';
-				Line = Line.slice(i);
-			}
-			LineStr += Line + '\n';
-
-			LineStr += FmtStr;
-
-			return LineStr;
-		}
-
-		ToSelect(Select: HTMLSelectElement | HTMLOListElement | HTMLUListElement) {
-			let VIDs = this.IDsToVIDs(undefined);
-			let VIDLen = VIDs.length;
-
-			if (Select instanceof HTMLSelectElement) {
-				Select.options.length = 0;
-				for (let i = 0; i < VIDLen; ) VIDs[i++].ToSelect(Select);
-			} else if (Select instanceof HTMLOListElement || Select instanceof HTMLUListElement) {
-				for (let i = 0; i < VIDLen; ) VIDs[i++].ToList(Select);
-			}
-		}
-*/
 
 		NewThis () : vList { return new vList (this.toStr); }
 
@@ -3499,39 +3270,6 @@ export namespace RS1 {
 		}
 
 	}
-
-/*
-	export class zList extends qList {
-		x = NILvLX;
-
-		Init (str='|') { this.qstr = str; }
-
-		get toStr () {
-			return (this.x === NILvLX)  ||  (this.x.Delim === PrimeDelim) ? this.qstr : this.x.toStr;
-		}
-
-		constructor(Str1: string | string[] | BufPack = '') {
-			//	, First: vList | undefined = undefined) {
-			let Str, Strs, BP;
-			
-			super ();
-
-			this.x = new vListXtra ();
-
-			if ((typeof Str1) === 'string') {
-				this.x.InitList (Str1 as string);
-			}
-			else if (Array.isArray (Str1)) {
-				this.x.InitList (Str1 as string[]);
-			}
-			else {
-				let BP = Str1 as BufPack;
-				this.x.InitList (BP.str ('data'));
-			}
-		}
-
-	}
-*/
 
 	export class vList extends RSData {
 		x = NILvLX;
@@ -3719,6 +3457,26 @@ export namespace RS1 {
             return Strs.slice (1,-1);
         }
 
+        get toVIDs () {
+            let Strs = this.VIDStrs;
+            let VIDs = new Array<vID> (Strs.length);
+
+            let count = 0;
+            for (const S of Strs) {
+                VIDs[count++] = new vID (S);
+            }
+            return VIDs;
+        }
+
+        static VIDsToLines(VIDs: vID[], Delim: string): string[] {
+            let i = VIDs.length;
+            let Lines: string[] = new Array(i);
+
+            while (--i >= 0) Lines[i] = VIDs[i].ToLine(Delim);
+
+            return Lines;
+        }
+
         fromRaw (vStrs:string[]=[]) {
             let D = this.d, NameDesc = this.qstr.slice (0,this.qstr.indexOf(D)+1);
             let VIDStr = vStrs.join (D);
@@ -3752,26 +3510,6 @@ export namespace RS1 {
             }
 
             this.fromRaw (dest.b);
-        }
-
-        get toVIDs () {
-            let Strs = this.VIDStrs;
-            let VIDs = new Array<vID> (Strs.length);
-
-            let count = 0;
-            for (const S of Strs) {
-                VIDs[count++] = new vID (S);
-            }
-            return VIDs;
-        }
-
-        static VIDsToLines(VIDs: vID[], Delim: string): string[] {
-            let i = VIDs.length;
-            let Lines: string[] = new Array(i);
-
-            while (--i >= 0) Lines[i] = VIDs[i].ToLine(Delim);
-
-            return Lines;
         }
 
         get toVList () {
@@ -3830,7 +3568,7 @@ export namespace RS1 {
 		constructor (Str1 : string|vList='') {
 			let List = ((typeof Str1) === 'string') ? new vList (Str1 as string) : Str1 as vList;
 
-			let VIDs = List.x.IDsToVIDs ();
+			let VIDs = List.x.toVIDs;
 			let count = VIDs.length;
 			if (count) {
 				this.Names.length = count;
@@ -3991,6 +3729,8 @@ export namespace RS1 {
 
 			this.tiles.length = count + 1;
 			this.Links();
+
+			console.log ('**** TileList.Links, Str = \n' + this.ToString ());
 		}
 
 		Links() {
@@ -4034,7 +3774,7 @@ export namespace RS1 {
 		ToString(): string {
 			let Tiles = this.tiles;
 			let limit = Tiles.length;
-			let Str = 'TOSTR:';
+			let Str = 'TILELIST *** TOSTR:  ' + limit.toString () + ' Tiles.\n';
 
 			for (let i = 0; ++i < limit; ) {
 				let me = Tiles[i];
@@ -4064,9 +3804,9 @@ export namespace RS1 {
 
 				Str += NewStr + '\n';
 
-				if (me.Childs) {
-					for (let c = 0; c < me.Childs.length; ) {
-						let List = me.Childs[c++];
+				if (me.Lists) {
+					for (let c = 0; c < me.Lists.length; ) {
+						let List = me.Lists[c++];
 						NewStr = '\t\t List.Name=' + List.Name + '=' + List.qstr;
 						Str += NewStr + '\n';
 					}
