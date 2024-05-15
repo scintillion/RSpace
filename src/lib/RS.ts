@@ -681,47 +681,50 @@ export namespace RS1 {
 
 	export class qLX {
 		Childs:qList[]|undefined;
-		delim='|';
 		LType = CLType.None;
 
-		setDelim (qStr:string) { this.delim = qStr.slice(-1); }
-
-		Init (qStr:string) {
+		Init () {
 			this.Childs=undefined;
-			this.setDelim (qStr);
 			this.LType=CLType.None;
 		}
 
-		constructor (qStr:string) {
-			this.Init (qStr);
+		constructor () {
+			this.Init ();
 		}
 	}
 
 	export class qList {
 		protected qstr=''
-		protected X:qLX|undefined;
+		protected d='|';
+		protected x:qLX|undefined;
 
 		protected get getX () {
-			return this.X ? this.X : (this.X = new qLX (this.qstr));
+			return this.x ? this.x : (this.x = new qLX ());
 		}
-
-		protected get d() { return this.X ? this.X.delim : this.qstr[this.qstr.length-1]; }
 
 		get toStr () {
 			return this.qstr;
 		}
 
-		fromStr (Str='') {
-			if (!Str)
-				Str = PrimeDelim;
-			this.qstr = Str;
-			if (this.X)
-				this.X.setDelim (Str);
+		fromStr (Str:string|string[]='') {
+			if (!this.notNIL)
+				return;
+
+			let S=PrimeDelim;
+			if (Array.isArray(Str))
+				S = (Str as string[]).join('\n') + '\n';
+			else if (Str)
+				S = Str as string;
+
+			this.d = (this.qstr = S).slice (-1);
+			if (this.d < ' ')
+				this.initList (S);
+			else this.x = undefined;
 		}
 
-		setStr (Str:string) { this.fromStr (Str); }
+		setStr (Str:string|string[]) { this.fromStr (Str); }
 
-		constructor (Str='') {
+		constructor (Str:string|string[]='') {
 			this.fromStr (Str);
 		}
 
@@ -730,6 +733,31 @@ export namespace RS1 {
 		get firstDelim () {
 			return this.qstr.indexOf(this.d);
 			}
+
+		get indent () {
+			let ind = 0;
+			let D = this.d;
+
+			let NamePos = 0; // default start of Name
+			let Ch = this.qstr[0];
+			if (Ch <= '9') {
+				if (Ch <= ' ') {
+					while (Ch === ' ' || Ch === '\t') {
+						ind++;
+						Ch = this.qstr[++NamePos];
+					}
+				} else if (Ch >= '0') {
+					let Zero = '0'.charCodeAt(0);
+					ind = Ch.charCodeAt(0) - Zero;
+					Ch = this.qstr[++NamePos];
+					if ((Ch >= '0') && (Ch <= '9')) {
+						// second digit (only two allowed)
+						ind = (ind * 10) + Ch.charCodeAt(0) - Zero;
+					}
+				}
+			}
+			return ind;
+		}
 
 		get descStr () {
 			let Type = this.desc ('Type');
@@ -768,12 +796,31 @@ export namespace RS1 {
 			this.fromStr (name + (desc ? (NameDelim + desc) : '') + tail);
 		}
 
-		get listName() { return this.namedesc().a; }
+		get listName() {
+			let N = this.namedesc().a;
+			for (let lim = N.length, i = 0; i < lim;)
+				if (N[i++]>'9')
+					return N.slice (i-1);
+
+			return '';
+		}
 
 		get listDesc () { return this.namedesc().b; }
 
 		num (name:string|number) {
 			return Number (this.desc (name));
+		}
+
+		childByName(Name1: string) {
+			if (!this.x  || !this.x.Childs) return undefined;
+
+			let limit = this.x.Childs.length;
+
+			for (let i = 0; i < limit; ++i) {
+				if (this.x.Childs[i].listName == Name1) return this.x.Childs[i];
+			}
+
+			return undefined;
 		}
 
 		find (name:string|number) {
@@ -790,7 +837,7 @@ export namespace RS1 {
 			let D = this.d;
 			let SearchStr = NameDelim + Desc.toString() + D;
 
-			let Pos = this.qstr.indexOf(SearchStr, this.qstr.indexOf(this.d));
+			let Pos = this.qstr.indexOf(SearchStr, this.qstr.indexOf(D));
 			if (Pos >= 0) {
 				for (let i = Pos; --i > 0; ) {
 					if (this.qstr[i] === D)
@@ -1032,6 +1079,39 @@ export namespace RS1 {
 				console.log ('NILqList!');
 
 			return (this !== NILqList);
+		}
+
+		initList(Str1: string) {
+			if (this.x)
+				this.x.Init ();
+			else this.x = new qLX ();
+
+			let StrLen = Str1.length, Delim1 = this.d;
+
+			// special case, embedded vLists!
+			this.x.LType = CLType.Pack;
+
+			let Strs = Str1.split(Delim1);
+			let limit = Strs.length;
+
+			if (limit <= 0) return; // panic, no strings, should never happen
+
+			Str1 = '';
+			--limit;
+			for (let i = 0; ++i < limit; ) {
+				if (Strs[i][0] === '/' || !Strs[i].trim()) continue; //	ignore comment lines
+
+				let Child = new qList(Strs[i]);
+				if (Child) {
+					if (!this.x.Childs) this.x.Childs = [];
+					this.x.Childs.push(Child);
+
+					if (!Str1) Str1 = Strs[0] + Delim1; // we are just finding the first line (Name:Desc)
+				}
+			}
+
+			if (Str1)
+				this.qstr = Str1;
 		}
 	}
 
@@ -1960,7 +2040,7 @@ export namespace RS1 {
 						console.log ('   TDE Child:' + C.x.Name + '=' + C.toStr);
 				}
 
-				this.level = List1.x.Indent;
+				this.level = List1.Indent;
 				this.tileID = new TileID(List1.Name);
 			}
 		}
@@ -2134,10 +2214,12 @@ export namespace RS1 {
 		Childs:vList[]|undefined;
 		_firstDelim = -1;
 		Delim = PrimeDelim;
-		Indent=0;
+		_indent=0;
 		LType: CLType = CLType.None;
 		Name=''
 		Desc=''
+
+		get _Indent () { return this._indent; }
 
 		constructor (vL = NILList) { this.vL = vL; }
 
@@ -2148,7 +2230,7 @@ export namespace RS1 {
 				Str1 = PrimeDelim;
 
 			this.NameIDs = '';
-			this.Indent = 0;
+			this._indent = 0;
 
 			if (Array.isArray(Str1)) Str1 = Str1.join('\n') + '\n';
 
@@ -2159,15 +2241,15 @@ export namespace RS1 {
 			if (Ch <= '9') {
 				if (Ch <= ' ') {
 					while (Ch === ' ' || Ch === '\t') {
-						this.Indent++;
+						this._indent++;
 						Ch = Str1[++NamePos];
 					}
 				} else if (Ch >= '0') {
 					let Zero = '0'.charCodeAt(0);
-					this.Indent = Ch.charCodeAt(0) - Zero;
+					this._indent = Ch.charCodeAt(0) - Zero;
 					if ((Ch = Str1[++NamePos]) >= '0' && Ch <= '9') {
 						// second digit (only two allowed)
-						this.Indent = this.Indent * 10 + Ch.charCodeAt(0) - Zero;
+						this._indent = this._indent * 10 + Ch.charCodeAt(0) - Zero;
 						++NamePos;
 					}
 				}
@@ -2574,13 +2656,13 @@ export namespace RS1 {
 */
 
 		Dump(DumpStr: string) {
-			if (this.Name && this.Indent)
+			if (this.Name && this.vL.Indent)
 				console.log(
 					DumpStr +
 						'Dump:' +
 						this.Name +
 						' Indent = ' +
-						this.Indent?.toString() +
+						this.vL?.Indent.toString() +
 						' #C =' +
 						this.Childs
 						? this.Childs?.length.toString()
@@ -2985,26 +3067,6 @@ export namespace RS1 {
 			//				this.ChildCount.toString () + ' Count = ' + this.Count.toString () + ' Str=' + this._Str);
 
 			if (Delim1 < ' ') return; // done processing, vList with kids...
-
-			let FirstChar = Str1[this.firstDelim + 1];
-
-			let IDList = isDigit(FirstChar);
-			this.LType = IDList ? CLType.ID : CLType.Std;
-
-			if (IDList) {
-				let N = 0, limit = StrLen - 1;
-				let Pos: number[] = Array(99);
-				Pos[0] = 0;
-
-				for (let i = this.firstDelim - 1; ++i < limit; ) {
-					if (Str1[i] === Delim1) {
-						Pos[++N] = Number(Str1.slice(i + 1, i + 25));
-					}
-				}
-				this._count = N;
-				Pos.length = N + 1;
-				this.IDs = Pos;
-			}
 		}
 
 		get notNIL () {
@@ -3054,6 +3116,52 @@ export namespace RS1 {
 		}
 
 
+		static isListStr (Str:string) {
+			return  (Str  &&  Str.indexOf (PrimeDelim)  &&
+			    (Str.slice (-1) === PrimeDelim));
+		}
+
+		/*
+		UpdateVID(VID: vID, Delete = false) {
+		    this.notNIL;
+			if (!VID) return;
+
+			let Delim = this.Delim;
+			let Str = this.qstr;
+
+			let SearchStr = Delim + VID.Name;
+			let Pos = Str.indexOf(SearchStr + Delim, this.firstDelim);
+			if (Pos < 0) {
+				Pos = Str.indexOf(SearchStr + NameDelim, this.firstDelim);
+			}
+
+			if (Pos >= 0) {
+				let EndPos = Pos;
+
+				while (Str[++EndPos] !== Delim);
+
+				//if (EndPos < Str.length - 1) {
+				// not the last element in list!
+				if (Delete) Str = Str.slice(0, Pos) + Str.slice(EndPos);
+				else Str = Str.slice(0, Pos + 1) + VID.ToStr() + Str.slice(EndPos);
+			} else {
+				if (Delete) return; //	ABORT, should not happen!
+
+				// VID not found, we must add to the end!
+				Str += VID.ToStr() + Delim;
+			}
+
+			this.InitList(Str);
+		}
+
+		ToSortedVIDs(): vID[] {
+			let VIDs = this.toVIDs;
+			qList.SortVIDs(VIDs);
+			return VIDs;
+		}
+
+		NewThis () : vList { return new vList (this.toStr); }
+
 		GetDesc(Name: string): string | undefined {
 			let SearchStr = this.Delim + Name + NameDelim; // e.g. '|NameXYZ:''
 			let Pos1 = this.qstr.indexOf(SearchStr, this.firstDelim);
@@ -3086,49 +3194,7 @@ export namespace RS1 {
 			return '';
 		}
 
-		static isListStr (Str:string) {
-			return  (Str  &&  Str.indexOf (PrimeDelim)  &&
-			    (Str.slice (-1) === PrimeDelim));
-		}
-
-		UpdateVID(VID: vID, Delete = false) {
-		    this.notNIL;
-			if (!VID) return;
-
-			let Delim = this.Delim;
-			let Str = this.qstr;
-
-			let SearchStr = Delim + VID.Name;
-			let Pos = Str.indexOf(SearchStr + Delim, this.firstDelim);
-			if (Pos < 0) {
-				Pos = Str.indexOf(SearchStr + NameDelim, this.firstDelim);
-			}
-
-			if (Pos >= 0) {
-				let EndPos = Pos;
-
-				while (Str[++EndPos] !== Delim);
-
-				//if (EndPos < Str.length - 1) {
-				// not the last element in list!
-				if (Delete) Str = Str.slice(0, Pos) + Str.slice(EndPos);
-				else Str = Str.slice(0, Pos + 1) + VID.ToStr() + Str.slice(EndPos);
-
-				/*
-				} else {
-					if (Delete) Str = Str.slice(0, Pos + 1);
-					else Str = Str.slice(0, Pos + 1) + VID.ToStr() + Delim;
-				}
-				*/
-			} else {
-				if (Delete) return; //	ABORT, should not happen!
-
-				// VID not found, we must add to the end!
-				Str += VID.ToStr() + Delim;
-			}
-
-			this.InitList(Str);
-		}
+		*/
 
 		Bubble(Name: string, dir: number) {
 			// check for special easy case - list of Childs
@@ -3200,6 +3266,7 @@ export namespace RS1 {
 			this.InitList(NewStr);
 		}
 
+		/*
 		ChildByName(Name1: string) {
 			if (!this.Childs) return undefined;
 
@@ -3211,19 +3278,12 @@ export namespace RS1 {
 
 			return undefined;
 		}
+		*/
 
 		GetLine(ID: any, Delim1: string = ''): string {
 			let VID: vID | undefined = this.getVID(ID);
 			return VID ? VID.ToLine(Delim1) : '';
 		}
-
-		ToSortedVIDs(): vID[] {
-			let VIDs = this.toVIDs;
-			qList.SortVIDs(VIDs);
-			return VIDs;
-		}
-
-		NewThis () : vList { return new vList (this.toStr); }
 
 		get copy () {
 			return new vList (this.toStr);
@@ -3237,6 +3297,33 @@ export namespace RS1 {
 		qstr = '';
 
 		Init (str='|') { this.qstr = str; }
+
+		get indent () {
+			let ind = 0;
+
+			let NamePos = 0; // default start of Name
+			let Ch = this.qstr[0];
+			if (Ch <= '9') {
+				if (Ch <= ' ') {
+					while (Ch === ' ' || Ch === '\t') {
+						ind++;
+						Ch = this.qstr[++NamePos];
+					}
+				} else if (Ch >= '0') {
+					let Zero = '0'.charCodeAt(0);
+					ind = Ch.charCodeAt(0) - Zero;
+					Ch = this.qstr[++NamePos];
+					if ((Ch >= '0') && (Ch <= '9')) {
+						// second digit (only two allowed)
+						ind = (ind * 10) + Ch.charCodeAt(0) - Zero;
+					}
+				}
+			}
+			return ind;
+		}
+
+		get Indent () { return this.indent; }
+			// return (this.x !== NILvLX) ? this.x._Indent : 0; }
 
 		get toStr () {
 			return (this.x === NILvLX)  ||  (this.x.Delim === PrimeDelim) ? this.qstr : this.x.toStr;
