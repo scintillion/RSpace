@@ -679,29 +679,57 @@ export namespace RS1 {
 		}
 	} // class vID
 
+	export class qLX {
+		Childs:qList[]|undefined;
+		delim='|';
+		LType = CLType.None;
+
+		setDelim (qStr:string) { this.delim = qStr.slice(-1); }
+
+		Init (qStr:string) {
+			this.Childs=undefined;
+			this.setDelim (qStr);
+			this.LType=CLType.None;
+		}
+
+		constructor (qStr:string) {
+			this.Init (qStr);
+		}
+	}
+
 	export class qList {
 		protected qstr=''
+		protected X:qLX|undefined;
 
-		protected get d() { return this.qstr[this.qstr.length-1]; }
-		get delim () { return this.qstr[this.qstr.length-1]; }
+		protected get getX () {
+			return this.X ? this.X : (this.X = new qLX (this.qstr));
+		}
+
+		protected get d() { return this.X ? this.X.delim : this.qstr[this.qstr.length-1]; }
 
 		get toStr () {
 			return this.qstr;
 		}
 
-		fromStr (Str=PrimeDelim) {
+		fromStr (Str='') {
+			if (!Str)
+				Str = PrimeDelim;
 			this.qstr = Str;
+			if (this.X)
+				this.X.setDelim (Str);
 		}
 
-		constructor (Str=PrimeDelim) {
-			if (Str)
-				this.fromStr (Str);
-			else this.fromStr (PrimeDelim)
+		setStr (Str:string) { this.fromStr (Str); }
+
+		constructor (Str='') {
+			this.fromStr (Str);
 		}
 
 		get size () { return this.qstr.length > 1; }	// not NULL list
 
-		get firstDelim () { return this.qstr.indexOf(this.d); }
+		get firstDelim () {
+			return this.qstr.indexOf(this.d);
+			}
 
 		get descStr () {
 			let Type = this.desc ('Type');
@@ -716,7 +744,6 @@ export namespace RS1 {
 		namedescstr (start=0) {
 			return this.qstr.slice(start,this.qstr.indexOf(this.d,start));
 		}
-
 
 		namedesc (start=0) {
 			let str = this.namedescstr (start);
@@ -936,8 +963,6 @@ export namespace RS1 {
 			return Strs;
 		}
 
-		
-
 		get rawByDesc ()
 		{
 			let D=this.d,Strs = this.qstr.split(D);
@@ -990,7 +1015,7 @@ export namespace RS1 {
 			return new qList (name+NameDelim+'@'+this.listName);
 		}
 
-		private SetDelim(NewDelim: string): boolean {
+		private setDelim(NewDelim: string): boolean {
 		    this.notNIL;
 
 			let OldDelim = this.d;
