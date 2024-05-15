@@ -927,7 +927,7 @@ export namespace RS1 {
 			}
 		}
 
-		rawByNames ()
+		get rawByNames ()
 		{
 			let D=this.d,Strs = this.qstr.split(D);
 
@@ -936,7 +936,9 @@ export namespace RS1 {
 			return Strs;
 		}
 
-		rawByDesc ()
+		
+
+		get rawByDesc ()
 		{
 			let D=this.d,Strs = this.qstr.split(D);
 			let desc='';
@@ -956,6 +958,17 @@ export namespace RS1 {
 			for (let S of Strs)
 				S = S.slice (S.indexOf('\t') + 1);
 			return Strs;
+		}
+
+		get toSortedVIDs ()
+		{
+			let Strs = this.rawByDesc;
+			let lim = Strs.length, VIDs = Array<vID> (lim);
+
+			while (--lim >= 0)
+				VIDs[lim] = new vID (Strs[lim]);
+
+			return VIDs;
 		}
 
 		static SortVIDs(VIDs: vID[]) {
@@ -3162,56 +3175,6 @@ export namespace RS1 {
 			this.InitList(NewStr);
 		}
 
-		/*
-		GetVID(IDorName: string | number): vID | undefined {
-			let SearchStr;
-
-			let Name: string = (typeof IDorName !== 'number') ? IDorName : this.NameByID(IDorName);
-			let Pos1 = this.find(Name);
-
-			if (Pos1 >= 0) {
-				// we found it
-				return this.VIDByPos(Pos1 + 1);
-			} else return undefined;
-		}
-		*/
-
-		ByDesc(Desc: string) {
-			let SearchStr = NameDelim + Desc;
-			let Last = Desc.slice(-1);
-			if (Last !== '*') 
-				SearchStr += this.Delim;
-			else SearchStr = SearchStr.slice (0,-1);
-
-			// PrefixMatch the first characters of Desc, allows for
-			// Type,ABC to match based on "Type," starting the Desc
-			// does not work if [Format] is present
-			let Pos1 = this.qstr.indexOf(SearchStr, this.firstDelim);
-			if (Pos1 >= 0) {
-				for (let D = this.Delim, i = Pos1; --i > 0; ) {
-					if (this.qstr[i] === D) {
-						let Str = this.namedescstr (i+1);
-						return new vID (Str);
-						}
-				}
-
-				return undefined;
-			}
-		}
-
-		NameByDesc(Desc: string) {
-			let SearchStr = NameDelim + Desc + this.Delim;
-
-			let Pos1 = this.qstr.indexOf(SearchStr, this.firstDelim);
-			if (Pos1 >= 0) {
-				for (let i = Pos1; --i > 0; ) {
-					if (this.qstr[i] === this.Delim) return this.qstr.slice(i + 1, Pos1);
-				}
-
-				return '';
-			}
-		}
-
 		ChildByName(Name1: string) {
 			if (!this.Childs) return undefined;
 
@@ -3227,34 +3190,6 @@ export namespace RS1 {
 		GetLine(ID: any, Delim1: string = ''): string {
 			let VID: vID | undefined = this.getVID(ID);
 			return VID ? VID.ToLine(Delim1) : '';
-		}
-
-		/*
-		IDsToRefList(IDs: number[]): vList | undefined {
-			if (IDs) {
-				let Delim = this.Delim;
-				let Ret = this.Name + Delim;
-				for (let i = IDs.length; --i >= 0; ) {
-					Ret += IDs[i].toString() + Delim;
-				}
-
-				return new vList(Ret);
-			}
-			return undefined;
-		}
-		*/
-
-		VIDsToRefList(VIDs: vID[] | undefined): vList | undefined {
-			if (VIDs) {
-				let IDs: number[] = new Array(VIDs.length);
-
-				for (let i = VIDs.length; --i >= 0; ) {
-					IDs[i] = VIDs[i].ID;
-				}
-
-				throw "Not complete, line below!"
-				//return this.IDsToRefList(IDs);
-			} else return undefined;
 		}
 
 		ToSortedVIDs(): vID[] {
