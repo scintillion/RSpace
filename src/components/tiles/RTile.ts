@@ -1,38 +1,45 @@
 import { LitElement, html } from 'lit';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { customElement, property } from 'lit/decorators.js';
 import { RS1 } from '$lib/RS';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
- color = 'cyan';
- @property() attrStr: string | undefined = '';
- @property() styleStr: string | undefined = '';
- @property() tileString: string[] = [];  
- @property() Tlist: RS1.TileList = new RS1.TileList('');
- 
- assign(tileString: string[]) {
-   this.Tlist = new RS1.TileList(tileString);
- }
+  @property() tileString: string[] = [];
+  @property() TList: RS1.TileList = new RS1.TileList('');
 
-render() {
-  this.assign(this.tileString);
+  assign(tileString: string[]) {
+    this.TList = new RS1.TileList(tileString);
+  }
 
-  let content = '';
+  renderDivs(tilelist: RS1.TileList, level: number): any {
+    this.TList = new RS1.TileList(this.tileString);
+    return tilelist.tiles.map((tile: RS1.TDE) => {
+      const innerContent = tile.aList?.x.GetDesc('inner') || '';
+      const styleStr = tile.sList?.x.toVIDList(";");
 
-  this.Tlist.tiles.forEach((tile: RS1.TDE) => {
-    let attrStr = tile.aList?.x.toVIDList(" ","=");
+      // if (tile.level === level) {
+      //   const childTiles = this.renderDivs(tilelist, level + 1);
+      //   return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${childTiles}</div>`;
+      // }
+      // return ''; 
 
-    if (!tile.parent) {
-       content += `<div ${attrStr} style="${tile.sList?.x.toVIDList(";")}">`;
-    } else if (tile.parent) {
-      content += `<slot ${attrStr} style="${tile.sList?.x.toVIDList(";")}"></slot>`;
-    }
-  });
+      if (!tile.parent && tile.level === level) {
+        return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${this.renderDivs(tilelist, level + 1)}</div>`;
+      } 
+      else if (tile.parent && tile.first != 0 && tile.level === level) {
+        return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${this.renderDivs(tilelist, level + 1)}</div>`;
+      }
+      else if (tile.level === level) {
+        return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}</div>`;
+      }
+      return '';
+    });
+  }
 
-  content += `</div>`
-  
-  return html`${unsafeHTML(content)}`;
+  render() {
+    this.assign(this.tileString);
+    return html`${this.renderDivs(this.TList, 1)}`;
+  }
 }
 
-}
+
