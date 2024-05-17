@@ -22,6 +22,32 @@ export namespace RS1 {
 		Pack
 	}
 
+	export class RSD {
+		get CName () { return 'RSD'; }
+
+		get Name () { return this.CName; }
+
+		get Desc () { return 'RSD.Desc'; }
+
+		get Data () : any { return undefined; }
+
+		get List () { return NILqList; }
+
+		get Pack () { return NILPack; }
+
+		PostSavePack () {}
+		
+		get toPack () { return NILPack; }
+
+		get Type () { return 'RSD'; }
+		get Sub () { return 'RSD.Sub'; }
+		Set (VName:string,ValStr:string|number) { }
+		Get (VName:string) { return 'Get.RSD'; }
+		PostLoadPack () {}
+
+
+	}
+
 	export class strPair {
 		a:string;b:string;
 
@@ -693,9 +719,9 @@ export namespace RS1 {
 		}
 	}
 
+
 	export class qList {
 		protected qstr=''
-		protected d='|';
 		protected x:qLX|undefined;
 
 		protected get getX () {
@@ -707,17 +733,14 @@ export namespace RS1 {
 		}
 
 		fromStr (Str:string|string[]='') {
-			if (!this.notNIL)
-				return;
-
-			let S=PrimeDelim;
+			let S='|';
 			if (Array.isArray(Str))
 				S = (Str as string[]).join('\n') + '\n';
 			else if (Str)
 				S = Str as string;
 
-			this.d = (this.qstr = S).slice (-1);
-			if (this.d < ' ')
+			let delim = (this.qstr = S).slice (-1);
+			if (delim < ' ')
 				this.initList (S);
 			else this.x = undefined;
 		}
@@ -731,12 +754,11 @@ export namespace RS1 {
 		get size () { return this.qstr.length > 1; }	// not NULL list
 
 		get firstDelim () {
-			return this.qstr.indexOf(this.d);
+			return this.qstr.indexOf('|');
 			}
 
 		get indent () {
 			let ind = 0;
-			let D = this.d;
 
 			let NamePos = 0; // default start of Name
 			let Ch = this.qstr[0];
@@ -765,12 +787,12 @@ export namespace RS1 {
 		}
 
 		get count () {
-			let n = this.qstr.split (this.d).length - 2;
+			let n = this.qstr.split ('|').length - 2;
 			return n > 0 ? n : 0;
 		}
 
 		namedescstr (start=0) {
-			return this.qstr.slice(start,this.qstr.indexOf(this.d,start));
+			return this.qstr.slice(start,this.qstr.indexOf('|',start));
 		}
 
 		namedesc (start=0) {
@@ -783,7 +805,7 @@ export namespace RS1 {
 		}
 
 		setNameOrDesc (name='',ifDesc=false) {
-			let pos = this.qstr.indexOf(this.d);
+			let pos = this.qstr.indexOf('|');
 			let head = this.qstr.slice (0,pos), tail = this.qstr.slice (pos);
 			let nd = strPair.namedesc(head);
 			let desc = nd.b;
@@ -824,29 +846,28 @@ export namespace RS1 {
 		}
 
 		find (name:string|number) {
-			let D = this.d, str = D + name.toString ()+NameDelim;
+			let str = '|' + name.toString ()+NameDelim;
 			let nPos = this.qstr.indexOf (str);
 			if (nPos >= 0)
 				return nPos;
 
-			str = str.slice (0,-1) + D;
+			str = str.slice (0,-1) + '|';
 			return this.qstr.indexOf (str);
 		}
 
 		findByDesc(Desc: string|number) {
-			let D = this.d;
-			let SearchStr = NameDelim + Desc.toString() + D;
+			let SearchStr = NameDelim + Desc.toString() + '|';
 
-			let Pos = this.qstr.indexOf(SearchStr, this.qstr.indexOf(D));
+			let Pos = this.qstr.indexOf(SearchStr, this.qstr.indexOf('|'));
 			if (Pos >= 0) {
 				for (let i = Pos; --i > 0; ) {
-					if (this.qstr[i] === D)
+					if (this.qstr[i] === '|')
 						return i+1;
 					}
 				}
 
 			// look for naked name matching
-			SearchStr = D + Desc.toString () + D;
+			SearchStr = '|' + Desc.toString () + '|';
 			return this.qstr.indexOf(SearchStr);
 		}
 
@@ -860,7 +881,7 @@ export namespace RS1 {
 		prepost (name:string|number) {
 			let nPos = this.find (name);
 			if (nPos >= 0) {
-				let dPos = this.qstr.indexOf (this.d,++nPos);
+				let dPos = this.qstr.indexOf ('|',++nPos);
 				if (dPos >= 0)
 					return new strPair (this.qstr.slice (0,nPos),this.qstr.slice (dPos));
 			}
@@ -879,7 +900,7 @@ export namespace RS1 {
 
 			if (pair.a)
 				this.qstr = pair.a + vStr + pair.b;
-			else this.qstr += vStr + this.d;
+			else this.qstr += vStr + '|';
 		}
 
 		set (name:string|number,desc:string|number) {
@@ -891,7 +912,7 @@ export namespace RS1 {
 			if (nPos < 0)
 				return NILVID;
 
-			let endPos = this.qstr.indexOf(this.d,nPos+1);
+			let endPos = this.qstr.indexOf('|',nPos+1);
 			if (endPos >= 0)
 				return new vID (this.qstr.slice (nPos,endPos));
 
@@ -903,21 +924,21 @@ export namespace RS1 {
 			if (nPos < 0)
 				return '';
 
-			let endPos = this.qstr.indexOf (this.d,nPos += name.toString ().length + 2);
+			let endPos = this.qstr.indexOf ('|',nPos += name.toString ().length + 2);
 			if (endPos >= 0)
 				return this.qstr.slice (nPos,endPos);
 			return '';
 		}
 
 		get toRaw () : string[] {
-			let Strs = this.qstr.split (this.d);
+			let Strs = this.qstr.split ('|');
 			return Strs.slice (1,-1);
 		}
 
 		fromRaw (VIDStrs:string[]=[]) {
-			let D = this.d, NameDesc = this.qstr.slice (0,this.qstr.indexOf(D)+1);
-			let VIDStr = VIDStrs.join (D);
-			this.qstr = NameDesc + (VIDStr ? (VIDStr + D) : '');
+			let NameDesc = this.qstr.slice (0,this.qstr.indexOf('|')+1);
+			let VIDStr = VIDStrs.join ('|');
+			this.qstr = NameDesc + (VIDStr ? (VIDStr + '|') : '');
 		}
 
 		get splitNames () : strsPair {
@@ -1003,7 +1024,7 @@ export namespace RS1 {
 
 		get rawByNames ()
 		{
-			let D=this.d,Strs = this.qstr.split(D);
+			let Strs = this.qstr.split('|');
 
 			Strs = Strs.slice (1,-1);
 			Strs.sort ();
@@ -1012,7 +1033,7 @@ export namespace RS1 {
 
 		get rawByDesc ()
 		{
-			let D=this.d,Strs = this.qstr.split(D);
+			let Strs = this.qstr.split('|');
 			let desc='';
 			Strs = Strs.slice (1,-1);
 			for (let S of Strs) {
@@ -1065,7 +1086,7 @@ export namespace RS1 {
 		private setDelim(NewDelim: string): boolean {
 		    this.notNIL;
 
-			let OldDelim = this.d;
+			let OldDelim = '|';
 
 			if (!NewDelim || NewDelim.length != 1 || NewDelim == OldDelim || isDigit(NewDelim))
 				return false;
@@ -1075,6 +1096,11 @@ export namespace RS1 {
 		}
 
 		get notNIL () {
+			return true;
+
+			if (!NILqList)
+				return true;
+
 			if (this === NILqList)
 				console.log ('NILqList!');
 
@@ -1085,8 +1111,9 @@ export namespace RS1 {
 			if (this.x)
 				this.x.Init ();
 			else this.x = new qLX ();
+			this.x.Childs = [];
 
-			let StrLen = Str1.length, Delim1 = this.d;
+			let StrLen = Str1.length, Delim1 = Str1.slice (-1);
 
 			// special case, embedded vLists!
 			this.x.LType = CLType.Pack;
@@ -1103,7 +1130,6 @@ export namespace RS1 {
 
 				let Child = new qList(Strs[i]);
 				if (Child) {
-					if (!this.x.Childs) this.x.Childs = [];
 					this.x.Childs.push(Child);
 
 					if (!Str1) Str1 = Strs[0] + Delim1; // we are just finding the first line (Name:Desc)
