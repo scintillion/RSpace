@@ -11,34 +11,27 @@ export class RTile extends LitElement {
     this.TList = new RS1.TileList(tileString);
   }
 
-  renderDivs(tilelist: RS1.TileList, level: number): any {
-    this.TList = new RS1.TileList(this.tileString);
-    return tilelist.tiles.map((tile: RS1.TDE) => {
-      const innerContent = tile.aList?.x.GetDesc('inner') || '';
-      const styleStr = tile.sList?.x.toVIDList(";");
+  renderDivs(tile: RS1.TDE): any {
+    const innerContent = tile.aList?.x.GetDesc('inner') || '';
+    const styleStr = tile.sList?.x.toVIDList(";");
+    let childrenHtml = html``;
 
-      // if (tile.level === level) {
-      //   const childTiles = this.renderDivs(tilelist, level + 1);
-      //   return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${childTiles}</div>`;
-      // }
-      // return ''; 
+    if (tile.first) {
+      let child = this.TList.tiles[tile.first]
+      while (child) {
+        childrenHtml = html`${childrenHtml}${this.renderDivs(child)}`;
+        child = this.TList.tiles[child.next];
+      }
+    }
 
-      if (!tile.parent && tile.level === level) {
-        return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${this.renderDivs(tilelist, level + 1)}</div>`;
-      } 
-      else if (tile.parent && tile.first != 0 && tile.level === level) {
-        return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${this.renderDivs(tilelist, level + 1)}</div>`;
-      }
-      else if (tile.level === level) {
-        return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}</div>`;
-      }
-      return '';
-    });
+    return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${childrenHtml}</div>`;
   }
 
   render() {
     this.assign(this.tileString);
-    return html`${this.renderDivs(this.TList, 1)}`;
+
+    const topLevelTiles = this.TList.tiles.filter(tile => !tile.parent);
+    return html`${topLevelTiles.map(tile => this.renderDivs(tile))}`;
   }
 }
 
