@@ -715,7 +715,7 @@ export namespace RS1 {
 		}
 
 		constructor () {
-			this.Init ();
+			this.Init;
 		}
 	}
 
@@ -1138,6 +1138,46 @@ export namespace RS1 {
 
 			if (Str1)
 				this.qstr = Str1;
+		}
+
+		static isListStr (Str:string) {
+			return  (Str  &&  Str.indexOf (PrimeDelim)  &&
+			    (Str.slice (-1) === PrimeDelim));
+		}
+
+		bubble (name:string|number, dir=0) {
+			let start = this.find (name);
+			if (start < 0)
+				return false;
+
+			let end = this.qstr.indexOf('|',start);
+			if (end < 0)
+				return false;
+			if (dir > 0) {	// bubble down, find next end
+				end = this.qstr.indexOf('|',end+1);
+				if (end < 0)
+					return false;
+			} else {		// bubble up
+				let i = start - 1;
+				while (--i >= 0) {
+					if (this.qstr[i] === '|')	{	// found new start(-1)
+						start = i + 1;
+						break;
+					}
+				}
+
+				if (i < 0)
+					return false;	// at beginning, cannot bubble up
+			}
+
+			let flipstr = this.qstr.slice (start,end);
+			let dPos = flipstr.indexOf ('|');
+			if (dPos < 0)
+				return false;
+
+			flipstr = flipstr.slice (dPos+1) + '|' + flipstr.slice (0,dPos);
+			this.qstr = this.qstr.slice (0,start) + flipstr + this.qstr.slice (end);
+			return true;
 		}
 	}
 
@@ -2503,8 +2543,6 @@ export namespace RS1 {
 			return (this.Childs) ? this.Childs[0] : NILList;
 		}
 
-        /*
-
 		Merge(AddList: vList | undefined): boolean {
 		    this.notNIL;
 
@@ -2568,7 +2606,6 @@ export namespace RS1 {
 
 			return false;
 		}
-        */
 
 		private SetDelim(NewDelim: string): boolean {
 		    this.notNIL;
@@ -3117,194 +3154,6 @@ export namespace RS1 {
 		get FirstChild(): vList {
 			return (this.Childs) ? this.Childs[0] : NILList;
 		}
-
-		Dump(DumpStr: string) {
-			if (this.Name && this.Indent)
-				console.log(
-					DumpStr +
-						'Dump:' +
-						this.Name +
-						' Indent = ' +
-						this.Indent?.toString() +
-						' #C =' +
-						this.Childs
-						? this.Childs?.length.toString()
-						: '0' + ' Count = ' + this.count.toString() + ' Str=' + this.qstr
-				);
-
-			if (this.Childs) {
-				let limit = this.Childs.length;
-
-				for (let i = 0; i < limit; ++i) {
-					this.Childs[i].x.Dump(DumpStr + '   ');
-				}
-			}
-		}
-
-
-		static isListStr (Str:string) {
-			return  (Str  &&  Str.indexOf (PrimeDelim)  &&
-			    (Str.slice (-1) === PrimeDelim));
-		}
-
-		/*
-		UpdateVID(VID: vID, Delete = false) {
-		    this.notNIL;
-			if (!VID) return;
-
-			let Delim = this.Delim;
-			let Str = this.qstr;
-
-			let SearchStr = Delim + VID.Name;
-			let Pos = Str.indexOf(SearchStr + Delim, this.firstDelim);
-			if (Pos < 0) {
-				Pos = Str.indexOf(SearchStr + NameDelim, this.firstDelim);
-			}
-
-			if (Pos >= 0) {
-				let EndPos = Pos;
-
-				while (Str[++EndPos] !== Delim);
-
-				//if (EndPos < Str.length - 1) {
-				// not the last element in list!
-				if (Delete) Str = Str.slice(0, Pos) + Str.slice(EndPos);
-				else Str = Str.slice(0, Pos + 1) + VID.ToStr() + Str.slice(EndPos);
-			} else {
-				if (Delete) return; //	ABORT, should not happen!
-
-				// VID not found, we must add to the end!
-				Str += VID.ToStr() + Delim;
-			}
-
-			this.InitList(Str);
-		}
-
-		ToSortedVIDs(): vID[] {
-			let VIDs = this.toVIDs;
-			qList.SortVIDs(VIDs);
-			return VIDs;
-		}
-
-		NewThis () : vList { return new vList (this.toStr); }
-
-		GetDesc(Name: string): string | undefined {
-			let SearchStr = this.Delim + Name + NameDelim; // e.g. '|NameXYZ:''
-			let Pos1 = this.qstr.indexOf(SearchStr, this.firstDelim);
-			if (Pos1 >= 0) {
-				let StartPos = Pos1 + SearchStr.length;
-				let EndPos = this.qstr.indexOf(this.Delim, StartPos);
-
-				if (EndPos > 0) return this.qstr.slice(StartPos, EndPos);
-			}
-			return undefined;
-		}
-
-		GetNum(Name: string): number | undefined {
-			let Str = this.GetDesc(Name);
-			return Str ? Number(Str) : undefined;
-		}
-
-		GetStr(Name: string) {
-			let Str = this.GetDesc(Name);
-			console.log('GetStr (' + Name + ') GetDesc returns "' + Str + '"');
-
-			if (Str) {
-				if (Str[0] === FormatStart) {
-					let EndPos = Str.indexOf(FormatEnd, 1);
-
-					if (EndPos > 0) return Str.slice(EndPos + 1);
-					else console.log(FormatEnd + ' not present!');
-				} else return Str;
-			}
-			return '';
-		}
-
-		*/
-
-		Bubble(Name: string, dir: number) {
-			// check for special easy case - list of Childs
-			if (this.LType == CLType.Pack) {
-				if (!this.Childs) return;
-
-				for (let i = this.Childs.length; --i >= 0; )
-					if (this.Childs[i].Name === Name) {
-						let First, Second;
-
-						if (dir <= 0) {
-							Second = i;
-							First = i - 1;
-							if (First < 0) return;
-						} else {
-							First = i;
-							Second = i + 1;
-							if (Second >= this.Childs.length) return;
-						}
-
-						let TempList = this.Childs[First];
-						this.Childs[First] = this.Childs[Second];
-						this.Childs[Second] = TempList;
-						return;
-					}
-
-				return; // no match found
-			}
-
-			let Pos = this.find(Name);
-			if (Pos < 0) return -1; // cannot find, we are done
-
-			let StartPos, EndPos;
-
-			let First = '', Second = '';
-
-			if (dir <= 0) {
-				// bubble up
-				for (StartPos = Pos; --StartPos >= 0; ) if (this.qstr[StartPos] == this.Delim) break;
-
-				if (StartPos < 0) return -1; // cannot find previous
-
-				EndPos = this.qstr.indexOf(this.Delim, Pos + 1);
-				if (EndPos < 0) return -1;
-
-				Second = this.qstr.slice(Pos, EndPos);
-				First = this.qstr.slice(StartPos, Pos);
-			} else {
-				// bubble down
-				StartPos = Pos;
-				EndPos = this.qstr.indexOf(this.Delim, Pos + 1);
-				let NextEnd;
-
-				if (EndPos >= 0) {
-					// found end of first
-					First = this.qstr.slice(Pos, EndPos);
-					NextEnd = this.qstr.indexOf(this.Delim, EndPos + 1);
-
-					if (NextEnd < 0) return; // cannot find next
-
-					Second = this.qstr.slice(EndPos, NextEnd);
-					EndPos = NextEnd;
-				} else return;
-			}
-
-			if (!First || !Second) return -1;
-
-			let NewStr = this.qstr.slice(0, StartPos) + Second + First + this.qstr.slice(EndPos);
-			this.InitList(NewStr);
-		}
-
-		/*
-		ChildByName(Name1: string) {
-			if (!this.Childs) return undefined;
-
-			let limit = this.Childs.length;
-
-			for (let i = 0; i < limit; ++i) {
-				if (this.Childs[i].Name == Name1) return this.Childs[i];
-			}
-
-			return undefined;
-		}
-		*/
 
 		GetLine(ID: any, Delim1: string = ''): string {
 			let VID: vID | undefined = this.getVID(ID);
