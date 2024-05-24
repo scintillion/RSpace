@@ -17,10 +17,10 @@
 		"@types/btoa": "^1.2.3",
 		"prettier": "^2.8.8",
 		"prettier-plugin-svelte": "^2.10.1",
-		"svelte": "^4.0.0",
+		"svelte": "^4.2.15",
 		"svelte-check": "^3.4.3",
 		"tslib": "^2.4.1",
-		"typescript": "^5.0.0",
+		"typescript": "^5.4.5",
 		"vite": "^5.0.0"
 	},
 	"type": "module",
@@ -28,9 +28,10 @@
 		"@neodrag/svelte": "^2.0.3",
 		"better-sqlite3": "^8.7.0",
 		"btoa": "^1.2.1",
+		"install": "^0.13.0",
 		"lit": "^3.1.2",
 		"sass": "^1.57.1",
 		"socket.io": "^4.7.1",
-		"sqlite": "^4.1.2"
+		"sqlite": "^5.1.1"
 	}
 }

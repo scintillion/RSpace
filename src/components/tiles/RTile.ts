@@ -1,112 +1,54 @@
 import { LitElement, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-
-// @customElement('r-tile')
-// export class RTile extends LitElement {
-//   color = 'cyan';
-//   @property() attrStr: string = '';
-//   @property() styleStr: string = '';
-
-//   render() {
-//     const div = document.createElement('div');
-//     console.log ('attrStr=' + this.attrStr);
-//     console.log ('styleStr=' + this.styleStr);
-
-//     parseAttrString(this.attrStr).forEach(([key, value]) => {
-//       div.setAttribute(key, value);
-//     });
-//     div.setAttribute('style', this.styleStr);
-//     const content = document.createElement('h2');
-//     content.setAttribute('style', 'color: ' + this.color);
-//     content.textContent = 'QQQ Hello from RTile!';
-//     div.appendChild(content);
-
-//     return html`${div}`;
-//   }
-// }
-
-// function parseAttrString(attrStr: string) {
-//   console.log ('Parse=' + attrStr);
-
-//   if (!attrStr) {
-//     return [];
-//   }
-
-//   return attrStr.split(' ').map(pair => {
-//     const parts = pair.split('=');
-//     if (parts.length === 2) {
-//       const [key, value] = parts;
-//       if (key) {
-//         return [key, value.replace(/"/g, '')]; // Remove quotes from the value
-//       } else {
-//         console.warn(`Invalid attribute key found: ${pair}`);
-//         return ['', ''];
-//       }
-//     } else {
-//       console.warn(`Attribute string not formatted correctly: ${pair}`);
-//       return ['', ''];
-//     }
-//   }).filter(([key, value]) => key);
-// }
-
-
-/*
-import {LitElement, html} from 'lit';
-import {customElement,property} from 'lit/decorators.js';
-
-@customElement('QQQ-tile')
-export class RTile extends LitElement {
-  color = 'pink';
-
-  render(){
-    console.log ('Rendering color ' + this.color);
-    return html`<div><h2 style='color:${this.color}' >Hello from RTile!</h2></div>`;
-  }
-}
-*/
+import { RS1 } from '$lib/RS';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
- color = 'cyan';
- @property() attrStr: string = '';
- @property() styleStr: string = '';
-
- parseAttrString(attrStr: string) {
-    const attrs = {};
-    if (!attrStr) {
-      return attrs;
-    }
-
-    attrStr.split(' ').forEach(pair => {
-      const parts = pair.split('=');
-      if (parts.length === 2) {
-        const [key, value] = parts;
-        if (key) {
-          attrs[key] = value.replace(/"/g, ''); 
-        }
-      }
-    });
-
-    return attrs;
- }
-
- updated(changedProperties: Map<string, any>) {
-    if (changedProperties.has('attrStr')) {
-      const attrs = this.parseAttrString(this.attrStr);
-      for (const [key, value] of Object.entries(attrs)) {
-        this.setAttribute(key, value);
-      }
-    }
- }
-
- render() {
-    return html`
-      <div style="${this.styleStr}">
-        <slot></slot>
-      </div>
-    `;
- }
-}
-
-
+  @property() tileString: string[] = [];
+  @property() TList: RS1.TileList = new RS1.TileList('');
   
+  static TileDef = new RS1.TDE('T\ta|name:TileDef|inner:|\ts|background:black|width:100vw|height:100vh|\t');
+
+  assign(tileString: string[]) {
+    this.TList = new RS1.TileList(tileString);
+  }
+
+  NewInstance = (TileList: RS1.TileList) => {
+
+    TileList.tiles.forEach(tile => {
+      const TDStyle = RTile.TileDef.sList?.x.copy;
+      const TDAttr = RTile.TileDef.aList?.x.copy;
+
+      TDStyle?.x.Merge(tile.sList);
+      TDAttr?.x.Merge(tile.aList);
+
+      tile.sList = TDStyle;
+      tile.aList = TDAttr;
+    })
+	 }
+
+
+  renderDivs(tile: RS1.TDE): any {
+    const innerContent = tile.aList?.x.GetDesc('inner') || '';
+    const styleStr = tile.sList?.x.toVIDList(";");
+    let childrenHtml = html``;
+
+    if (tile.first) {
+      let child = this.TList.tiles[tile.first]
+      while (child) {
+        childrenHtml = html`${childrenHtml}${this.renderDivs(child)}`;
+        child = this.TList.tiles[child.next];
+      }
+    }
+
+    return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${childrenHtml}</div>`;
+  }
+
+  render() {
+    this.assign(this.tileString);
+    this.NewInstance(this.TList);
+   
+    const topLevelTiles = this.TList.tiles.filter(tile => !tile.parent);
+    return html`${topLevelTiles.map(tile => this.renderDivs(tile))}`;
+  }
+}

@@ -729,9 +729,16 @@ export namespace RS1 {
 
 		fromStr (Str:string|string[]='') {
 			let S='|';
+<<<<<<< HEAD
 			if ((typeof Str) === 'string')
 				S = Str as string;
 			else S = (Str as string[]).join('\n') + '\n';
+=======
+			if (Array.isArray(Str))
+				S = (Str as string[]).join('\n') + '\n';
+			else if (Str)
+				S = Str as string;
+>>>>>>> e4093a9c2038e67fcfff490fccfc50b70a4a1def
 
 			let delim = (this.qstr = S).slice (-1);
 			if (delim < ' ')
@@ -3160,6 +3167,7 @@ export namespace RS1 {
 
 	}
 
+<<<<<<< HEAD
 	export function makeList (Str:string|string[]) {
 		let S = ((typeof Str) === 'string') ? Str as string : (Str as string[]).join ('\n') + '\n';
 		if (S === '\n')
@@ -3174,6 +3182,41 @@ export namespace RS1 {
 		qstr = '';
 
 		Init (str='|') { this.qstr = str; }
+=======
+	export class vList extends RSData {
+		x = NILvLX;
+		_type = 'List';
+		qstr = '';
+
+		Init (str='|') { this.qstr = str; }
+
+		get indent () {
+			let ind = 0;
+
+			let NamePos = 0; // default start of Name
+			let Ch = this.qstr[0];
+			if (Ch <= '9') {
+				if (Ch <= ' ') {
+					while (Ch === ' ' || Ch === '\t') {
+						ind++;
+						Ch = this.qstr[++NamePos];
+					}
+				} else if (Ch >= '0') {
+					let Zero = '0'.charCodeAt(0);
+					ind = Ch.charCodeAt(0) - Zero;
+					Ch = this.qstr[++NamePos];
+					if ((Ch >= '0') && (Ch <= '9')) {
+						// second digit (only two allowed)
+						ind = (ind * 10) + Ch.charCodeAt(0) - Zero;
+					}
+				}
+			}
+			return ind;
+		}
+
+		get Indent () { return this.indent; }
+			// return (this.x !== NILvLX) ? this.x._Indent : 0; }
+>>>>>>> e4093a9c2038e67fcfff490fccfc50b70a4a1def
 
 		get indent () {
 			let ind = 0;
