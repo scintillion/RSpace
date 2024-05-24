@@ -3,7 +3,7 @@
 	import { Plotter } from '$lib/Plotter';
 	import { RS1 } from '$lib/RS';
 	import { RTile } from '../../components/tiles/RTile'
-
+   
 	// const TileStrings: string[] = [
 	// 	'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
 	// 	' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
@@ -15,7 +15,7 @@
 	// ];
 
 	const TileStrings: string[] = [
-		'T\ta|name:Full|\ts|display:flex|flex-direction:column|align-items:center|background:black|width:100vw|height:100vh|\t',
+		'T\ta|name:Full|\ts|display:flex|flex-direction:column|align-items:center|\t',
 		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
 		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|align-items:center|justify-content:space-evenly|\t',
 		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|column:1|gap:5|align-items:center|justify-content:center|\t',
@@ -38,7 +38,6 @@
 <div class="tiles">
 	<r-tile tileString = {TileStrings}>	</r-tile>
 </div>
-<r-tile tileString = {TileStrings}>	</r-tile>
 <style>
 	.tiles {
 		height: 100vh;
