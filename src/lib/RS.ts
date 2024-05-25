@@ -889,16 +889,13 @@ export namespace RS1 {
 				this.qstr = pair.a + pair.b;
 		}
 
-		add (name:string|number,desc:string|number) {
-			let vStr = name.toString () + NameDelim + desc.toString (), pair = this.prepost(name);
+		set (name:string|number,desc:string|number='') {
+			let vStr = desc ? (name.toString () + NameDelim + desc.toString ()) : name.toString ();
+			let pair = this.prepost(name);
 
 			if (pair.a)
 				this.qstr = pair.a + vStr + pair.b;
 			else this.qstr += vStr + '|';
-		}
-
-		set (name:string|number,desc:string|number) {
-			this.add (name,desc);
 		}
 
 		getVID (name:string|number) : vID {
@@ -911,6 +908,16 @@ export namespace RS1 {
 				return new vID (this.qstr.slice (nPos,endPos));
 
 			return NILVID;
+		}
+
+		setVID (VID:vID) {
+			let str = VID.ToStr (), pos = str.indexOf(':');
+			if (!str)
+				return;		// null VID
+			
+			if (pos < 0) // no desc
+				this.set (str);
+			else this.set (str.slice (0,pos),str.slice (pos+1));
 		}
 
 		desc (name:string|number) {
