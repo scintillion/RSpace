@@ -168,6 +168,74 @@ export namespace RS1 {
 		}
 	}
 
+	export class Indent {
+		private num=0;
+		private str='';
+
+		set (value:string|number='') {
+			if ((typeof value) === 'number') {
+				let n = value as number;
+				if (n > 0)
+					this.str = ''.padStart (-n,' ');
+				else if (!n) 
+					this.str = '';
+				else this.str = (-n).toString ();
+
+				this.num = n;
+				return;
+			}
+
+			let S = value as string;
+
+			if (!S) {
+				this.str = '';
+				this.num = 0;
+				return;
+			}
+
+			let len = S.length, i = 0;
+			if (S[0] <= ' ') {
+				while (((S[i]===' ')||(S[i]==='\t')) && (i < len))
+					++i;
+
+				if (i < len) {
+					this.str = S.slice (0,i);
+					this.num = i;
+					return;
+				}
+				this.str = S;
+				this.num = len;
+				return;
+			}
+
+			while (((S[i]<='9')&&(S[i]>='0'))  &&  (i < len))
+				++i;
+
+			if (!i) {
+				this.num = 0;
+				this.str = '';
+				return;
+			}
+
+			if (i < len) {
+				this.str = S.slice (0,i);
+				this.num = Number (this.str);
+				return;
+			}
+
+			this.str = S;
+			this.num = Number (S);
+		}
+
+		constructor (val:string|number='') { this.set (val); }
+
+		get toStr () { return this.str; }
+		get toNum () { return this.num; }
+		get toMinStr () { return (this.num >= 0) ? this.str : (-this.num).toString (); }
+		get toABS () { return (this.num >= 0) ? this.num : -this.num; }
+		get toABStr () { return ''.padStart (this.toABS,' '); }
+	}
+
 	var _editTile = 'S';
 
 	export function setEditTile (T='S') { _editTile = T; myTile = T; }
@@ -914,7 +982,7 @@ export namespace RS1 {
 			let str = VID.ToStr (), pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
-			
+
 			if (pos < 0) // no desc
 				this.set (str);
 			else this.set (str.slice (0,pos),str.slice (pos+1));
@@ -2117,30 +2185,6 @@ export namespace RS1 {
 		}
 	}
 
-/*
-	export class TileCache {
-		First: vList | undefined;
-
-		constructor(ListStrs: string[]) {
-			// 'Name:Addr|TileName1|..|TileNameN|"  ("*" is ALL)
-			let limit = ListStrs.length;
-
-			for (let i = 0; i < limit; ) {
-				let Str = ListStrs[i++].trim();
-
-				let List = new vList(Str, this.First);
-				if (!this.First) this.First = List;
-			}
-		}
-
-		LoadTile(ID: TileID) {}
-
-		GetID(TileName: string): TileID | undefined {
-			return undefined;
-		}
-	}
-*/
-
 	export class pList {
 		IDType = '';
 		ValType = 0;
@@ -3137,7 +3181,7 @@ export namespace RS1 {
 			return false;
 		}
 
-		get toStr() : string {
+		get toStr() {
 			if (this.LType != CLType.Pack) return this.qstr;
 
 			if (!this.Childs) return '';
