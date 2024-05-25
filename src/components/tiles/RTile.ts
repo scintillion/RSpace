@@ -6,8 +6,41 @@ import { RS1 } from '$lib/RS';
 export class RTile extends LitElement {
   @property() tileString: string[] = [];
   @property() TList: RS1.TileList = new RS1.TileList('');
+
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|\ts|background:black|\t')
+  static TDefArray: RS1.TDE[] = [RTile.TTDE];
+  static TDef = RTile.TileMerge(RTile.TDefArray)
+
+  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|inner:|\ts|cursor:pointer')
+  static ButtonDefArray: RS1.TDE[] = [RTile.TDef, RTile.ButtonTDE];
+  static ButtonDef = RTile.TileMerge(RTile.ButtonDefArray)
+
+  static Merge(A: RS1.TDE, B : RS1.TDE) : RS1.TDE {
+    const style = A.sList?.x.copy;
+    const attr = A.aList?.x.copy;
+    style?.x.Merge(B.sList);
+    attr?.x.Merge(B.aList);
+    B.sList = style;
+    B.aList = attr;
+    return B;
+  }
+
+  static TileMerge(TDEArray: RS1.TDE[]): RS1.TDE {
+
+    if(TDEArray.length == 0) {
+      throw new Error('TDEArray is empty');
+    }
+
+    if(TDEArray.length == 1) {
+      return TDEArray[0];
+    }
+    
+    for (let i = TDEArray.length - 2; i >= 0; --i) {
+      RTile.Merge(TDEArray[i], TDEArray[i+1]);
+    }
   
-  static TileDef = new RS1.TDE('T\ta|name:TileDef|inner:|\ts|background:black|width:100vw|height:100vh|\t');
+    return TDEArray[TDEArray.length - 1];
+  } 
 
   assign(tileString: string[]) {
     this.TList = new RS1.TileList(tileString);
@@ -16,14 +49,16 @@ export class RTile extends LitElement {
   NewInstance = (TileList: RS1.TileList) => {
 
     TileList.tiles.forEach(tile => {
-      const TDStyle = RTile.TileDef.sList?.x.copy;
-      const TDAttr = RTile.TileDef.aList?.x.copy;
+  
+      switch(tile.TList?.listName.replace(/^\s+/, '')) {
+        case 'T':
+          RTile.Merge(RTile.TDef, tile);
+          break;
 
-      TDStyle?.x.Merge(tile.sList);
-      TDAttr?.x.Merge(tile.aList);
-
-      tile.sList = TDStyle;
-      tile.aList = TDAttr;
+        case 'Btn':
+          RTile.Merge(RTile.ButtonDef, tile);
+          break;
+      }
     })
 	 }
 

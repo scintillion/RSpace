@@ -19,7 +19,7 @@
 		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
 		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|align-items:center|justify-content:space-evenly|\t',
 		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|column:1|gap:5|align-items:center|justify-content:center|\t',
-		'   RndBtn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|width:110|height:50|background:#1e1e1e|color:white|\t',
+		'   Btn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|width:200|height:150|background:#1e1e1e|color:white|\t',
 		'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|\t',
 		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	];
