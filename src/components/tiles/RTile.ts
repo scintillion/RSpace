@@ -7,13 +7,17 @@ export class RTile extends LitElement {
   @property() tileString: string[] = [];
   @property() TList: RS1.TileList = new RS1.TileList('');
 
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|\ts|background:black|\t')
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|\ts|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|\t')
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
-  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|inner:|\ts|cursor:pointer')
+  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|\ts|cursor:pointer')
   static ButtonDefArray: RS1.TDE[] = [RTile.TDef, RTile.ButtonTDE];
   static ButtonDef = RTile.TileMerge(RTile.ButtonDefArray)
+
+  static RoundButtonTDE = new RS1.TDE('RBtn\ta|name:RoundButton|\ts|cursor:pointer|border-radius:25px')
+  static RoundButtonDefArray: RS1.TDE[] = [RTile.ButtonDef, RTile.RoundButtonTDE];
+  static RoundButtonDef = RTile.TileMerge(RTile.RoundButtonDefArray)
 
   static Merge(A: RS1.TDE, B : RS1.TDE) : RS1.TDE {
     const style = A.sList?.x.copy;
@@ -58,6 +62,10 @@ export class RTile extends LitElement {
         case 'Btn':
           RTile.Merge(RTile.ButtonDef, tile);
           break;
+        
+        case 'RndBtn':
+          RTile.Merge(RTile.RoundButtonDef, tile);
+          break;  
       }
     })
 	 }
