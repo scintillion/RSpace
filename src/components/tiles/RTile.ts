@@ -15,7 +15,7 @@ export class RTile extends LitElement {
   static ButtonDefArray: RS1.TDE[] = [RTile.TDef, RTile.ButtonTDE];
   static ButtonDef = RTile.TileMerge(RTile.ButtonDefArray)
 
-  static RoundButtonTDE = new RS1.TDE('RBtn\ta|name:RoundButton|\ts|cursor:pointer|border-radius:25px')
+  static RoundButtonTDE = new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px')
   static RoundButtonDefArray: RS1.TDE[] = [RTile.ButtonDef, RTile.RoundButtonTDE];
   static RoundButtonDef = RTile.TileMerge(RTile.RoundButtonDefArray)
 
