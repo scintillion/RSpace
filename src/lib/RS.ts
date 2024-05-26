@@ -820,6 +820,13 @@ export namespace RS1 {
 			}
 
 		get indent () {
+			let I = new Indent (this.qstr.slice (0,this.qstr.indexOf('|')));
+
+			return I.toABS;
+		}
+
+			/*
+		get indent () {
 			let ind = 0;
 
 			let NamePos = 0; // default start of Name
@@ -842,6 +849,7 @@ export namespace RS1 {
 			}
 			return ind;
 		}
+		*/
 
 		get descStr () {
 			let Type = this.desc ('Type');
@@ -3052,21 +3060,56 @@ export namespace RS1 {
 	}
 
 	class zList extends qList {
-		qL = NILqList;
+		// qL = NILqList;
 
-		_count=0;
+		// _count=0;
 		// IDs: number[] | undefined;
-		NameIDs='';
+		// NameIDs='';
 		Childs:vList[]|undefined;
-		_firstDelim = -1;
+		// _firstDelim = -1;
 		Delim = PrimeDelim;
-		Indent=0;
-		LType: CLType = CLType.None;
-		Name=''
-		Desc=''
+		// Indent=0;
+		// LType: CLType = CLType.None;
+		// Name=''
+		// Desc=''
 
 		// constructor (vL = NILList) { this.vL = vL; }
 
+		initList(Str1: string) {
+			if (this.x)
+				this.x.Init ();
+			else this.x = new qLX ();
+			this.x.Childs = [];
+
+			let StrLen = Str1.length, Delim1 = Str1.slice (-1);
+
+			// special case, embedded vLists!
+//			this.x.LType = CLType.Pack;
+
+			let Strs = Str1.split(Delim1);
+			let limit = Strs.length;
+
+			if (limit <= 0) return; // panic, no strings, should never happen
+
+			Str1 = '';
+			--limit;
+			for (let i = 0; ++i < limit; ) {
+				if (Strs[i][0] === '/' || !Strs[i].trim()) continue; //	ignore comment lines
+
+				let Child = new qList(Strs[i]);
+				if (Child) {
+					this.x.Childs.push(Child);
+
+					if (!Str1) Str1 = Strs[0] + Delim1; // we are just finding the first line (Name:Desc)
+				}
+			}
+
+			if (Str1)
+				this.qstr = Str1;
+		}
+
+
+/*
 		InitList(Str1: string | string[]) {
 		    this.notNIL;
 
@@ -3176,13 +3219,14 @@ export namespace RS1 {
 
 			if (Delim1 < ' ') return; // done processing, vList with kids...
 		}
+*/
 
 		get notNIL () {
 			return false;
 		}
 
 		get toStr() {
-			if (this.LType != CLType.Pack) return this.qstr;
+//			if (this.LType != CLType.Pack) return this.qstr;
 
 			if (!this.Childs) return '';
 
@@ -3199,16 +3243,6 @@ export namespace RS1 {
 		get FirstChild(): vList {
 			return (this.Childs) ? this.Childs[0] : NILList;
 		}
-
-		GetLine(ID: any, Delim1: string = ''): string {
-			let VID: vID | undefined = this.getVID(ID);
-			return VID ? VID.ToLine(Delim1) : '';
-		}
-
-		get copy () {
-			return new vList (this.toStr);
-		}
-
 	}
 
 	export function makeList (Str:string|string[]) {
