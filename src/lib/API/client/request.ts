@@ -81,7 +81,7 @@ export async function InitClient () {
     console.log ('mySession = ' + RS1.mySession.toString ());
 
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
-    console.log (Q.desc ('XYZ'));
+    console.log (Q.descByName ('XYZ'));
     console.log (Q.num ('ABC').toString ());
     console.log (Q.count.toString ());
     console.log ('Names=' + Q.names);
@@ -95,6 +95,7 @@ export async function InitClient () {
     console.log ('ND=' + ND.b);
 
 	let TileStrings: string[] = [
+        'TileStrings:TS Desc',
 		'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
 		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
 		' T\ta|name:Bottom|\ts|display:flex|row:1|background:none|align-items:center|justify-content:space-evenly|\t',
@@ -104,7 +105,13 @@ export async function InitClient () {
 		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	];
 
-    let  TList = new RS1.TileList(TileStrings); // remove temporarily
-    console.log ('TList.ToString = \n' + TList.ToString ());
+    let RList = new RS1.rList (TileStrings);
+    console.log ('RList =\n' + RList.summary);
+
+    // let  TList = new RS1.TileList(TileStrings); // remove temporarily
+    // console.log ('TList.ToString = \n' + TList.ToString ());
+
+    
+	let L = new RS1.qList ('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
 }
 

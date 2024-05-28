@@ -44,6 +44,16 @@ export namespace RS1 {
 		Set (vName:string,val:any) { throw 'NO Set'; }
 		Get (vName:string):any { throw 'NO Get'; return 'Get.RSD'; }
 
+		get summary () {
+			let str = '(' + this.cName + ')' + this.name;
+			if (this.desc)
+				str += ':' + this.desc;
+			if (this.type)
+				str += '/' + this.type;
+			return str + '='
+		}
+
+		get count () { throw 'NO Count'; return 0; } 
 		protected postSavePack () {}
 		protected postLoadPack () {}
 	}
@@ -67,7 +77,7 @@ export namespace RS1 {
 			}
 		}	
 		
-		toStr (sep=':') {
+		toStr (sep=':') :string {
 			return this.a + sep + this.b;
 		}
 
@@ -837,6 +847,13 @@ export namespace RS1 {
 			return new NFD (this.namedescstr (start));
 		}
 
+		get summary () {
+			let str = super.summary;
+			if (this.count)
+				str += '#=' + this.count.toString ();
+			return str + '  Q=' + this.qstr;
+		}
+
 		setNameOrDesc (name='',ifDesc=false) {
 			let pos = this.qstr.indexOf(this.delim);
 			let head = this.qstr.slice (0,pos), tail = this.qstr.slice (pos);
@@ -861,14 +878,6 @@ export namespace RS1 {
 	}
 
 	export class qList extends archList {
-/*
-		protected x:qLX|undefined;
-
-		protected get getX () {
-			return this.x ? this.x : (this.x = new qLX ());
-		}
-*/
-
 		get toStr () {
 			return this.qstr;
 		}
@@ -877,6 +886,8 @@ export namespace RS1 {
 			if (S.slice(-1) != '|')
 				S += '|';
 			this.qstr = S;
+
+			console.log ('fromStr::' + this.summary);
 		}
 
 		setStr (Str:string) { this.fromStr (Str); }
@@ -1209,6 +1220,31 @@ export namespace RS1 {
 			this.qstr = '\t';
 		}
 
+		get count () {
+			let n = 0;
+
+			for (const L of this.Lists) {
+				if (L)
+					++n
+			}
+
+			return n;
+		}
+
+		get summary () {
+			let str = super.summary;
+			let n = 0;
+
+			if (this.count) {
+				for (const L of this.Lists) {
+					if (L) {
+						str += '    child: ' + (++n).toString () + '==' + L.summary + '\n';
+					}
+				}
+			}
+			return str;
+		}
+
 		get delim () {
 			let high = 0, i;
 
@@ -1279,6 +1315,22 @@ export namespace RS1 {
 
 		add (list:ListTypes) {
 			if (!list)
+				return false;
+			let i = this.Lists.indexOf(undefined), name = list.name;
+			if (i >= 0) {
+				this.Names[i] = name;
+				this.Lists[i] = list;
+				return;
+			}
+
+			this.Names.push (name);
+			this.Lists.push (list);
+
+			return true;
+		}
+
+		set (list:ListTypes) {
+			if (!list)
 				return;
 			
 			let name = list.name;
@@ -1289,15 +1341,8 @@ export namespace RS1 {
 					return;
 				}
 			}
-			let i = this.Lists.indexOf(undefined);
-			if (i >= 0) {
-				this.Names[i] = name;
-				this.Lists[i] = list;
-				return;
-			}
 
-			this.Names.push (name);
-			this.Lists.push (list);
+			this.add (list);
 		}
 
 		addLists (Lists:ListTypes[]) {
@@ -1306,11 +1351,25 @@ export namespace RS1 {
 		}
 
 		addStr (Str:string|string[]) {
-			let S = ((typeof Str) === 'string') ? Str as string : (Str as string[]).join ('\n') + '\n';
-			if (!S  ||  (S === '\n'))
-				return new qList ();
-	
-			return (S.slice (-1) === '|') ? new qList (S) : new zList (S);
+			if ((typeof Str) === 'string') 
+				return this.add (new qList (Str as string));
+
+			let Strs = Str as string[];
+			for (const S of Strs) {
+				let D = S.slice(-1);
+				if (D === '|') {
+					this.add (new qList (S));
+					continue;
+				}
+				if (!isDelim (D))
+					continue;		// tragic error - bad Delim - reject line...
+
+				let LStrs = S.split (D);
+				LStrs.length = LStrs.length - 1;
+				let L = new rList (LStrs);
+				if (L)
+					this.add (L);
+			}
 		}
 	}
 
@@ -4292,6 +4351,7 @@ export namespace RS1 {
 		LG = this.add('Lg:Language|En:English|Es:Espanol|Cn:Chinese|');
 		CY = this.add('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
 		Test = this.add('Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|');
+
 	}
 
 	export const CL = new RsLoL();
