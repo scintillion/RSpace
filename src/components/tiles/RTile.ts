@@ -4,8 +4,12 @@ import { RS1 } from '$lib/RS';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
-  @property() tileString: string[] = [];
   @property() TList: RS1.TileList = new RS1.TileList('');
+  
+  constructor() {
+    super();
+    window.addEventListener('keydown', this.handleKeyDown.bind(this));
+  }
 
   static TTDE = new RS1.TDE('T\ta|name:T|inner:|\ts|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|\t')
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
@@ -30,7 +34,7 @@ export class RTile extends LitElement {
   }
 
   static TileMerge(TDEArray: RS1.TDE[]): RS1.TDE {
-
+    
     if(TDEArray.length == 0) {
       throw new Error('TDEArray is empty');
     }
@@ -38,22 +42,22 @@ export class RTile extends LitElement {
     if(TDEArray.length == 1) {
       return TDEArray[0];
     }
-    
+
     for (let i = TDEArray.length - 2; i >= 0; --i) {
       RTile.Merge(TDEArray[i], TDEArray[i+1]);
     }
-  
-    return TDEArray[TDEArray.length - 1];
-  } 
 
-  assign(tileString: string[]) {
-    this.TList = new RS1.TileList(tileString);
+    return TDEArray[TDEArray.length - 1];
   }
 
-  NewInstance = (TileList: RS1.TileList) => {
+  // assign(tileString: string[]) {
+  //   this.TList = new RS1.TileList(tileString);
+  // }
 
+  NewInstance = (TileList: RS1.TileList) => {
+    
     TileList.tiles.forEach(tile => {
-  
+      
       switch(tile.TList?.listName.replace(/^\s+/, '')) {
         case 'T':
           RTile.Merge(RTile.TDef, tile);
@@ -62,13 +66,13 @@ export class RTile extends LitElement {
         case 'Btn':
           RTile.Merge(RTile.ButtonDef, tile);
           break;
-        
+
         case 'RndBtn':
           RTile.Merge(RTile.RoundButtonDef, tile);
-          break;  
+          break;
       }
     })
-	 }
+  }
 
 
   renderDivs(tile: RS1.TDE): any {
@@ -87,10 +91,57 @@ export class RTile extends LitElement {
     return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${childrenHtml}</div>`;
   }
 
+  handleKeyDown(event: KeyboardEvent) {
+    this.TileMotion(event, this.TList.tiles[2]);
+  }
+
+  TileMotion(event: KeyboardEvent, tile: RS1.TDE) {
+    const step = 5;
+    let TileTop = tile.sList?.x.GetVID('top');
+    let TileLeft = tile.sList?.x.GetVID('left');
+
+    switch (event.key) {
+
+      case 'ArrowUp':
+        if (TileTop) {
+          const newTop = `${parseInt(TileTop.Desc) - step}%`;
+          TileTop.Desc = newTop;
+          tile.sList?.x.UpdateVID(TileTop);
+        } 
+        break;
+
+        case 'ArrowDown':
+          if (TileTop) {
+            const newTop = `${parseInt(TileTop.Desc) + step}%`;
+            TileTop.Desc = newTop;
+            tile.sList?.x.UpdateVID(TileTop);
+          }
+          break;
+
+        case 'ArrowLeft':
+          if (TileLeft) {
+            const newLeft = `${parseInt(TileLeft.Desc) - step}%`;
+            TileLeft.Desc = newLeft;
+            tile.sList?.x.UpdateVID(TileLeft);
+          }
+          break;
+
+        case 'ArrowRight':
+          if (TileLeft) {
+            const newLeft = `${parseInt(TileLeft.Desc) + step}%`;
+            TileLeft.Desc = newLeft;
+            tile.sList?.x.UpdateVID(TileLeft);
+          } 
+          break;
+    }
+    this.requestUpdate();
+  }
+
+  
   render() {
-    this.assign(this.tileString);
+    // this.assign(this.tileString);
     this.NewInstance(this.TList);
-   
+
     const topLevelTiles = this.TList.tiles.filter(tile => !tile.parent);
     return html`${topLevelTiles.map(tile => this.renderDivs(tile))}`;
   }

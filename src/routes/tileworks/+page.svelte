@@ -14,15 +14,20 @@
 	// 	'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	// ];
 
+	// const TileStrings: string[] = [
+	// 	'T\ta|name:Full|\ts|display:flex|\t',
+	// 	' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
+	// 	' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|\t',
+	// 	'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|\t',
+	// 	'   RndBtn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
+	// 	'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|\t',
+	// 	'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|display:flex|width:20vw|height:90vh|\t'
+	// ];
+
 	const TileStrings: string[] = [
-		'T\ta|name:Full|\ts|display:flex|\t',
-		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
-		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|\t',
-		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|\t',
-		'   RndBtn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-		'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|\t',
-		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|display:flex|width:20vw|height:90vh|\t'
-	];
+  		'T\ta|name:Full|inner:Use arrow keys to move tile|\ts|display:block|height:100vh|width:100vw|font-size:40px|\t',
+ 		' T\ta|name:Top|\ts|background:white|height:70px|width:70px|position:relative|top:50%|left:50%|\t',
+];
 
 	const List: RS1.TileList = new RS1.TileList(TileStrings); // remove temporarily
 
@@ -35,12 +40,14 @@
 <r-tile />
 </div> -->
 
-<div class="tiles">
-	<r-tile tileString = {TileStrings}>	</r-tile>
-</div>
-<style>
+<!-- <div class="tiles"></div> -->
+<r-tile TList = {List}>	</r-tile>
+<!-- </div> -->
+
+<!-- <style>
 	.tiles {
 		height: 100vh;
 		width: 100vw;
+		
 	}
-</style>
+</style> -->
