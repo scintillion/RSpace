@@ -34,6 +34,7 @@ export namespace RS1 {
 		get type () { return 'RSD'; }
 		get sub () { return ''; }
 		get cName () { return this.constructor.name; }
+		get fam () { return 0; }
 		
 		get toStr () { throw 'NO toStr'; return this.name; }
 		fromStr (S='') { throw 'NO fromStr'}
@@ -49,11 +50,17 @@ export namespace RS1 {
 			if (this.desc)
 				str += ':' + this.desc;
 			if (this.type)
-				str += '/' + this.type;
+				str += ' type ' + this.type + ' ';
+			let f = this.count;
+			if (f)
+				str += '#' + f.toString ();
+			f = this.fam;
+			if (f)
+				str += ':fam/' + f.toString () + ' '
 			return str + '='
 		}
 
-		get count () { throw 'NO Count'; return 0; } 
+		get count () { return 0; } 
 		protected postSavePack () {}
 		protected postLoadPack () {}
 	}
@@ -849,9 +856,7 @@ export namespace RS1 {
 
 		get summary () {
 			let str = super.summary;
-			if (this.count)
-				str += '#=' + this.count.toString ();
-			return str + '  Q=' + this.qstr;
+			return str + '  Q' + this.indent.toString () + '=' + this.qstr;
 		}
 
 		setNameOrDesc (name='',ifDesc=false) {
@@ -887,7 +892,7 @@ export namespace RS1 {
 				S += '|';
 			this.qstr = S;
 
-			console.log ('fromStr::' + this.summary);
+			console.log ('creating ' + this.summary);
 		}
 
 		setStr (Str:string) { this.fromStr (Str); }
@@ -1231,6 +1236,20 @@ export namespace RS1 {
 			return n;
 		}
 
+		get fam () {
+			let sum = 0;
+
+			for (const L of this.Lists) {
+				if (L)
+					sum += L.fam + 1;
+			}
+
+			if (sum)
+				sum = sum;
+
+			return sum;
+		}
+
 		get summary () {
 			let str = super.summary;
 			let n = 0;
@@ -1238,7 +1257,7 @@ export namespace RS1 {
 			if (this.count) {
 				for (const L of this.Lists) {
 					if (L) {
-						str += '    child: ' + (++n).toString () + '==' + L.summary + '\n';
+						str += '\n' + ''.padStart (this.indent,' ') + 'child#' + (++n).toString () + '==' + L.summary;
 					}
 				}
 			}
@@ -1280,14 +1299,19 @@ export namespace RS1 {
 						ND = pair.a + ':' + pair.b;
 					else ND = pair.a;
 				}
+				console.log ('creating rList ' + ND);
 
 				this.addStr (Strs.slice (1));
 
 			}
-			else // array of lists...
+			else {	// array of lists...
+				console.log ('creating rList ' + ND);
+
 				this.addLists (Str as ListTypes[]);
+			}
 
 			this.qstr = ND;
+			console.log ('rList ' + ND + ' created: ' + this.summary);
 		}
 
 		private listIndex (name:string|ListTypes) {
@@ -1370,6 +1394,15 @@ export namespace RS1 {
 				if (L)
 					this.add (L);
 			}
+		}
+
+		get toStr () {
+			let D = this.delim, str = this.qstr + D;
+			for (const L of this.Lists)
+				if (L)
+					str += L.toStr + D;
+
+			return str;
 		}
 	}
 
