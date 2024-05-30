@@ -106,7 +106,7 @@ export async function InitClient () {
 	];
 
     let RList = new RS1.rList (TileStrings);
-    console.log ('RList =\n' + RList.summary);
+    console.log ('RList =\n' + RList.summary + '\nRList.toStr=\n' + RList.toStr + '!');
 
     // let  TList = new RS1.TileList(TileStrings); // remove temporarily
     // console.log ('TList.ToString = \n' + TList.ToString ());
