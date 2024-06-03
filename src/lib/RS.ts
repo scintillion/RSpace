@@ -36,6 +36,17 @@ export namespace RS1 {
 		get cName () { return this.constructor.name; }
 		get fam () { return 0; }
 		
+		strToStrings (S:string) {
+			let D = S.slice(-1);
+			if (D === '|')
+				return [S];
+			else if (!isDelim (D))
+				return new Array<string> ();
+
+			let Strs = S.split (D);
+			return Strs.slice (0,-1);
+		}
+
 		get toStr () { throw 'NO toStr'; return this.name; }
 		fromStr (S='') { throw 'NO fromStr'}
 
@@ -64,6 +75,7 @@ export namespace RS1 {
 		protected postSavePack () {}
 		protected postLoadPack () {}
 	}
+	type RSD0=RSD|undefined;
 
 	export class strPair {
 		a:string;b:string;
@@ -362,6 +374,7 @@ export namespace RS1 {
 			return this.Strs && this.Strs.length === 1 ? this.Strs[0] : undefined;
 		}
 	}
+	type IValue0=IValue|undefined;
 
 	export class IFmt {
 		Type: number = 0;
@@ -630,6 +643,7 @@ export namespace RS1 {
 			return '';
 		}
 	}
+	type IFmt0=IFmt|undefined;
 
 	export const NILFmt = new IFmt ('');
 
@@ -799,7 +813,7 @@ export namespace RS1 {
 		}
 	}
 
-	export class archList extends RSD {
+	export class xList extends RSD {
 		protected qstr='';
 
 		get delim () { return '|'; }
@@ -880,13 +894,13 @@ export namespace RS1 {
 		}
 
 		get listDesc () { return this.namedesc().b; }
+
+		get toStr () { return this.qstr; }
 	}
 
-	export class qList extends archList {
-		get toStr () {
-			return this.qstr;
-		}
+	export const NILxList = new xList ();
 
+	export class qList extends xList {
 		fromStr (S='|') {
 			if (S.slice(-1) != '|')
 				S += '|';
@@ -1213,16 +1227,21 @@ export namespace RS1 {
 			this.qstr = this.qstr.slice (0,start) + flipstr + this.qstr.slice (end);
 			return true;
 		}
+		get copy () {
+			return new qList (this.toStr);
+		}
 	}
 
-	export class rList extends archList {
+	export class rList extends xList {
 		private Lists:ListTypes[]=[];
 		private Names:string[]=[];
+
+		get NILchk () { return this === NILrList; }
 
 		clear () {
 			this.Names = [];
 			this.Lists = [];
-			this.qstr = '\t';
+			this.qstr = '';
 		}
 
 		get count () {
@@ -1232,7 +1251,6 @@ export namespace RS1 {
 				if (L)
 					++n
 			}
-
 			return n;
 		}
 
@@ -1271,65 +1289,89 @@ export namespace RS1 {
 				if (L  &&  ((i = DelimList.indexOf (L.delim)) > high))
 						high = i;
 			}
-
 			return DelimList[high+1];
 		}
 
-		constructor (Str:string[]|ListTypes[]=[],name='',desc='') {
+		constructor (Str:string|string[]|ListTypes[]='',name='',desc='') {
 			super ();
 
 			if (desc === name)
 				desc = '';
 			let ND = desc ? (name + ':' + desc) : name;
 
-			let len = Str.length;
-			if (!len) {
-				this.qstr = '\t';
-				return; 
+			this.qstr = ND;		// default value of qstr, could be modified later...
+
+			if (!Str) {
+				console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+				return;
+			}
+			
+			let Strs;
+			if (typeof Str === 'string')
+				Strs = this.strToStrings (Str as string);
+			else if ((typeof Str[0]) === 'string')
+				Strs = Str as string[];
+			else {	// array of Lists!
+				this.addLists (Str as ListTypes[]);
+				console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+				return;
 			}
 
-			if ((typeof Str[0])  === 'string') {
-				let Strs = Str as string[];
+			if (!Strs.length) {
+				console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+				return;
+			}
+
+			let first = Strs[0];
+			if (isDelim (first.slice(-1))) {
+				this.addStr (Strs);
+			}
+			else {
 				if (!ND) {	// use first string as name:desc
 					let pair = new strPair ();
-					pair.fromStr (Strs[0],':');
+					pair.fromStr (first,':');
 					if (pair.b === pair.a)
 						pair.b = '';
 					if (pair.b)
 						ND = pair.a + ':' + pair.b;
 					else ND = pair.a;
+					this.qstr = ND;
 				}
-				console.log ('creating rList ' + ND);
-
-				this.addStr (Strs.slice (1));
-
+				this.addStr (Strs.slice(1));
 			}
-			else {	// array of lists...
-				console.log ('creating rList ' + ND);
-
-				this.addLists (Str as ListTypes[]);
-			}
-
-			this.qstr = ND;
-			console.log ('rList ' + ND + ' created: ' + this.summary);
+			console.log ('rList ' + this.qstr + ' created: ' + this.summary);
 		}
 
-		private listIndex (name:string|ListTypes) {
-			if (!name)
+		private listIndex (list:string|ListTypes) {
+			if (!list)
 				return -1;
 
-			if ((typeof name) === 'string')
-				return this.Names.indexOf(name as string);
+			if ((typeof list) === 'string')
+				return this.Names.indexOf(list as string);
 
-			return this.Lists.indexOf(name as ListTypes);
+			return this.Lists.indexOf(list as ListTypes);
 		}
 
-		listByName (name:string) : ListTypes {
+		listByName (name:string) {
 			let i = this.listIndex(name);
 			return (i >= 0) ? this.Lists[i] : undefined;
 		}
 
+		qListByName (name:string) {
+			let L = this.listByName (name);
+			return (L  &&  (L !== NILqList)  &&  (L.cName === 'qList')) ? L as qList : NILqList;
+		} 
+
+		rListByName (name:string) {
+			let L = this.listByName (name);
+			return (L  &&  (L !== NILrList)  &&  (L.cName === 'rList')) ? L as rList : NILrList;
+		} 
+
 		del (list:string|ListTypes) {
+			if (this.NILchk) return;
+			if (!list || list === NILqList ||  list === NILrList)
+				return;
+
 			let index = this.listIndex (list);
 			if (index >= 0) {
 				this.Names[index] = '';
@@ -1338,6 +1380,8 @@ export namespace RS1 {
 		}
 
 		add (list:ListTypes) {
+			if (this.NILchk) return;
+
 			if (!list)
 				return false;
 			let i = this.Lists.indexOf(undefined), name = list.name;
@@ -1354,12 +1398,14 @@ export namespace RS1 {
 		}
 
 		set (list:ListTypes) {
+			if (this.NILchk) return;
+
 			if (!list)
 				return;
 			
 			let name = list.name;
 			if (name) {
-				let i = this.listIndex(list.name);
+				let i = this.listIndex(name);
 				if (i >= 0) {
 					this.Lists[i] = list;
 					return;
@@ -1375,6 +1421,8 @@ export namespace RS1 {
 		}
 
 		addStr (Str:string|string[]) {
+			if (this.NILchk) return;
+
 			if ((typeof Str) === 'string') 
 				return this.add (new qList (Str as string));
 
@@ -1404,7 +1452,22 @@ export namespace RS1 {
 
 			return str;
 		}
+
+		get lists () {
+			let Lists:ListTypes[] = [];
+			for (const L of this.Lists)
+				if (L)
+					Lists.push (L);
+
+			return Lists;
+		}
+
+		get copy () {
+			return new rList (this.toStr);
+		}
 	}
+
+	export const NILrList = new rList ();
 
 	export function listFromStr (Str:string|string[]='') {
 		if ((typeof Str) === 'string') {
@@ -1536,7 +1599,7 @@ export namespace RS1 {
 	}
 */
 
-	const NILqList = new qList ('NIL|');
+	export const NILqList = new qList ('NIL|');
 
 
 	function NData () { return new RSData () }
@@ -1868,6 +1931,7 @@ export namespace RS1 {
 
 	type ListArgs	= BufPack|vList[]|string|string[]|undefined;
 	type ListTypes=qList|rList|undefined;
+	type NewListArgs = string|string[]|ListTypes[];
 
 	type SelectArgs = HTMLSelectElement | HTMLOListElement | HTMLUListElement | undefined;
 	type OptionArgs = HTMLOptionElement | undefined;
@@ -2410,16 +2474,16 @@ export namespace RS1 {
 		}
 	}
 
-	export class TDE extends RSData {
+	export class TDE extends RSD {
 		//  TileDefElement, for defining Tiles
 		level = 0;
 		tileID: TileID | undefined;
-		TList: vList | undefined;
-		Lists: vList[] | undefined;
-		aList: vList | undefined;
-		sList: vList | undefined;
-		vList: vList | undefined;
-		jList: vList | undefined;
+		TList=NILrList;
+		Lists:ListTypes[]=[];
+		aList=NILqList;
+		sList=NILqList;
+		vList=NILqList;
+		jList=NILqList;
 
 		nLists = 0;
 		parent = 0;
@@ -2428,12 +2492,12 @@ export namespace RS1 {
 		first = 0;
 		last = 0;
 
-		listByName (Name='') {
+		listByName (Name:string) {
 			if (!this.Lists)
 				return undefined;
 
 			for (const C of this.Lists) {
-				if (C.x.Name === Name) {
+				if (C  &&  (C.name === Name)) {
 					console.log ('  CBN(' + Name + ')=' + C.toStr);
 					return C;
 				}
@@ -2441,29 +2505,35 @@ export namespace RS1 {
 			return undefined;
 		}
 
-		constructor(Str: string, List1: vList | undefined = undefined) {
+		qListByName (name:string) {
+			let L = this.listByName (name);
+			return (L  &&  L !== NILqList  &&  L.cName === 'qList') ? L as qList : NILqList;
+		}
+
+		constructor(Str: string|rList) {
 			super();
 
-			if (Str) List1 = new vList(Str);
+			let List1 = (typeof Str) === 'string'? new rList (Str as string) : Str as rList;
+			if (!List1)
+				return;
 
-			if (List1) {
-				this.TList = List1;
-				// console.log('TDE List[' + this.List.Name + ']=' + this.List.Str + '.');
+			this.TList = List1;
+			// console.log('TDE List[' + this.List.Name + ']=' + this.List.Str + '.');
 
-				this.Lists = List1.x.Childs;
-				this.aList = this.listByName ('a');
-				this.sList = this.listByName ('s');
-				this.vList = this.listByName ('v');
-				this.jList = this.listByName ('j');
+			this.Lists = List1.lists;
+			this.aList = this.qListByName ('a');
+			this.sList = this.qListByName ('s');
+			this.vList = this.qListByName ('v');
+			this.jList = this.qListByName ('j');
 
-				if (this.Lists) {
-					for (const C of this.Lists)
-						console.log ('   TDE Child:' + C.x.Name + '=' + C.toStr);
-				}
-
-				this.level = List1.Indent;
-				this.tileID = new TileID(List1.Name);
+			if (this.Lists) {
+				for (const C of this.Lists)
+					if (C)
+						console.log ('   TDE Child:' + C.name + '=' + C.toStr);
 			}
+
+			this.level = List1.indent;
+			this.tileID = new TileID(List1.name);
 		}
 
 		get toStr () {
@@ -3955,51 +4025,34 @@ export namespace RS1 {
 		}
 	}
 
+	export class TileList extends qList {
+		tiles:TDE[];
 
+		constructor(Str1: string[] | string | rList) {
+			super ();
 
-	export class TileList extends vList {
-		tiles: TDE[] = [];
-
-		constructor(Str1: string[] | string, List: vList | undefined = undefined) {
-			let limit, count = 0;
-
+			let count = 0, Strs, List;
 			console.log ('TileList (' + Str1 as string + ')');
 
-			super(Str1 as string);
+			if ((typeof Str1) === 'string')
+				Strs = this.strToStrings (Str1 as string);
+			else if (Array.isArray (Str1))
+				Strs = Str1 as string[];
+			else List = Str1 as rList;
 
-			if (List) {
-				if (List.x.LType != CLType.Pack || !List.x.Childs) {
-					this.tiles = [];
-					return;
-				}
+			if (Strs)
+				List = new rList (Strs);
 
-				limit = List.x.Childs.length;
-				this.tiles = Array(++limit);
-				for (let i = 0; i < limit; ) {
-					this.tiles[++count] = new TDE('', List.x.Childs[i++]);
-					// console.log('Handling Child ' + count.toString());
-				}
-			} else {
-				let Strs: string[] = Array.isArray(Str1) ? Str1 : FromString(Str1); // Str.split ('\n');
-
-				this.tiles = Array((limit = Strs.length + 1));
-				for (let i = 0; ++i < limit; ) {
-					console.log(i.toString() + '=' + Strs[i - 1]);
-
-					if (Strs[i - 1][0] !== '!') {
-						//						let TabPos = Strs[i-1].indexOf ('\t');
-						//						if (TabPos >= 0)
-						//							Strs[i-1] = Strs[i-1].slice (0,TabPos).trimEnd ();
-
-						// console.log('Line==' + Strs[i - 1] + '.');
-
-						let newTDE = new TDE(Strs[i - 1]);
-						if (newTDE) {
-							this.tiles[++count] = newTDE;
-						}
-					}
-				}
+			if (!List) {
+				throw 'NIL TileList!';
+				this.tiles = [];
+				return;
 			}
+
+			let i = 0, Lists = List.lists, limit = Lists.length;
+			this.tiles = Array(limit + 1);
+			for (const L of Lists)
+				if (L) this.tiles[++i] = new TDE (L as rList);
 
 			this.tiles.length = count + 1;
 			this.Links();
@@ -4054,7 +4107,7 @@ export namespace RS1 {
 				let me = Tiles[i];
 
 				let NewStr =
-					(me.TList ? me.TList.qstr : '@NOLIST@') +
+					(me.TList ? me.TList.toStr : '@NOLIST@') +
 					'\t' +
 					i.toString() +
 					'.level=' +
@@ -4081,8 +4134,10 @@ export namespace RS1 {
 				if (me.Lists) {
 					for (let c = 0; c < me.Lists.length; ) {
 						let List = me.Lists[c++];
-						NewStr = '\t\t List.Name=' + List.Name + '=' + List.qstr;
-						Str += NewStr + '\n';
+						if (List) {
+							NewStr = '\t\t List.Name=' + List.name + '=' + List.toStr;
+							Str += NewStr + '\n';
+						}
 					}
 				}
 			}
@@ -4244,18 +4299,18 @@ export namespace RS1 {
 			*/
 
 			console.log('Reading NewTileStrings!');
-			let NewTileList = new vList(NewTileStrings);
-			if (NewTileList) NewTileList.x.Dump('');
+			let NewTileList = new rList(NewTileStrings);
+			// if (NewTileList) NewTileList.x.Dump('');
 			console.log('Finished reading NewTileStrings');
 
 			//			TL = new TileList(TileStrings);
 			console.log('Testing NewTileList');
-			TL = new TileList('', NewTileList);
+			TL = new TileList(NewTileList);
 			console.log('TileList is read from NewTileList');
 
 			if (LstEdit.TileSelect) TL.ToSelect(LstEdit.TileSelect);
 
-			let TString = TL.qstr;
+			let TString = TL.ToString ();
 
 			let LongList = new vList(TileStrings.join('\n') + '\n');
 

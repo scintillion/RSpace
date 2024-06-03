@@ -20,10 +20,10 @@ export class RTile extends LitElement {
   static RoundButtonDef = RTile.TileMerge(RTile.RoundButtonDefArray);
 
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
-    const style = A.sList?.x.copy;
-    const attr = A.aList?.x.copy;
-    style?.x.Merge(B.sList);
-    attr?.x.Merge(B.aList);
+    const style = A.sList?.copy;
+    const attr = A.aList?.copy;
+    style?.merge(B.sList);
+    attr?.merge(B.aList);
     B.sList = style;
     B.aList = attr;
     return B;
@@ -68,8 +68,8 @@ export class RTile extends LitElement {
 
 
   renderDivs(tile: RS1.TDE): any {
-    const innerContent = tile.aList?.x.GetDesc('inner') || '';
-    const styleStr = tile.sList?.x.toVIDList(";");
+    const innerContent = tile.aList?.descByName('inner') || '';
+    const styleStr = tile.sList?.toVIDList(";");
     let childrenHtml = html``;
 
     if (tile.first) {
