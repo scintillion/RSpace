@@ -30,6 +30,7 @@ function handleSave() {
   D.addField(selectedRow);
   console.log('Saved D' + D.desc);
   dispatch('onPackChange', {value: D});
+  packArray = D.fetch('');
   step = 'selectPack'
   
 }

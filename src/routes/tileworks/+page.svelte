@@ -17,12 +17,12 @@
 
 	const TileStrings: string[] = [
 		'T\ta|name:Full|\ts|display:flex|\t',
-		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
-		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|\t',
-		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|\t',
+		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|\t',
+		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
+		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|background-image:url("")|\t',
 		'   RndBtn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-		'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|\t',
-		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|display:flex|width:20vw|height:90vh|\t'
+		'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
+		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|display:flex|width:20vw|height:90vh|background-image:url("")|\t'
 	];
 
 // 	const TileStrings: string[] = [
@@ -64,6 +64,28 @@
 		Edit(tile)
 		
 	}
+
+async function handleUpload(event: Event, tile: RS1.TDE) {
+  const files = (event.currentTarget as HTMLInputElement).files;
+  const VID = tile.sList?.x.GetVID('background-image');
+  if ( files !== null && files.length > 0) {
+    try {
+      const file = files[0];
+	  const reader = new FileReader();
+	  reader.readAsDataURL(file);
+	  reader.onload = (e) => {
+		if (VID) {
+			VID.Desc = `url("${e.target?.result}")`;
+			tile.sList?.x.UpdateVID(VID);
+	  }
+	}
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  }
+step = 'selectTile'
+  
+}
 
 
 	function Edit(tile: RS1.TDE) {
@@ -148,6 +170,10 @@
 	  <div class="options">
 		<button on:click={() => {ListType = 'attributes'; Edit(selectedTile)}}>Attributes</button>
 		<button on:click={() => {ListType = 'styles'; Edit(selectedTile)}}>Styles</button>
+		<button>
+			<label for="file-upload">Add Image</label>
+			<input id="file-upload" type="file" on:change={(event) => handleUpload(event,selectedTile)} style="display: none;" />
+		  </button>
 		
 		<div class='editContainer' />
 		
@@ -155,7 +181,7 @@
 		<button>Add Tile</button>  -->
 	  </div>
 	  {/if}
-
+	
 	</div>
 </div>
 {/if}
