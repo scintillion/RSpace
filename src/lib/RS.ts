@@ -2498,7 +2498,7 @@ export namespace RS1 {
 
 			for (const C of this.Lists) {
 				if (C  &&  (C.name === Name)) {
-					console.log ('  CBN(' + Name + ')=' + C.toStr);
+					console.log ('  listByName(' + Name + ')=' + C.toStr);
 					return C;
 				}
 			}
@@ -4057,7 +4057,7 @@ export namespace RS1 {
 			this.tiles.length = count + 1;
 			this.Links();
 
-			console.log ('**** TileList.Links, Str = \n' + this.ToString ());
+			console.log ('**** TileList.Links, Str = \n' + this.toStr);
 		}
 
 		Links() {
@@ -4098,7 +4098,7 @@ export namespace RS1 {
 			} // for each TDE/tile
 		}
 
-		ToString(): string {
+		get toStr () {
 			let Tiles = this.tiles;
 			let limit = Tiles.length;
 			let Str = 'TILELIST *** TOSTR:  ' + limit.toString () + ' Tiles.\n';
@@ -4144,7 +4144,7 @@ export namespace RS1 {
 			return Str;
 		}
 
-		ToSelect(Select1: HTMLSelectElement | HTMLOListElement | HTMLUListElement | undefined) {
+		toSelect(Select1: HTMLSelectElement | HTMLOListElement | HTMLUListElement | undefined) {
 			let Tiles = this.tiles;
 			let limit = Tiles.length;
 
@@ -4308,9 +4308,9 @@ export namespace RS1 {
 			TL = new TileList(NewTileList);
 			console.log('TileList is read from NewTileList');
 
-			if (LstEdit.TileSelect) TL.ToSelect(LstEdit.TileSelect);
+			if (LstEdit.TileSelect) TL.toSelect(LstEdit.TileSelect);
 
-			let TString = TL.ToString ();
+			let TString = TL.toStr;
 
 			let LongList = new vList(TileStrings.join('\n') + '\n');
 
