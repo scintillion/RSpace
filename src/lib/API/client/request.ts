@@ -23,7 +23,7 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 
 async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
   // console.log ('PackRequest Incoming = \n' + BP.Desc ());
-  BP.add (['#',++Serial]);
+  BP.addArgs (['#',++Serial]);
 
   let AB = BP.bufOut ();
   console.log ('Sending Client Request #' + Serial.toString ());
@@ -32,7 +32,7 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 
   BP.bufIn (recvAB);
 
-  console.log (' ---- Received Server reply #' + BP.num ('#').toString () + '\n' + BP.desc);
+  console.log (' ---- Received Server reply #' + BP.fNum ('#').toString () + '\n' + BP.desc);
 
   return BP;
 }
@@ -77,7 +77,7 @@ export async function InitClient () {
     let OutPack = new RS1.BufPack ();
     OutPack.xAdd ('H',RS1.myVilla);
     let InPack = await RS1.ReqPack (OutPack);
-    RS1.mySession = InPack.num('!H');
+    RS1.mySession = InPack.fNum('!H');
     console.log ('mySession = ' + RS1.mySession.toString ());
 
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');

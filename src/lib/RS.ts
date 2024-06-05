@@ -24,15 +24,20 @@ export namespace RS1 {
 	}
 
 	export class RSD {
-		get name () { return this.cName; }
-		setName (name='') { throw 'NO setName'; }
-		get desc () { return 'RSD.Desc'; }
-		setDesc (desc='') { throw 'NO setDesc'; }
-		get data () : any { return undefined; }
-		get list () { return NILqList; }
-		get pack () { return NILPack; }
-		get type () { return 'RSD'; }
-		get sub () { return ''; }
+		get Name () { return this.cName; }
+		set Name (n:string) { log ('NO set Name'); }
+		get Desc () { return 'RSD.Desc'; }
+		set Desc (d:string) { log ('NO set Desc'); }
+		get Data () : any { return undefined; }
+		set Data (D:any) { log ('NO set Data'); }
+		get List () { return NILqList; }
+		set List (L:xList) { log ('NO set List'); }
+		get Pack () { return NILPack; }
+		set Pack (P:BufPack) { log ('NO set Pack'); }
+		get Type () { return 'RSD'; }
+		set Type (T:string) { log ('NO set Type'); }
+		get Sub () { return ''; }
+		set Sub (S:string) { log ('NO set Sub'); }
 		get cName () { return this.constructor.name; }
 		get fam () { return 0; }
 		
@@ -47,7 +52,7 @@ export namespace RS1 {
 			return Strs.slice (0,-1);
 		}
 
-		get toStr () { throw 'NO toStr'; return this.name; }
+		get toStr () { throw 'NO toStr'; return this.Name; }
 		fromStr (S='') { throw 'NO fromStr'}
 
 		get toPack () { throw 'NO toPack'; return NILPack; }
@@ -55,13 +60,14 @@ export namespace RS1 {
 
 		Set (vName:string,val:any) { throw 'NO Set'; }
 		Get (vName:string):any { throw 'NO Get'; return 'Get.RSD'; }
+		Del (vName:string) { throw 'NO Del'; }
 
 		get summary () {
-			let str = '(' + this.cName + ')' + this.name;
-			if (this.desc)
-				str += ':' + this.desc;
-			if (this.type)
-				str += ' type ' + this.type + ' ';
+			let str = '(' + this.cName + ')' + this.Name;
+			if (this.Desc)
+				str += ':' + this.Desc;
+			if (this.Type)
+				str += ' type ' + this.Type + ' ';
 			let f = this.count;
 			if (f)
 				str += '#' + f.toString ();
@@ -69,6 +75,10 @@ export namespace RS1 {
 			if (f)
 				str += ':fam/' + f.toString () + ' '
 			return str + '='
+		}
+
+		get expand () {
+			return this.summary + '\n  EXPANDED!!';
 		}
 
 		get count () { return 0; } 
@@ -1465,6 +1475,21 @@ export namespace RS1 {
 		get copy () {
 			return new rList (this.toStr);
 		}
+
+		get toQList () {
+			let qstrs: string[] = [''];
+
+			for (const L of this.Lists)
+				if (L) {
+					let D = L.Desc, N = L.Name;
+					qstrs.push ((D && (D != N)) ? (N + ':' + D) : N);
+				}
+
+			qstrs = qstrs.sort();
+
+			return new qList(qstrs.join('|') + '|');
+		}		
+
 	}
 
 	export const NILrList = new rList ();
@@ -1688,7 +1713,7 @@ export namespace RS1 {
 		let BP = new BufPack ();
 		console.log ('StrType=' + StrType + ',Query=' + Query + '.');
 		BP.xAdd (StrType,Query);
-		BP.add (['.T',Tile]);
+		BP.addArgs (['.T',Tile]);
 		
 //		BP.add ([StrType,Query]);
 	
@@ -1711,7 +1736,7 @@ export namespace RS1 {
 		let Names : string[] = [];
 
 		for (const P of BPs) {
-			let Name = P.str ('name');
+			let Name = P.fStr ('name');
 			// console.log ('Name:' + Name);
 
 			if (Name.slice (0,SQLen) !== SQStr) {
@@ -2167,22 +2192,22 @@ export namespace RS1 {
 			if (!P  ||  (P === NILPack))
 				return;
 
-			this.Name = P.str ('name');
-			this.Desc = P.str ('desc');
-			this._type = P.str ('type');
-			this.setTile (P.str ('.T'));
-			this.Str = P.str ('str');
-			this.Sub = P.str ('sub');
+			this.Name = P.fStr ('name');
+			this.Desc = P.fStr ('desc');
+			this._type = P.fStr ('type');
+			this.setTile (P.fStr ('.T'));
+			this.Str = P.fStr ('str');
+			this.Sub = P.fStr ('sub');
 			// this.ID = P.num ('.ID');
-			this.List = P.list ('list');
+			this.List = P.fList ('list');
 			if (this.List === NILList)
 				this.List = new vList ();
 
-			this.Pack = P.pack('pack');
+			this.Pack = P.fPack('pack');
 			if (this.Pack === NILPack)
 				this.Pack = new BufPack ();
 
-			let ridStr = P.str ('.rid');
+			let ridStr = P.fStr ('.rid');
 			if (ridStr) {
 				this._rID = new RID (ridStr);
 				log ('Assigning RID "' + ridStr + '" to ' + this.desc)
@@ -2194,8 +2219,8 @@ export namespace RS1 {
 //			if (!this.ID)
 //				this.ID = P.num ('id');
 
-			this.Details = P.str ('details');
-			this.Data = P.data ('data');
+			this.Details = P.fStr ('details');
+			this.Data = P.fData ('data');
 
 			this.PostLoad (P);
 		}
@@ -2218,7 +2243,7 @@ export namespace RS1 {
 			if (!P  || (P === NILPack))
 				P = new BufPack ();
 
-			P.add([	'name',	this.Name,
+			P.addArgs ([	'name',	this.Name,
 				'desc',	this.Desc,
 				'type',	this.Type,
 				'.T',	this.Tile,
@@ -2277,7 +2302,7 @@ export namespace RS1 {
 				P.xAdd ('Q',this.ID ? 'U' : 'I');
 
 			P = await ReqPack (P);
-			return P.num ('changes') > 0;
+			return P.fNum ('changes') > 0;
 		}
 
 		NewThis () : RSData { return new RSData (); }
@@ -2312,7 +2337,7 @@ export namespace RS1 {
 			else {
 				this.cName = Data.constructor.name;
 				if (this.cName === 'BufPack') {
-					this.type = (this.pack = (Data as BufPack)).str ('type');
+					this.type = (this.pack = (Data as BufPack)).fStr ('type');
 					this.dType = SiLoad;
 				}
 				else {
@@ -2333,7 +2358,7 @@ export namespace RS1 {
 		switch (SI.type) {
 			case 'List' : switch (SI.dType) {
 				case SiNew : return new vList (NILList.x.toStr);
-				case SiLoad : return new vList (SI.pack.str('data'));
+				case SiLoad : return new vList (SI.pack.fStr('data'));
 				case SiEdit : return new vList (SI.rsData.Data as string);
 				}
 				break;
@@ -2368,7 +2393,7 @@ export namespace RS1 {
 	var PTDs = new Array<PackToDataFunc> ();
 
     export function PackToData (P : BufPack) : RSData {
-		let Type = P.str ('type');
+		let Type = P.fStr ('type');
 
 		switch (Type) {
 			case 'List' : return new RSData (P);    // previously vList (P)!!
@@ -2401,9 +2426,9 @@ export namespace RS1 {
 			if (In.constructor.name === 'BufPack') {
 				let Pack = In as BufPack;
 				let Data = new RSData();
-				Data.Name = Pack.str('name');
-				Data._type = Pack.str('type');
-				Data.Str = Pack.str('str');
+				Data.Name = Pack.fStr('name');
+				Data._type = Pack.fStr('type');
+				Data.Str = Pack.fStr('str');
 			} else {
 				// must be class for conversion
 			}
@@ -2518,7 +2543,7 @@ export namespace RS1 {
 				return;
 
 			this.TList = List1;
-			// console.log('TDE List[' + this.List.Name + ']=' + this.List.Str + '.');
+			// console.log('TDE List[' + this.List.Name + ']=' + this.List.fStr + '.');
 
 			this.Lists = List1.lists;
 			this.aList = this.qListByName ('a');
@@ -2644,7 +2669,7 @@ export namespace RS1 {
 
 		push (D : BufPack|RSData) {
 			this.add ([(D.constructor.name === 'BufPack') ?
-				(D as BufPack).str ('rid') : (D as RSData).RID.toStr, D]);
+				(D as BufPack).fStr ('rid') : (D as RSData).RID.toStr, D]);
 		}
 		
 		static isListStr (Str:string) {
@@ -3642,13 +3667,13 @@ export namespace RS1 {
 			}
 			else {
 				let BP = Str1 as BufPack;
-				this.x.InitList (BP.str ('data'));
+				this.x.InitList (BP.fStr ('data'));
 			}
 
 		}
 
-		PostSave (P : BufPack) { P.add (['data', this.toStr]); }
-		PostLoad (P : BufPack) { this.qstr = P.str ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
+		PostSave (P : BufPack) { P.addArgs (['data', this.toStr]); }
+		PostLoad (P : BufPack) { this.qstr = P.fStr ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
 
 // ------------------ qList functions ---------------------
 
@@ -4333,7 +4358,7 @@ export namespace RS1 {
 			}
 
 			let BP = new BufPack('TEST', 'Details...asdfasdfas');
-			BP.add([
+			BP.addArgs([
 				'Num1',
 				123,
 				'Num2',
@@ -5158,7 +5183,7 @@ export namespace RS1 {
 			return false;
 		}
 
-		add(Args: any[]) {
+		addArgs(Args: any[]) {
 		    this.notNIL;
 
 			let limit = Args.length;
@@ -5201,7 +5226,7 @@ export namespace RS1 {
 			// trim ] and trailing text to avoid errors
 
 			if (Args.length)
-				this.add (Args);
+				this.addArgs (Args);
 		}
 
 		xAdd (Type:string,Value:string|number) {
@@ -5252,27 +5277,53 @@ export namespace RS1 {
 			return false;	// not found, no change
 		}
 
-		data(Name: string): PFData {
+
+		data1(Name: string): PFData {
 			let F = this.getField(Name);
 			return F !== NILField ? F.Data : NILAB;
 		}
 
-		str(Name: string) {
+		fData(Name: string): PFData {
+			let F = this.getField(Name);
+			return F !== NILField ? F.Data : NILAB;
+		}
+
+		str1(Name: string) {
 			let F = this.getField(Name);
 			return F !== NILField ? F.Str : '';
 		}
 
-		num(Name: string) {
+		fStr(Name: string) {
+			let F = this.getField(Name);
+			return F !== NILField ? F.Str : '';
+		}
+
+		num1(Name: string) {
 			let F = this.getField(Name);
 			return F !== NILField ? F.Num : NaN;
 		}
 
-		list (Name: string) {
+		fNum(Name: string) {
+			let F = this.getField(Name);
+			return F !== NILField ? F.Num : NaN;
+		}
+
+		list1 (Name: string) {
 			let F = this.getField(Name);
 			return F !== NILField ? F.List : NILList;
 		}
 
-		pack (Name: string) {
+		fList (Name: string) {
+			let F = this.getField(Name);
+			return F !== NILField ? F.List : NILList;
+		}
+
+		pack1 (Name: string) {
+			let F = this.getField(Name);
+			return F !== NILField ? F.Pack : NILPack;
+		}
+
+		fPack (Name: string) {
 			let F = this.getField(Name);
 			return F !== NILField ? F.Pack : NILPack;
 		}
@@ -5575,7 +5626,7 @@ export namespace RS1 {
 				console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
 			}
 
-			this.add (AddArray);
+			this.addArgs (AddArray);
 			console.log ('ObjectIn Resultant BP:' + '\n' + this.desc);
 		}
 
@@ -5644,13 +5695,13 @@ export namespace RS1 {
 		bSelDel (Tile : string, ID : number, Query : string) : BufPack {
 			let Pack = new BufPack ();
 			Pack.xAdd ('Q', Query);
-			Pack.add (['.T', Tile, '.I', ID]);
+			Pack.addArgs (['.T', Tile, '.I', ID]);
 
 			return Pack;
 		}
 
 		bInsUpd (Pack : BufPack) : BufPack {
-			let ID = Pack.num ('.I');
+			let ID = Pack.fNum ('.I');
 
 			Pack.xAdd ('Q',ID ? 'U' : 'I');
 			return Pack;
