@@ -828,18 +828,17 @@ export namespace RS1 {
 		protected qstr='';
 
 		get delim () { return '|'; }
-		get size () { return this.qstr.length > 1; }	// not NULL list
-		get firstDelim () {	return this.qstr.indexOf(this.delim); }
-		get indent () {
-			let I = new Indent (this.qstr.slice (0,this.qstr.indexOf(this.delim)));
-
-			return I.toABS;
+		protected namedescstr (start=0) {	// this is for qList only, replace on rList
+			let end = this.qstr.indexOf ('|',start);
+			return this.qstr.slice (start, end);
 		}
+		get size () { return this.qstr.length > 1; }	// not NULL list, only for qList!
 
-		protected namedescstr (start=0) {
-			let str = this.qstr.slice(start);
-			let D = str.slice(-1);
-			return isDelim (D) ? str.slice (0,str.indexOf (D)) : str;
+		get firstDelim () {	return this.qstr.indexOf('|'); }
+
+		get indent () {
+			let I = new Indent (this.qstr.slice (0,99));
+			return I.toABS;
 		}
 
 		protected getNameDesc (start=0) {
@@ -885,20 +884,12 @@ export namespace RS1 {
 		}
 
 		setNameOrDesc (name='',ifDesc=false) {
-			// must rewrite to properly handle rList (with no delim in qstr VS. qList with |
+			let pair = this.getNameDesc ();
+			if (ifDesc)
+				pair.b = name
+			else pair.a = name;
 
-
-			let pos = this.qstr.indexOf(this.delim);
-			let head = this.qstr.slice (0,pos), tail = this.qstr.slice (pos);
-			let nd = strPair.namedesc(head);
-			let desc = nd.b;
-
-			if (ifDesc) {
-				desc = name;
-				name = nd.a;
-			}
-
-			this.fromStr (name + (desc ? (':' + desc) : '') + tail);
+			this.setNameDesc (pair.a, pair.b);
 		}
 
 		get listName() {
@@ -1251,6 +1242,15 @@ export namespace RS1 {
 		private Names:string[]=[];
 
 		get NILchk () { return this === NILrList; }
+
+		protected namedescstr (start=0) {	// this is for qList only, replace on rList
+			return this.qstr;
+		}
+		get size () {
+			 return (this.qstr !== '')  ||  (this.count > 0);
+		}
+
+		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
 
 		clear () {
 			this.Names = [];
