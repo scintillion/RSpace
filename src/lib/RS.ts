@@ -63,18 +63,19 @@ export namespace RS1 {
 		Del (vName:string) { throw 'NO Del'; }
 
 		get summary () {
-			let str = '(' + this.cName + ')' + this.Name;
+			let str = '(' + this.cName;
+			if (this.Type)
+				str += '/' + this.Type;
+			str += '=' + this.Name;
 			if (this.Desc)
 				str += ':' + this.Desc;
-			if (this.Type)
-				str += ' type ' + this.Type + ' ';
 			let f = this.count;
 			if (f)
-				str += '#' + f.toString ();
+				str += ' #' + f.toString ();
 			f = this.fam;
 			if (f)
 				str += ':fam/' + f.toString () + ' '
-			return str + '='
+			return str + ')='
 		}
 
 		get expand () {
@@ -884,6 +885,9 @@ export namespace RS1 {
 		}
 
 		setNameOrDesc (name='',ifDesc=false) {
+			// must rewrite to properly handle rList (with no delim in qstr VS. qList with |
+
+
 			let pos = this.qstr.indexOf(this.delim);
 			let head = this.qstr.slice (0,pos), tail = this.qstr.slice (pos);
 			let nd = strPair.namedesc(head);
@@ -1332,23 +1336,7 @@ export namespace RS1 {
 				return;
 			}
 
-			let first = Strs[0];
-			if (isDelim (first.slice(-1))) {
-				this.addStr (Strs);
-			}
-			else {
-				if (!ND) {	// use first string as name:desc
-					let pair = new strPair ();
-					pair.fromStr (first,':');
-					if (pair.b === pair.a)
-						pair.b = '';
-					if (pair.b)
-						ND = pair.a + ':' + pair.b;
-					else ND = pair.a;
-					this.qstr = ND;
-				}
-				this.addStr (Strs.slice(1));
-			}
+			this.addStr (Strs);
 			console.log ('rList ' + this.qstr + ' created: ' + this.summary);
 		}
 
@@ -2436,7 +2424,6 @@ export namespace RS1 {
 	}
 
 	const NewTileStrings: string[] = [
-		'ABC:Tile Description',
 		'T\ta|name:Full|\ts|display:flex|flex-direction:column|align:center|justify:center|background:black|min-width:750px|max-width:750px|min-height:500px|\t',
 		' T\ta|name:Top|\ts|background:magenta|min-height:150px|\t',
 		'  T\ta|name:Left|\ts|background:green|min-width:100px|\t',

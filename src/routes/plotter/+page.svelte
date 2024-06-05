@@ -13,7 +13,6 @@
 		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	];
 	const NewTileStrings: string[] = [
-		'ABC:Tile Description',
 		'T\ta|name:Full|\ts|display:flex|flex-direction:column|align:center|justify:center|background:black|min-width:750px|max-width:750px|min-height:500px|\t',
 		' T\ta|name:Top|\ts|background:magenta|min-height:150px|\t',
 		'  T\ta|name:Left|\ts|background:green|min-width:100px|\t',

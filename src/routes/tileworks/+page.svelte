@@ -55,9 +55,9 @@
 	function selectTile(tile: RS1.TDE) {
 		selectedTile = tile
 		step = 'editTile'
-		VIDArray = tile.aList?.x.ToSortedVIDs()
-		VIDStyle = tile.sList?.x.ToSortedVIDs()
-		VIDAttribute = tile.aList?.x.ToSortedVIDs()
+		VIDArray = tile.aList?.toSortedVIDs;
+		VIDStyle = tile.sList?.toSortedVIDs;
+		VIDAttribute = tile.aList?.toSortedVIDs;
 		VIDArray?.forEach(VID => {
 			VIDsArray.push(VID)
 		})
@@ -67,7 +67,7 @@
 
 async function handleUpload(event: Event, tile: RS1.TDE) {
   const files = (event.currentTarget as HTMLInputElement).files;
-  const VID = tile.sList?.x.GetVID('background-image');
+  const VID = tile.sList?.getVID('background-image');
   if ( files !== null && files.length > 0) {
     try {
       const file = files[0];
@@ -76,7 +76,7 @@ async function handleUpload(event: Event, tile: RS1.TDE) {
 	  reader.onload = (e) => {
 		if (VID) {
 			VID.Desc = `url("${e.target?.result}")`;
-			tile.sList?.x.UpdateVID(VID);
+			tile.sList?.setVID(VID);
 	  }
 	}
     } catch (error) {
