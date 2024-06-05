@@ -863,16 +863,16 @@ export namespace RS1 {
 			return strPair.namedesc(str);
 		}
 
-		get name () {
+		get Name () {
 			return this.namedesc ().a;
 		}
 
-		get desc () {
+		get Desc () {
 			let pair = this.namedesc ();
 			return pair.b ? pair.b : pair.a;
 		}
 
-		get type () { return 'List'; }
+		get Type () { return 'List'; }
 
 		getNFD (start=0) {
 			return new NFD (this.namedescstr (start));
@@ -1394,7 +1394,7 @@ export namespace RS1 {
 
 			if (!list)
 				return false;
-			let i = this.Lists.indexOf(undefined), name = list.name;
+			let i = this.Lists.indexOf(undefined), name = list.Name;
 			if (i >= 0) {
 				this.Names[i] = name;
 				this.Lists[i] = list;
@@ -1413,7 +1413,7 @@ export namespace RS1 {
 			if (!list)
 				return;
 			
-			let name = list.name;
+			let name = list.Name;
 			if (name) {
 				let i = this.listIndex(name);
 				if (i >= 0) {
@@ -2470,8 +2470,7 @@ export namespace RS1 {
 		_Str: string;
 
 		constructor(Str: string) {
-			Str = Str.trim();
-			this._Str = Str;
+			this._Str = Str = Str.trim ();
 
 			let NamEnd = Str.indexOf(':');
 			if (NamEnd >= 0) {
@@ -2522,7 +2521,7 @@ export namespace RS1 {
 				return undefined;
 
 			for (const C of this.Lists) {
-				if (C  &&  (C.name === Name)) {
+				if (C  &&  (C.Name === Name)) {
 					console.log ('  listByName(' + Name + ')=' + C.toStr);
 					return C;
 				}
@@ -2554,11 +2553,11 @@ export namespace RS1 {
 			if (this.Lists) {
 				for (const C of this.Lists)
 					if (C)
-						console.log ('   TDE Child:' + C.name + '=' + C.toStr);
+						console.log ('   TDE Child:' + C.Name + '=' + C.toStr);
 			}
 
 			this.level = List1.indent;
-			this.tileID = new TileID(List1.name);
+			this.tileID = new TileID(List1.Name);
 		}
 
 		get toStr () {
@@ -4160,7 +4159,7 @@ export namespace RS1 {
 					for (let c = 0; c < me.Lists.length; ) {
 						let List = me.Lists[c++];
 						if (List) {
-							NewStr = '\t\t List.Name=' + List.name + '=' + List.toStr;
+							NewStr = '\t\t List.Name=' + List.Name + '=' + List.toStr;
 							Str += NewStr + '\n';
 						}
 					}
