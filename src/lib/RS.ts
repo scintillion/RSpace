@@ -658,9 +658,10 @@ export namespace RS1 {
 
 	export const NILFmt = new IFmt ('');
 
-	  export class vID  {
-		// often abbreviated as VID
-		List=NILList;
+	export class vID  {
+        // often abbreviated as VID
+        List=NILqList;
+
 		Values: number[] = [];
 		Name='';
 		Desc='';
@@ -680,7 +681,7 @@ export namespace RS1 {
 			return v;
 		}
 
-		constructor(Str: string, List1=NILList) {
+		constructor(Str: string, List1=NILqList) {
 			if (!Str)
 				return;
 
@@ -3913,7 +3914,7 @@ export namespace RS1 {
     } // vList
 
 	export const NILList = new vList ('NIL|');
-	export const NILVID = new vID ('NIL:NIL',NILList);
+	export const NILVID = new vID ('NIL:NIL',NILqList);
 	export const NILvLX = new vListXtra (NILList);
 
 	export class vFast {
