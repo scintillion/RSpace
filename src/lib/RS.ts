@@ -1422,8 +1422,14 @@ export namespace RS1 {
 		addStr (Str:string|string[]) {
 			if (this.NILchk) return;
 
-			if ((typeof Str) === 'string') 
-				return this.add (new qList (Str as string));
+			if ((typeof Str) === 'string') {
+				let S = Str as string, D = S.slice (-1);
+
+				if (D === '|') 
+					return this.add (new qList (S));
+				
+				return this.add (new rList (S));
+			}
 
 			let Strs = Str as string[];
 			for (const S of Strs) {
@@ -2423,19 +2429,6 @@ export namespace RS1 {
 			}
 		} else return undefined;
 	}
-
-	const NewTileStrings: string[] = [
-		'T\ta|name:Full|\ts|display:flex|flex-direction:column|align:center|justify:center|background:black|min-width:750px|max-width:750px|min-height:500px|\t',
-		' T\ta|name:Top|\ts|background:magenta|min-height:150px|\t',
-		'  T\ta|name:Left|\ts|background:green|min-width:100px|\t',
-		'   T\ta|name:Top|\ts|background:magenta|min-height:50px|\t',
-		'   T\ta|name:Bottom|\ts|background:magenta|min-height:100px|\t',
-		'  T\ta|name:Right|\ts|background:cyan|width:100%|display:flex|\t',
-		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:white|min-height:350px|\t',
-		'  T\ta|name:Left|\ts|background:green|min-width:100px|\t',
-		'  T\ta|name:Middle|\ts|background:cyan|width:100%|display:flex|\t',
-		'  T\ta|name:Right|\ts|background:yellow|min-width:200px|\t'
-	];
 
 	const TileStrings: string[] = [
 		'T\ta|name:Full|\ts|display:flex|flex-direction:column|align:center|justify:center|background:black|min-width:750px|max-width:750px|min-height:500px|\t',
@@ -4310,10 +4303,10 @@ export namespace RS1 {
 			}
 			*/
 
-			console.log('Reading NewTileStrings!');
-			let NewTileList = new rList(NewTileStrings);
+			console.log('Reading TileStrings!');
+			let NewTileList = new rList(TileStrings);
 			// if (NewTileList) NewTileList.x.Dump('');
-			console.log('Finished reading NewTileStrings');
+			console.log('Finished reading TileStrings');
 
 			//			TL = new TileList(TileStrings);
 			console.log('Testing NewTileList');
