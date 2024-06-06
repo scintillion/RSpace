@@ -25,6 +25,7 @@
 	
 	<a href="/plotter/">Plotter</a>
 	<a href="/editor/">Editor</a>
+	<a href="/editorQ/">qList Editor</a>
 	<a href="/loleditor/">LoL Editor</a>
 	<a href="/dbeditor/">Database Editor</a>
 	<a href="/apitesting/">API Testing</a>
