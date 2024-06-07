@@ -4,6 +4,7 @@
 	import { RS1 } from '$lib/RS';
 
 	const TileStrings: string[] = [
+		'TS3:TileStrings Desc',	
 		'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
 		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
 		' T\ta|name:Bottom|\ts|display:flex|row:1|background:none|align-items:center|justify-content:space-evenly|\t',

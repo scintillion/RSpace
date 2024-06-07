@@ -1337,8 +1337,32 @@ export namespace RS1 {
 				return;
 			}
 
+			let first = Strs[0];
+			if (isDelim (first.slice(-1))) {
+				this.addStr (Strs);
+				console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+				return;
+			}
+
+			console.log ('-------------  rList constructor FIRST =' + first);
+			if (!ND) {	// use first string as name:desc
+					let pair = new strPair ();
+					pair.fromStr (first,':');
+					if (pair.b === pair.a)
+						pair.b = '';
+					if (pair.b)
+						ND = pair.a + ':' + pair.b;
+					else ND = pair.a;
+					this.qstr = ND;
+				}
+			console.log ('  ND=' + ND + '.');
+			this.addStr (Strs.slice(1));
+			console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+
+/*
 			this.addStr (Strs);
 			console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+*/
 		}
 
 		private listIndex (list:string|ListTypes) {
@@ -2431,6 +2455,7 @@ export namespace RS1 {
 	}
 
 	const TileStrings: string[] = [
+		'TS1:TileStrings Desc',
 		'T\ta|name:Full|\ts|display:flex|flex-direction:column|align:center|justify:center|background:black|min-width:750px|max-width:750px|min-height:500px|\t',
 		' T\ta|name:Top|\ts|background:magenta|min-height:150px|\t',
 		'  T\ta|name:Left|\ts|background:green|min-width:100px|\t',
