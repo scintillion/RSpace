@@ -2569,6 +2569,10 @@ export namespace RS1 {
 		get toStr () {
 			return 'TDEStr!'
 		}
+
+		get summary () {
+			return super.summary + ' List=' + this.TList.toStr;
+		}
 	}
 
 	export class pList {
@@ -4082,7 +4086,7 @@ export namespace RS1 {
 			for (const L of Lists)
 				if (L) this.tiles[++i] = new TDE (L as rList);
 
-			this.tiles.length = count + 1;
+			this.tiles.length = i + 1;
 			this.Links();
 
 			console.log ('**** TileList.Links, Str = \n' + this.toStr);

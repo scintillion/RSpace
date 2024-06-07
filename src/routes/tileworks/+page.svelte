@@ -48,6 +48,12 @@
 	let currentEditor: Editor | null = null;
 	let showPlot = false
 
+    let Tiles = List.tiles;
+	console.log ('List of Tiles in TileWorks:');
+	for (const T of Tiles) {
+		if (T)
+			console.log (T.summary);
+	}
 
 	List.tiles.forEach(tile => {
 		TileArray.push(tile)
