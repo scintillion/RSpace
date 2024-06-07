@@ -4,6 +4,7 @@
 	import { RS1 } from '$lib/RS';
 	import { RTile } from '../../components/tiles/RTile'
 	import Editor from '../../components/tiles/Editor.svelte';
+	import QEditor from '../../components/tiles/QEditor.svelte';
    
 	// const TileStrings: string[] = [
 	// 	'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
@@ -45,7 +46,7 @@
 	const Str: string = '>'
 	let step = 'selectTile'
 	let ListType = 'attributes'
-	let currentEditor: Editor | null = null;
+	let currentEditor: QEditor | null = null;
 	let showPlot = false
 
     let Tiles = List.tiles;
@@ -57,7 +58,7 @@
 
 	List.tiles.forEach(tile => {
 		TileArray.push(tile)
-	})
+		})
 
 	function selectTile(tile: RS1.TDE) {
 		selectedTile = tile
@@ -98,8 +99,8 @@ step = 'selectTile'
 	function Edit(tile: RS1.TDE) {
 			let sList = tile.sList;
 			let aList = tile.aList;
-			let sPack = sList?.SavePack();
-			let aPack = aList?.SavePack();
+			// let sPack = sList?.SavePack();
+			// let aPack = aList?.SavePack();
 			const EditContainer = document.querySelector('.editContainer');
 			
 			if (currentEditor) {
@@ -108,11 +109,11 @@ step = 'selectTile'
 			}
 			
 			if (EditContainer) {
-				if (ListType === 'styles' && sPack !== undefined) {
-					currentEditor = new Editor({
+				if (ListType === 'styles') {
+					currentEditor = new QEditor({
 						target: EditContainer,
 						props: {
-							Pack: sPack,
+							qList: sList,
 						},
 					});
 					currentEditor.$on('close', () => {
@@ -126,11 +127,11 @@ step = 'selectTile'
 						}
 		
 					})
-				} else if (ListType === 'attributes' && aPack !== undefined) {
-					currentEditor = new Editor({
+				} else if (ListType === 'attributes') {
+					currentEditor = new QEditor({
 						target: EditContainer,
 						props: {
-							Pack: aPack,
+							qList: aList,
 						},
 					});
 					currentEditor.$on('close', () => {
@@ -166,7 +167,7 @@ step = 'selectTile'
 	  <div class='selectContainer'>
 	    {#each TileArray as tile}
 		<div on:click={() => selectTile(tile)} class:selected={tile === selectedTile} >
-	        <span>{Str.repeat(tile.level)}{tile.aList?.x.GetDesc('name')} [{tile.TList?.listName.replace(/^\s+/, '')}]</span>
+	        <span>{Str.repeat(tile.level)}{tile.aList?.descByName('name')} [{tile.TList?.listName.replace(/^\s+/, '')}]</span>
 		  </div>
 	    {/each}
 	  </div>
