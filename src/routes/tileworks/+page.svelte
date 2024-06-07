@@ -115,7 +115,7 @@ step = 'selectTile'
 					currentEditor.$on('save', (event) => {
 						let ReceivedPack = event.detail.value;
 						if(ReceivedPack.str('data')) {
-							tile.sList = new RS1.vList(ReceivedPack.str('data'));
+							tile.sList = new RS1.qList(ReceivedPack.str('data'));
 						}
 		
 					})
@@ -133,7 +133,7 @@ step = 'selectTile'
 					currentEditor.$on('save', (event) => {
 						let ReceivedPack = event.detail.value;
 						if(ReceivedPack.str('data')) {
-							tile.aList = new RS1.vList(ReceivedPack.str('data'));
+							tile.aList = new RS1.qList(ReceivedPack.str('data'));
 						}
 						
 		

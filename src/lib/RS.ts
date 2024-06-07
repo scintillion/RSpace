@@ -23,6 +23,17 @@ export namespace RS1 {
 		Pack
 	}
 
+	export function strToStrings (S:string) {
+		let D = S.slice(-1);
+		if (D === '|')
+			return [S];
+		else if (!isDelim (D))
+			return new Array<string> ();
+
+		let Strs = S.split (D);
+		return Strs.slice (0,-1);
+	}
+
 	export class RSD {
 		get Name () { return this.cName; }
 		set Name (n:string) { log ('NO set Name'); }
@@ -41,17 +52,6 @@ export namespace RS1 {
 		get cName () { return this.constructor.name; }
 		get fam () { return 0; }
 		
-		strToStrings (S:string) {
-			let D = S.slice(-1);
-			if (D === '|')
-				return [S];
-			else if (!isDelim (D))
-				return new Array<string> ();
-
-			let Strs = S.split (D);
-			return Strs.slice (0,-1);
-		}
-
 		get toStr () { throw 'NO toStr'; return this.Name; }
 		fromStr (S='') { throw 'NO fromStr'}
 
@@ -1323,7 +1323,7 @@ export namespace RS1 {
 			
 			let Strs;
 			if (typeof Str === 'string')
-				Strs = this.strToStrings (Str as string);
+				Strs = strToStrings (Str as string);
 			else if ((typeof Str[0]) === 'string')
 				Strs = Str as string[];
 			else {	// array of Lists!
@@ -4030,17 +4030,15 @@ export namespace RS1 {
 		}
 	}
 
-	export class TileList extends qList {
+	export class TileList  {
 		tiles:TDE[];
 
 		constructor(Str1: string[] | string | rList) {
-			super ();
-
 			let count = 0, Strs, List;
 			console.log ('TileList (' + Str1 as string + ')');
 
 			if ((typeof Str1) === 'string')
-				Strs = this.strToStrings (Str1 as string);
+				Strs = strToStrings (Str1 as string);
 			else if (Array.isArray (Str1))
 				Strs = Str1 as string[];
 			else List = Str1 as rList;
