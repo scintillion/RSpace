@@ -4063,7 +4063,7 @@ export namespace RS1 {
 		tiles:TDE[];
 
 		constructor(Str1: string[] | string | rList) {
-			let count = 0, Strs, List;
+			let Strs, List;
 			console.log ('TileList (' + Str1 as string + ')');
 
 			if ((typeof Str1) === 'string')
@@ -4081,8 +4081,8 @@ export namespace RS1 {
 				return;
 			}
 
-			let i = 0, Lists = List.lists, limit = Lists.length;
-			this.tiles = Array(limit + 1);
+			let i = 0, Lists = List.lists;
+			this.tiles = Array(Lists.length + 1);
 			for (const L of Lists)
 				if (L) this.tiles[++i] = new TDE (L as rList);
 
