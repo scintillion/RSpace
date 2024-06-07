@@ -4133,12 +4133,12 @@ export namespace RS1 {
 		get toStr () {
 			let Tiles = this.tiles;
 			let limit = Tiles.length;
-			let Str = 'TILELIST *** TOSTR:  ' + limit.toString () + ' Tiles.\n';
+			let Str = 'TILELIST *** TOSTR:  ' + (limit-1).toString () + ' Tiles.\n';
 
 			for (let i = 0; ++i < limit; ) {
 				let me = Tiles[i];
 
-				let NewStr =
+				let NewStr = 'Tile#' + i.toString () + '.' + 
 					(me.TList ? me.TList.toStr : '@NOLIST@') +
 					'\t' +
 					i.toString() +
