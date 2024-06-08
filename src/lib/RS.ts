@@ -906,6 +906,11 @@ export namespace RS1 {
 
 	export const NILxList = new xList ();
 
+	export function newList (S='|') {
+		return (S.slice(-1) >=' ') ? new qList (S) : new rList(S);
+	}
+
+
 	export class qList extends xList {
 		fromStr (S='|') {
 			if (S.slice(-1) != '|')
@@ -1403,21 +1408,21 @@ export namespace RS1 {
 		}
 
 		add (list:ListTypes) {
-			if (this.NILchk) return;
+			if (this.NILchk) return NILqList;
 
 			if (!list)
-				return false;
+				return NILqList;
 			let i = this.Lists.indexOf(undefined), name = list.Name;
 			if (i >= 0) {
 				this.Names[i] = name;
 				this.Lists[i] = list;
-				return;
+				return list;
 			}
 
 			this.Names.push (name);
 			this.Lists.push (list);
 
-			return true;
+			return list;
 		}
 
 		set (list:ListTypes) {
@@ -1444,7 +1449,7 @@ export namespace RS1 {
 		}
 
 		addStr (Str:string|string[]) {
-			if (this.NILchk) return;
+			if (this.NILchk) return NILqList;
 
 			if ((typeof Str) === 'string') {
 				let S = Str as string, D = S.slice (-1);
@@ -1456,6 +1461,7 @@ export namespace RS1 {
 			}
 
 			let Strs = Str as string[];
+			let L = NILqList;
 			for (const S of Strs) {
 				let D = S.slice(-1);
 				if (D === '|') {
@@ -1471,6 +1477,8 @@ export namespace RS1 {
 				if (L)
 					this.add (L);
 			}
+
+			return L;
 		}
 
 		get toStr () {
@@ -1578,6 +1586,58 @@ export namespace RS1 {
 		Lists.length = count;
 		return new rList (Lists);
 	}
+
+	export class rLOL extends rList {
+		FM = this.addStr('FM|Num|Int|Dollar|Ord|Range|Pair|Nums|Member|Set|Str|Strs|Upper|');
+
+		/*  Input Formats, defined by~FormatStr~
+
+            FormatStr starts with first character which defines its nature,
+            followed by additional characters in some cases
+
+            # - number (including floating point)
+            I - integer
+            Onn - ordinal (+) integers, 0 allowed to indicate none (nn is limit if present)
+            R - StartNumber  COMMA  EndNumber
+            P - integer pair
+            Ann - number array (COMMA separated)  (nn specifies size limit for array)
+            {} - set of allowed strings inside brackets, choose one (or NONE)
+            @ListName - choose member from named list
+            $ - dollar amount, allows two digit cents included $$$.cc
+            %nn - string limited to nn characters
+            Unn - uppercase string
+        */
+
+		PL = this.addStr('|Number:#|String:$|ArrayBuffer:[|');
+
+		FT = this.addStr(
+			'Ft|#:Num|I:Int|$:Dollar|P:Pair|O:Ord|A:Nums|%:Str|U:Upper|@:Member|R:Range|{:Set|'); // added & tested full support for Num, Int, Str, Dollar, Nums, Range, Upper, Ord, Pair; Member Rough Support Added
+		//
+		CT = this.addStr('Ct:ConnectType|Data|Event|Action|Queue|DB|SQL:SQLite|Remote|Retail|');
+
+		LT = this.addStr(
+			'Lt:ListType|Dt:DataType|Ev:Event|Ac:Action|Rt:Return|Td:TileDef|Ts:TileSize|Pr:Process|Mt:MessageType|Lg:Language|'
+		);
+
+		DT = this.addStr(
+			'Dt:DataType|String:Free format string|Integer:Whole Number|Number:Whole or Real Number|'
+		);
+		EV = this.addStr('Ev:Event|Click|Enter|Exit|DblClick|Swipe|Drop|Drag|');
+		RT = this.addStr('Rt:Return|Ok|Fail|Equal|Unequal|Queue|');
+		TD = this.addStr('Td:TileDef|Tile|LnEdit|TxtEdit|Btn|Img|Video|');
+		TS = this.addStr(
+			'Ts:TileSize|Fixed|T:Top|TL:Top Left|TR:Top Right|B:Bottom|BL:Bottom Left|BR:Bottom Right|L:Left|R:Right|SH:Shared|'
+		);
+		// Note that Tile Alignment is probably same as Tile Size, at least for now!
+		Pr = this.addStr('Pr:Process|Init|Read|Set|Clear|Default|');
+		MT = this.addStr('Mt:MessageType|Input|Output|Event|Trigger|Action|');
+		AC = this.addStr('Ac:Action|Init|Timer|Login|Logout|');
+		LG = this.addStr('Lg:Language|En:English|Es:Espanol|Cn:Chinese|');
+		CY = this.addStr('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
+		Test = this.addStr('Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|');
+	}
+
+	export const rLoL = new rLOL ();
 
 /*
 	export class LoL {	//	LoL
