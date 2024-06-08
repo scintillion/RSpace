@@ -11,11 +11,11 @@ export class RTile extends LitElement {
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
-  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|\ts|cursor:pointer');
+  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|\ts|cursor:pointer|\t');
   static ButtonDefArray: RS1.TDE[] = [RTile.TDef, RTile.ButtonTDE];
   static ButtonDef = RTile.TileMerge(RTile.ButtonDefArray);
 
-  static RoundButtonTDE = new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px');
+  static RoundButtonTDE = new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t');
   static RoundButtonDefArray: RS1.TDE[] = [RTile.ButtonDef, RTile.RoundButtonTDE];
   static RoundButtonDef = RTile.TileMerge(RTile.RoundButtonDefArray);
 
@@ -42,7 +42,7 @@ export class RTile extends LitElement {
     for (let i = TDEArray.length - 2; i >= 0; --i) {
       RTile.Merge(TDEArray[i], TDEArray[i+1]);
     }
-
+   
     return TDEArray[TDEArray.length - 1];
   }
 

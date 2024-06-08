@@ -22,7 +22,7 @@ export class QEditor {
 	}; // HTMLElement(s)
 	private selectContainer: HTMLDivElement;
 	private rList: RS1.rList;
-	private formats: RS1.qList = RS1.rList.FT as RS1.qList;
+	private formats: RS1.qList = RS1.rLoL.FT as RS1.qList;
 	
 
 	/** Public Functions (External Calls) */
@@ -156,7 +156,7 @@ export class QEditor {
 			if (vID.Fmt) {
 				const rawFMT = vID.Fmt as RS1.IFmt;
 				const format1: string = rawFMT.TypeStr;
-				const format = this.formats.x.GetDesc(rawFMT.Ch) as string;
+				const format = this.formats.descByName(rawFMT.Ch) as string;
 				
 				if (format === 'Member') {
 					this.LoadMemberAndSetFields();
@@ -549,7 +549,7 @@ export class LOLEditor {
 
 	private LoadSelect(): void {
 		// this.LOL.ToSelect(this.select);
-		this.rList.ToSelect(this.select);
+		this.rList.toSelect(this.select);
 
 
 		this.select.onchange = () => this.ListChangeHandler();

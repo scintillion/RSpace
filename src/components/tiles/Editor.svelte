@@ -21,7 +21,7 @@
 
 	const unsubscribe = packStore.subscribe(value => {
       		receivedPack = value;
-      		console.dir('store pack' + receivedPack.str('data')); 
+      		// console.dir('store pack' + receivedPack.str('data')); 
       
     });
 
@@ -68,7 +68,7 @@
 			const edit: Editor = new Editor(container, list, LoL);
 			edit.Populate();
 		}
-		console.dir('prop pack' + Pack.str ('data'))
+		// console.dir('prop pack' + Pack.str ('data'))
 	// 	const unsubscribe = packStore.subscribe(value => {
     //   		receivedPack = value;
     //   		//console.dir('store pack' + receivedPack.str('data')); 
