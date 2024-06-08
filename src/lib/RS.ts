@@ -1509,6 +1509,44 @@ export namespace RS1 {
 			return new qList(qstrs.join('|') + '|');
 		}		
 
+		toSelect(Select: HTMLSelectElement) {
+			let List = this.toQList;
+
+			if (List) List.toSelect (Select);
+		}
+
+		bubble (nameOrList:string|ListTypes,dir=0) {
+			if (!nameOrList)
+				return false;
+
+			let i = this.listIndex (nameOrList);
+			if (i < 0)
+				return false;
+
+			let j = i;
+			if (dir <= 0)	{	//	bubble up
+				while (--j >= 0)
+					if (this.Lists[j])	// found a switch
+						break;
+
+				if (j < 0)
+					return false;
+			}
+			else {	// bubble down
+				let lim = this.Lists.length;
+				while (++j < lim)
+					if (this.Lists[j])	// found a switch
+						break;
+
+				if (j >= lim)
+					return false;	// switch not found
+			}
+
+			let OldName = this.Names[i], OldList= this.Lists[i];
+			this.Names[i] = this.Names[j]; this.Lists[i] = this.Lists[j];
+			this.Names[j] = OldName; this.Lists[j] = OldList;
+			return true;
+		}
 	}
 
 	export const NILrList = new rList ();
