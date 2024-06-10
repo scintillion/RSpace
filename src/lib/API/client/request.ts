@@ -94,6 +94,10 @@ export async function InitClient () {
     ND = Q.splitNames;
     console.log ('ND=' + ND.b);
 
+    console.log ('Prebubble = ' + Q.toStr);
+    Q.bubble ('DEF');
+    console.log ('Postbubble = ' + Q.toStr);
+
 	let TileStrings: string[] = [
         'TS2:TileStrings Desc',
 		'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',

@@ -1209,7 +1209,7 @@ export namespace RS1 {
 			if (start < 0)
 				return false;
 
-			let end = this.qstr.indexOf('|',start);
+			let end = this.qstr.indexOf('|',start+1);
 			if (end < 0)
 				return false;
 			if (dir > 0) {	// bubble down, find next end
