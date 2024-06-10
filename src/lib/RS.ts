@@ -942,17 +942,18 @@ export namespace RS1 {
 			return Number (this.descByName (name));
 		}
 
-		find (name:string|number) {
+		protected find1 (name:string|number) {
 			let str = '|' + name.toString ()+':';
 			let nPos = this.qstr.indexOf (str);
 			if (nPos >= 0)
-				return nPos;
+				return nPos+1;
 
 			str = str.slice (0,-1) + '|';
-			return this.qstr.indexOf (str);
+			nPos = this.qstr.indexOf (str);
+			return nPos >= 0 ? nPos + 1 : -1;
 		}
 
-		findByDesc(Desc: string|number) {
+		protected findByDesc(Desc: string|number) {
 			let SearchStr = ':' + Desc.toString() + '|';
 
 			let Pos = this.qstr.indexOf(SearchStr, this.qstr.indexOf('|'));
@@ -975,10 +976,10 @@ export namespace RS1 {
 			return '';
 		}
 
-		prepost (name:string|number) {
-			let nPos = this.find (name);
+		protected prepost (name:string|number) {
+			let nPos = this.find1 (name);
 			if (nPos >= 0) {
-				let dPos = this.qstr.indexOf ('|',++nPos);
+				let dPos = this.qstr.indexOf ('|',nPos);
 				if (dPos >= 0)
 					return new strPair (this.qstr.slice (0,nPos),this.qstr.slice (dPos));
 			}
@@ -1002,11 +1003,11 @@ export namespace RS1 {
 		}
 
 		getVID (name:string|number) : vID {
-			let nPos = this.find (name);
+			let nPos = this.find1 (name);
 			if (nPos < 0)
 				return NILVID;
 
-			let endPos = this.qstr.indexOf('|',nPos+1);
+			let endPos = this.qstr.indexOf('|',nPos);
 			if (endPos >= 0)
 				return new vID (this.qstr.slice (nPos,endPos));
 
@@ -1024,14 +1025,17 @@ export namespace RS1 {
 		}
 
 		descByName (name:string|number) {
-			let nPos = this.find (name);
+			let nPos = this.find1 (name);
 			if (nPos < 0)
 				return '';
 
-			let endPos = this.qstr.indexOf ('|',nPos += name.toString ().length + 2);
-			if (endPos >= 0)
-				return this.qstr.slice (nPos,endPos);
-			return '';
+			let endPos = this.qstr.indexOf ('|',nPos);
+			if (endPos < 0)
+				return '';
+
+			let str = this.qstr.slice (nPos,endPos);
+			let dPos = str.indexOf(':');
+			return (dPos >= 0) ? str.slice (dPos + 1) : str;
 		}
 
 		get toRaw () : string[] {
@@ -1205,11 +1209,12 @@ export namespace RS1 {
 		}
 
 		bubble (name:string|number, dir=0) {
-			let start = this.find (name);
+			let start = this.find1 (name);
 			if (start < 0)
 				return false;
 
 			let end = this.qstr.indexOf('|',start+1);
+			let str = this.qstr.slice (start);
 			if (end < 0)
 				return false;
 			if (dir > 0) {	// bubble down, find next end

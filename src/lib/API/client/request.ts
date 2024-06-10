@@ -97,6 +97,8 @@ export async function InitClient () {
     console.log ('Prebubble = ' + Q.toStr);
     Q.bubble ('DEF');
     console.log ('Postbubble = ' + Q.toStr);
+    Q.bubble ('DEF',1);
+    console.log ('Bubble again = ',Q.toStr);
 
 	let TileStrings: string[] = [
         'TS2:TileStrings Desc',
