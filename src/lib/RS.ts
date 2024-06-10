@@ -608,7 +608,7 @@ export namespace RS1 {
 		return this.Type;
 	}
 
-		constructor(Str1: string) {
+		constructor(Str1='') {
 			let NoError = true;
 
 			if (!Str1) {
@@ -1002,7 +1002,7 @@ export namespace RS1 {
 			else this.qstr += vStr + '|';
 		}
 
-		getVID (name:string|number) : vID {
+		getVID (name:string|number) {
 			let nPos = this.find1 (name);
 			if (nPos < 0)
 				return NILVID;
@@ -1012,6 +1012,13 @@ export namespace RS1 {
 				return new vID (this.qstr.slice (nPos,endPos));
 
 			return NILVID;
+		}
+
+		getVIDFmt (name:string|number) {
+			let VID = this.getVID (name);
+			if (!VID.Fmt  &&  VID !== NILVID) 
+				VID.Fmt = new IFmt ('');
+			return VID;
 		}
 
 		setVID (VID:vID) {
