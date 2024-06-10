@@ -3,7 +3,7 @@
     import { RS1 } from '../../lib/RS';
 
 	let CLString =
-		'Test|Name:Your Name|XY:A Number Value|Member:TestMem|Set:[{Test1=ListNum,Test1Name]TestSet|';
+    'Test|Name:[%=John]Your Name|XY:[#=123]A Number Value|Member:[@Test1=ListNum]TestMem|Set:[{Test1=ListNum,Test1Name}]TestSet|';
     let qList = new RS1.qList(CLString);    
     
 
