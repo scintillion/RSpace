@@ -120,13 +120,13 @@ step = 'selectTile'
 						EditContainer.remove();
 						step = 'selectTile';
 					});
-					currentEditor.$on('save', (event) => {
-						let ReceivedPack = event.detail.value;
-						if(ReceivedPack.str('data')) {
-							tile.sList = new RS1.qList(ReceivedPack.str('data'));
-						}
+					// currentEditor.$on('save', (event) => {
+					// 	let ReceivedPack = event.detail.value;
+					// 	if(ReceivedPack.str('data')) {
+					// 		tile.sList = new RS1.qList(ReceivedPack.str('data'));
+					// 	}
 		
-					})
+					// })
 				} else if (ListType === 'attributes') {
 					currentEditor = new QEditor({
 						target: EditContainer,
@@ -138,14 +138,14 @@ step = 'selectTile'
 						EditContainer.remove();
 						step = 'selectTile';
 					});
-					currentEditor.$on('save', (event) => {
-						let ReceivedPack = event.detail.value;
-						if(ReceivedPack.str('data')) {
-							tile.aList = new RS1.qList(ReceivedPack.str('data'));
-						}
+					// currentEditor.$on('save', (event) => {
+					// 	let ReceivedPack = event.detail.value;
+					// 	if(ReceivedPack.str('data')) {
+					// 		tile.aList = new RS1.qList(ReceivedPack.str('data'));
+					// 	}
 						
 		
-					})
+					// })
 				}
 			}
 		}

@@ -152,29 +152,27 @@ export class QEditor {
 			this.i.description.value = vID.Desc		
 
 			console.log(vID.Fmt?.Ch !== '');
+			
+			if (!vID.Fmt  &&  vID !== RS1.NILVID) 
+			vID.Fmt = new RS1.IFmt ('');
 
-			if (vID.Fmt) {
-				const rawFMT = vID.Fmt as RS1.IFmt;
-				const format1: string = rawFMT.TypeStr;
-				const format = this.formats.descByName(rawFMT.Ch) as string;
-				
-				if (format === 'Member') {
-					this.LoadMemberAndSetFields();
-				} else if (format === 'Set') {
-					this.LoadMemberAndSetFields('Set');
-				} else this.UnloadMemberAndSetFields();
+			const rawFMT = vID.Fmt as RS1.IFmt;
+			const format1: string = rawFMT.TypeStr;
+			const format = this.formats.descByName(rawFMT.Ch) as string;
+			
+			if (format === 'Member') {
+				this.LoadMemberAndSetFields();
+			} else if (format === 'Set') {
+				this.LoadMemberAndSetFields('Set');
+			} else this.UnloadMemberAndSetFields();
 
-				//this.i.fmtstr.value = rawFMT.Str.slice(format.length);
-				this.i.fmtstr.value = rawFMT.Xtra;
-				this.i.fmt.value = format1;
-				console.log('format is ' + format1);
-				console.log('value is ' + rawFMT.Value._Str);
-				this.i.value.value = rawFMT.Value._Str as string;
-			} else {
-				console.log('no format present')
-				vID.Fmt = new RS1.IFmt('')
-				return;
-					}
+			//this.i.fmtstr.value = rawFMT.Str.slice(format.length);
+			this.i.fmtstr.value = rawFMT.Xtra;
+			this.i.fmt.value = format1;
+			console.log('format is ' + format1);
+			console.log('value is ' + rawFMT.Value._Str);
+			this.i.value.value = rawFMT.Value._Str as string;
+			
 
 			this.i.del.onclick = () => this.DeleteVID(vID.Name);
 			this.i.clear.onclick = () => this.ClearRef();
@@ -361,13 +359,8 @@ export class QEditor {
 	}
 
 	private DeleteVID(name: string): void {
-		// const vID: RS1.vID = this.vList.x.GetVID(name) as RS1.vID;
-		// this.vList.x.UpdateVID(vID, true);
-		const vID: RS1.vID = this.qList.getVID(name) as RS1.vID;
-		this.qList.setVID(vID);
+		this.qList.del(name);
 		this.CLToSelect();
-		// console.log(this.vList.Str);
-		// console.log(this.qList.Str); [ignore]
 	}
 
 	private CopyVID(vID: RS1.vID) {
