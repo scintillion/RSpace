@@ -62,7 +62,7 @@ export namespace RS1 {
 		Get (vName:string):any { throw 'NO Get'; return 'Get.RSD'; }
 		Del (vName:string) { throw 'NO Del'; }
 
-		get summary () {
+		get info () {
 			let str = '(' + this.cName;
 			if (this.Type)
 				str += '/' + this.Type;
@@ -79,7 +79,7 @@ export namespace RS1 {
 		}
 
 		get expand () {
-			return this.summary + '\n  EXPANDED!!';
+			return this.info + '\n  EXPANDED!!';
 		}
 
 		get count () { return 0; } 
@@ -879,8 +879,8 @@ export namespace RS1 {
 			return new NFD (this.namedescstr (start));
 		}
 
-		get summary () {
-			let str = super.summary;
+		get info () {
+			let str = super.info;
 			return str + '  Q' + this.indent.toString () + '=' + this.qstr;
 		}
 
@@ -954,7 +954,7 @@ export namespace RS1 {
 				if (S.slice(-1) !== '|')
 					S += '|';
 				this.qstr = S;
-				console.log ('creating ' + this.summary);
+				console.log ('creating ' + this.info);
 				return;
 			}
 
@@ -979,7 +979,7 @@ export namespace RS1 {
 				Strs.length = count;
 			}
 			this.fromRaw (Strs);
-			console.log ('creating ' + this.summary);
+			console.log ('creating ' + this.info);
 		}
 
 		setStr (Str:string) { this.fromStr (Str); }
@@ -1363,13 +1363,13 @@ export namespace RS1 {
 		}
 
 		get summary () {
-			let str = super.summary;
+			let str = super.info;
 			let n = 0;
 
 			if (this.count) {
 				for (const L of this.Lists) {
 					if (L) {
-						str += '\n' + ''.padStart (this.indent,' ') + 'child#' + (++n).toString () + '==' + L.summary;
+						str += '\n' + ''.padStart (this.indent,' ') + 'child#' + (++n).toString () + '==' + L.info;
 					}
 				}
 			}
@@ -1435,13 +1435,8 @@ export namespace RS1 {
 					this.qstr = ND;
 				}
 			console.log ('  ND=' + ND + '.');
-			this.addStr (Strs.slice(1));
+			this.addStr (Strs.slice(1));	//	need to call newLists[Symbol]..
 			console.log ('rList ' + this.qstr + ' created: ' + this.summary);
-
-/*
-			this.addStr (Strs);
-			console.log ('rList ' + this.qstr + ' created: ' + this.summary);
-*/
 		}
 
 		private listIndex (list:string|ListTypes) {
@@ -2741,7 +2736,7 @@ export namespace RS1 {
 		}
 
 		get summary () {
-			return super.summary + ' List=' + this.TList.toStr;
+			return super.info + ' List=' + this.TList.toStr;
 		}
 	}
 
