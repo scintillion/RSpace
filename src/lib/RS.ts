@@ -907,25 +907,87 @@ export namespace RS1 {
 	export const NILxList = new xList ();
 
 	export function newList (S='|') {
-		return (S.slice(-1) >=' ') ? new qList (S) : new rList(S);
+		return !S  || (S.slice(-1) >=' ') ? new qList (S) : new rList(S);
+	}
+
+	export function newLists (Str:string|string[]) {
+		if ((typeof Str) === 'string') {
+			let S = Str as string, D = S.slice (-1);
+			let List:ListTypes = (D === '|') ? new qList (S) : new rList (S);
+			return [List];
+		}
+
+		let Strs = Str as string[], len = Strs.length,
+			count = 0, Lists=Array<ListTypes> (len);
+
+		for (let S of Strs) {
+			let D = S.slice(-1);
+			if (!isDelim (D)) {
+				D = '|';
+				S += 'NODelim|'
+			}
+			
+			if (D === '|') {
+				Lists[count++] = new qList (S);
+				continue;
+			}
+
+			let LStrs = S.split (D);
+			LStrs.length = LStrs.length - 1;
+			Lists[count++] = new rList (LStrs);
+		}
+
+		if (count !== len)
+			Lists.length = count;
+
+		return Lists;
 	}
 
 
-	export class qList extends xList {
-		fromStr (S='|') {
-			if (S.slice(-1) != '|')
-				S += '|';
-			this.qstr = S;
 
+
+	export class qList extends xList {
+		fromStr (Str:string|string[]='|') {
+			if ((typeof Str) === 'string') {
+				let S = Str as string;
+
+				if (S.slice(-1) !== '|')
+					S += '|';
+				this.qstr = S;
+				console.log ('creating ' + this.summary);
+				return;
+			}
+
+			this.qstr = '|';
+			let Strs = Str as string[], len = Strs.length;
+			if (!len)
+				return;
+
+			let S = Strs[0];
+			if (S.indexOf (':') < 0) {
+				if (len & 1) {
+					this.qstr = 'NOTPairs|';
+					return;	// odd number , need pairs, fail
+				}
+
+				let count = 0, i = 0;
+				while (i < len) {
+					Strs[count++] = Strs[i] + ':' + Strs[i+1];
+					i+=2;
+				}
+
+				Strs.length = count;
+			}
+			this.fromRaw (Strs);
 			console.log ('creating ' + this.summary);
 		}
 
 		setStr (Str:string) { this.fromStr (Str); }
 
-		constructor (S='') {
+		constructor (Str:string|string[]='|') {
 			super ();
 	
-			this.fromStr (S);
+			this.fromStr (Str);
 		}
 
 		get descStr () {
@@ -1466,10 +1528,8 @@ export namespace RS1 {
 			if ((typeof Str) === 'string') {
 				let S = Str as string, D = S.slice (-1);
 
-				if (D === '|') 
-					return this.add (new qList (S));
-				
-				return this.add (new rList (S));
+				return (D === '|') ? this.add (new qList (S)) :
+					this.add (new rList (S));
 			}
 
 			let Strs = Str as string[];
