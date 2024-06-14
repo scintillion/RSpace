@@ -910,41 +910,32 @@ export namespace RS1 {
 		return !S  || (S.slice(-1) >=' ') ? new qList (S) : new rList(S);
 	}
 
-	export function newLists (Str:string|string[]) {
+	export function strToLists (Str:string|string[]) {
+		let Strs;
 		if ((typeof Str) === 'string') {
 			let S = Str as string, D = S.slice (-1);
-			let List:ListTypes = (D === '|') ? new qList (S) : new rList (S);
-			return [List];
+			if ((D >= ' ') ||  !S)
+				return [new qList (S)];
+
+			Strs = S.split (D);
+			Strs.length = Strs.length - 1;
 		}
+		else Strs = Str as string [];
 
-		let Strs = Str as string[], len = Strs.length,
-			count = 0, Lists=Array<ListTypes> (len);
-
-		for (let S of Strs) {
+		let len = Strs.length, count = 0, i = -1, Lists=Array<ListTypes> (len);
+		for (const S of Strs) {
 			let D = S.slice(-1);
-			if (!isDelim (D)) {
-				D = '|';
-				S += 'NODelim|'
-			}
-			
-			if (D === '|') {
+			++i;
+			if (D === '|') 
 				Lists[count++] = new qList (S);
-				continue;
+			else if (i || isDelim (D)) {
+				let LStrs = S.split (D);
+				LStrs.length = LStrs.length - 1;
+				Lists[count++] = new rList (LStrs);
 			}
-
-			let LStrs = S.split (D);
-			LStrs.length = LStrs.length - 1;
-			Lists[count++] = new rList (LStrs);
 		}
-
-		if (count !== len)
-			Lists.length = count;
-
 		return Lists;
 	}
-
-
-
 
 	export class qList extends xList {
 		fromStr (Str:string|string[]='|') {
@@ -1362,7 +1353,7 @@ export namespace RS1 {
 			return sum;
 		}
 
-		get summary () {
+		get info () {
 			let str = super.info;
 			let n = 0;
 
@@ -1386,17 +1377,11 @@ export namespace RS1 {
 			return DelimList[high+1];
 		}
 
-		constructor (Str:string|string[]|ListTypes[]='',name='',desc='') {
+		constructor (Str:string|string[]|ListTypes[]='') {
 			super ();
 
-			if (desc === name)
-				desc = '';
-			let ND = desc ? (name + ':' + desc) : name;
-
-			this.qstr = ND;		// default value of qstr, could be modified later...
-
 			if (!Str) {
-				console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+				console.log ('rList ' + this.qstr + ' created: ' + this.info);
 				return;
 			}
 			
@@ -1407,36 +1392,31 @@ export namespace RS1 {
 				Strs = Str as string[];
 			else {	// array of Lists!
 				this.addLists (Str as ListTypes[]);
-				console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+				console.log ('rList ' + this.qstr + ' created: ' + this.info);
 				return;
 			}
 
 			if (!Strs.length) {
-				console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+				console.log ('rList ' + this.qstr + ' created: ' + this.info);
 				return;
 			}
 
 			let first = Strs[0];
 			if (isDelim (first.slice(-1))) {
 				this.addStr (Strs);
-				console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+				console.log ('rList ' + this.qstr + ' created: ' + this.info);
 				return;
 			}
 
 			console.log ('-------------  rList constructor FIRST =' + first);
-			if (!ND) {	// use first string as name:desc
-					let pair = new strPair ();
-					pair.fromStr (first,':');
-					if (pair.b === pair.a)
-						pair.b = '';
-					if (pair.b)
-						ND = pair.a + ':' + pair.b;
-					else ND = pair.a;
-					this.qstr = ND;
-				}
-			console.log ('  ND=' + ND + '.');
-			this.addStr (Strs.slice(1));	//	need to call newLists[Symbol]..
-			console.log ('rList ' + this.qstr + ' created: ' + this.summary);
+			let pair = new strPair ();
+			pair.fromStr (first,':');
+			if (pair.b === pair.a)
+				pair.b = '';
+			this.qstr = pair.b ? pair.a + ':' + pair.b : pair.a;
+
+			this.addStr (Strs.slice(1));
+			console.log ('rList ' + this.qstr + ' created: ' + this.info);
 		}
 
 		private listIndex (list:string|ListTypes) {
@@ -1500,7 +1480,7 @@ export namespace RS1 {
 			if (!list)
 				return;
 			
-			let name = list.Name;
+			let name = list.Name
 			if (name) {
 				let i = this.listIndex(name);
 				if (i >= 0) {
@@ -1518,8 +1498,17 @@ export namespace RS1 {
 		}
 
 		addStr (Str:string|string[]) {
+			let Lists = strToLists (Str);
+			this.addLists (Lists);
+		}
+
+/*
+		addStr (Str:string|string[]) {
 			if (this.NILchk) return NILqList;
 
+			// call strToLists!
+
+			
 			if ((typeof Str) === 'string') {
 				let S = Str as string, D = S.slice (-1);
 
@@ -1547,6 +1536,7 @@ export namespace RS1 {
 
 			return L;
 		}
+*/
 
 		get toStr () {
 			let D = this.delim, str = this.qstr + D;
@@ -2123,7 +2113,9 @@ export namespace RS1 {
 	}
 
 	function isDelim(ch: string): boolean {
-		return DelimList.indexOf (ch) >= 0;
+		if (ch < ' ')
+			return DelimList.indexOf (ch) >= 0;
+		return ch === '|';
 	}
 
 	export function FromString(Str: string) {
