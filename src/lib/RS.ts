@@ -22,6 +22,7 @@ export namespace RS1 {
 		Pack
 	}
 
+	type RSDT=RSD|undefined;
 	export class RSD {
 		get CName () { return 'RSD'; }
 
@@ -34,7 +35,6 @@ export namespace RS1 {
 		get List () { return NILqList; }
 
 		get Pack () { return NILPack; }
-
 		PostSavePack () {}
 		
 		get toPack () { return NILPack; }
@@ -46,6 +46,162 @@ export namespace RS1 {
 		PostLoadPack () {}
 
 
+		get Parent () : RSDT { return undefined; }
+
+		getParent (root : RSD) : RSDT {
+			if (root) {
+				let kids = root.Kids
+				if (kids.indexOf (this) >= 0)
+					return root;
+
+				for (const K of kids)
+					if (K  &&  this.getParent (K))
+						return K;
+			}
+		}
+
+		get Kids () : RSDT[] { return []; }
+		protected get Names () : string[] { return []; }
+
+		get nKids () {
+			let Kids = this.Kids, count = 0;
+
+			for (const K of Kids)
+				if (K)
+					++count;
+
+			return count;
+		}
+
+		get nFam () {
+			let Kids = this.Kids, count = 0;
+
+			for (const K of Kids)
+				if (K)
+					count += K.nFam + 1;
+
+			return count;
+		}
+
+
+		kidIndex (kid:string|RSD) {
+			if (kid)
+				return ((typeof kid) !== 'string') ? this.Kids.indexOf (kid as RSD) :
+						 this.Names.indexOf (kid as string);
+
+			return -1;
+		}
+
+		findKid (kid:string|RSD) : RSDT {
+			let i = this.kidIndex (kid);
+			return (i >= 0) ? this.Kids[i] : undefined;
+		}
+
+		get First () : RSDT {
+			let Kids = this.Kids;
+			for (const R of Kids)
+				if (R)
+					return R;
+		}
+		
+		get Last () : RSDT {
+			let Kids = this.Kids;
+
+			let L;
+			for (const R of Kids)
+				if (R)
+					L = R;
+
+			if (L) {
+				let LL = L.Last;
+				return LL ? LL : L;
+			}
+		}
+
+		Previous (parent:RSDT) : RSDT {
+			if (parent) {
+				let Kids = (parent as RSD).Kids;
+				let i = Kids.indexOf (this);
+				if (i < 0)
+					return undefined;	// consider THROW, should NOT happen!
+
+				while (--i >= 0)
+					if (Kids[i])
+						return Kids[i];
+			}
+		}
+
+		Next (parent:RSDT) : RSDT {
+			if (parent) {
+				let Kids = (parent as RSD).Kids;
+				let i = Kids.indexOf (this);
+				if (i < 0)
+					return undefined;	// consider THROW, should NOT happen!
+
+				for (let len = Kids.length; ++i < len;)
+					if (Kids[i])
+						return Kids[i];
+			}
+		}
+
+		LevList (D:RSD = this, Lev = 0, Levs:RSDLev[] = []) : RSDLev[] {
+			let L = new RSDLev ();
+			L.D = D; L.Lev = Lev;
+			Levs.push (L);
+			
+			let Kids = D.Kids;
+			for (const K of Kids)
+				if (K)
+					this.LevList (K, Lev + 1, Levs);
+
+			return Levs;
+		}
+	}
+
+	export class RSDLev {
+		D : RSDT;
+		Lev = 0;
+	}
+
+	export class RSDParent extends RSD {
+		_names:string[] = [];
+		_kids:RSDT[] = [];
+
+		get Kids () : RSDT[] { return []; }
+		protected get Names () : string[] { return []; }
+
+		addKid (kid : RSD) {
+			let Kids = this._kids, Names = this._names, i = Kids.indexOf (undefined);
+			if (i >= 0) {
+				Names[i] = kid.Name;
+				Kids[i] = kid;
+			}
+			else {
+				Names.push (kid.Name);
+				Kids.push (kid);
+			}
+			return kid;
+		}
+
+		setKid (kid : RSD) {
+			let Kids = this._kids, Names = this._names, Name = kid.Name, i = Names.indexOf (Name);
+			if (i >= 0) {
+				Kids[i] = kid;
+			}
+			else {
+				i = Kids.indexOf (undefined);
+				if (i >= 0) {
+					Kids[i] = kid;
+					Names[i] = Name;
+				}
+				else {
+					Kids.push (kid);
+					Names.push (Name);
+				}
+			}
+
+			return kid;
+		}
 	}
 
 	export class strPair {
@@ -914,7 +1070,7 @@ export namespace RS1 {
 			let str = VID.ToStr (), pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
-			
+
 			if (pos < 0) // no desc
 				this.set (str);
 			else this.set (str.slice (0,pos),str.slice (pos+1));
@@ -2117,30 +2273,6 @@ export namespace RS1 {
 		}
 	}
 
-/*
-	export class TileCache {
-		First: vList | undefined;
-
-		constructor(ListStrs: string[]) {
-			// 'Name:Addr|TileName1|..|TileNameN|"  ("*" is ALL)
-			let limit = ListStrs.length;
-
-			for (let i = 0; i < limit; ) {
-				let Str = ListStrs[i++].trim();
-
-				let List = new vList(Str, this.First);
-				if (!this.First) this.First = List;
-			}
-		}
-
-		LoadTile(ID: TileID) {}
-
-		GetID(TileName: string): TileID | undefined {
-			return undefined;
-		}
-	}
-*/
-
 	export class pList {
 		IDType = '';
 		ValType = 0;
@@ -3137,7 +3269,7 @@ export namespace RS1 {
 			return false;
 		}
 
-		get toStr() : string {
+		get toStr() {
 			if (this.LType != CLType.Pack) return this.qstr;
 
 			if (!this.Childs) return '';
