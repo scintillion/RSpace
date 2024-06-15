@@ -46,9 +46,9 @@ function DumpLists () {
   RS1.LstEdit.TileSelect = document.querySelector ('#ListOfTiles') as HTMLSelectElement;
 
   if (RS1.CL.LT  && RS1.LstEdit.MainList)
-      RS1.CL.LT.ToSelect (RS1.LstEdit.MainList);
+      RS1.CL.LT.x.ToSelect (RS1.LstEdit.MainList);
   if (RS1.CL.TD  &&  RS1.LstEdit.DropList)
-      RS1.CL.TD.ToSelect (RS1.LstEdit.DropList);
+      RS1.CL.TD.x.ToSelect (RS1.LstEdit.DropList);
   if (RS1.CL  &&  RS1.LstEdit.ListSelect)
       RS1.CL.ToSelect (RS1.LstEdit.ListSelect);
 

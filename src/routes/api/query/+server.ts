@@ -54,7 +54,7 @@ class DBKit {
 		}
 
 		if (!QF) {
-			QBuf.add (['!E','No Query!']);
+			QBuf.addArgs (['!E','No Query!']);
 			return [];
 		}
 
@@ -131,7 +131,7 @@ class DBKit {
 								' WHERE id=' + ID.toString () + ';';
 					}
 					else {
-						QBuf.add (['!E','ERROR:' + qType]);
+						QBuf.addArgs (['!E','ERROR:' + qType]);
 						console.log ('  U ERROR!');
 						return [];
 					}
@@ -145,7 +145,7 @@ class DBKit {
 		}	// switch
 
 		console.log ('buildQ, adding qStr = ' + qStr);
-		QBuf.add (['!Q',qStr]);
+		QBuf.addArgs (['!Q',qStr]);
 
 		console.log ('BuildQ = ' + qStr + ' ' + Values.length.toString () + ' Values');
 		vStr = '    QueryVals=';
@@ -167,7 +167,7 @@ class DBKit {
 	}	// BuildQ
 
 	public execQ (Pack : RS1.BufPack, Params : any[]) : RS1.BufPack {
-		let Query = Pack.str ('!Q');
+		let Query = Pack.fStr ('!Q');
 		console.log ('ExecQ QUERY=' + Query + '.');
 		// Query = "SELECT name FROM sqlite_master";	// retrieve all tables
 		const statement = this._db.prepare (Query) as unknown as Statement;
@@ -191,8 +191,8 @@ class DBKit {
 				let Obj = Each as object;
 				let BP = new RS1.BufPack ();
 				BP.objectIn (Obj);
-				RID.ID = BP.num('id');
-				BP.add (['.rid', RID.toStr]);
+				RID.ID = BP.fNum('id');
+				BP.addArgs (['.rid', RID.toStr]);
 
 				console.log ('   Adding RID ' + RID.toStr + '\n' + BP.expand);
 
@@ -250,7 +250,7 @@ const Q = new DBKit ('q.sqlite3');
 const RSS = new RServer ('tile.sqlite3');
 
 async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
-	let Serial = InPack.num ('#');
+	let Serial = InPack.fNum ('#');
 	let OutPack : RS1.BufPack;
 
 	if (!Serial)
@@ -268,20 +268,20 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 		 
 	switch (QF.Name) {
 		case '!Q' :
-			RSS.myTile = InPack.str('.T');
+			RSS.myTile = InPack.fStr('.T');
 			console.log ('  Query Tile --> ' + RSS.myTile);
 			
 			let Params = RSS.DBK.buildQ (InPack);
 			OutPack = RSS.DBK.execQ (InPack, Params);
 
-			OutPack.add (['#',Serial]);
+			OutPack.addArgs (['#',Serial]);
 
 			console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
 			return OutPack;
 
 		case '!H' :
 			OutPack = new RS1.BufPack ();
-			OutPack.add (['!H',++(RSS.nextSession),'#',Serial]);
+			OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
 			console.log ('  Starting Session #' + RSS.mySession);
 			return OutPack;
 			break;

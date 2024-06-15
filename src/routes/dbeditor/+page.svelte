@@ -79,7 +79,7 @@
   // special data edit function
   const handleSpecialDataEdit = () => {
       showEditor = true;
-      Pack.add(['A', 'Edit', 'type', currentRecord.Type, 'data', currentRecord.Data]);
+      Pack.addArgs (['A', 'Edit', 'type', currentRecord.Type, 'data', currentRecord.Data]);
       packStore.set(Pack);
       console.log(Pack)
       return Pack;

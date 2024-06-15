@@ -25,11 +25,14 @@
 	
 	<a href="/plotter/">Plotter</a>
 	<a href="/editor/">Editor</a>
+	<a href="/editorQ/">qList Editor</a>
+	<a href="/rListEditor/">rList Editor</a>
 	<a href="/loleditor/">LoL Editor</a>
 	<a href="/dbeditor/">Database Editor</a>
 	<a href="/apitesting/">API Testing</a>
 	<a href="/vhelsing">VHelsing</a>
 	<a href="/tileworks">TileWorks</a>
+	<a href="raj">Raj</a>
 	<!-- <r-tile attrStr='QED' color="blue"/> -->
 	
 	

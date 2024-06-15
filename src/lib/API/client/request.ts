@@ -23,7 +23,7 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 
 async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
   // console.log ('PackRequest Incoming = \n' + BP.Desc ());
-  BP.add (['#',++Serial]);
+  BP.addArgs (['#',++Serial]);
 
   let AB = BP.bufOut ();
   console.log ('Sending Client Request #' + Serial.toString ());
@@ -32,7 +32,7 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 
   BP.bufIn (recvAB);
 
-  console.log (' ---- Received Server reply #' + BP.num ('#').toString () + '\n' + BP.desc);
+  console.log (' ---- Received Server reply #' + BP.fNum ('#').toString () + '\n' + BP.desc);
 
   return BP;
 }
@@ -77,11 +77,11 @@ export async function InitClient () {
     let OutPack = new RS1.BufPack ();
     OutPack.xAdd ('H',RS1.myVilla);
     let InPack = await RS1.ReqPack (OutPack);
-    RS1.mySession = InPack.num('!H');
+    RS1.mySession = InPack.fNum('!H');
     console.log ('mySession = ' + RS1.mySession.toString ());
 
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
-    console.log (Q.desc ('XYZ'));
+    console.log (Q.descByName ('XYZ'));
     console.log (Q.num ('ABC').toString ());
     console.log (Q.count.toString ());
     console.log ('Names=' + Q.names);
@@ -94,7 +94,14 @@ export async function InitClient () {
     ND = Q.splitNames;
     console.log ('ND=' + ND.b);
 
+    console.log ('Prebubble = ' + Q.toStr);
+    Q.bubble ('DEF');
+    console.log ('Postbubble = ' + Q.toStr);
+    Q.bubble ('DEF',1);
+    console.log ('Bubble again = ',Q.toStr);
+
 	let TileStrings: string[] = [
+        'TS2:TileStrings Desc',
 		'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
 		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
 		' T\ta|name:Bottom|\ts|display:flex|row:1|background:none|align-items:center|justify-content:space-evenly|\t',
@@ -104,7 +111,13 @@ export async function InitClient () {
 		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	];
 
-    let  TList = new RS1.TileList(TileStrings); // remove temporarily
-    console.log ('TList.ToString = \n' + TList.ToString ());
+    let RList = new RS1.rList (TileStrings);
+    console.log ('RList =\n' + RList.summary + '\nRList.toStr=\n' + RList.toStr + '!');
+
+    // let  TList = new RS1.TileList(TileStrings); // remove temporarily
+    // console.log ('TList.ToString = \n' + TList.ToString ());
+
+    
+	let L = new RS1.qList ('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
 }
 

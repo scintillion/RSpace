@@ -70,7 +70,7 @@ export class Plotter {
 					styles += `${property.Name}:${property.Desc}px;`;
 				} else styles += `${property.Name}:${property.Desc};`;
 			} else {
-				if (tile.sList?.x.GetNum(property.Name) === 1) {
+				if (tile.sList?.num(property.Name) === 1) {
 					styles += `flex-direction:${property.Name};`;
 				}
 			}
@@ -82,7 +82,7 @@ export class Plotter {
 			attributes[property.Name] = property.Desc;
 		});
 
-		let content = tile.aList?.x.GetDesc('inner') !== undefined ? tile.aList?.x.GetDesc('inner') : '';
+		let content = tile.aList?.descByName('inner') !== undefined ? tile.aList?.descByName('inner') : '';
 
 		const componentName = tile.List.Name + '_TC';
 		const component = components[componentName as keyof typeof components];

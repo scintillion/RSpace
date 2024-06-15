@@ -7,9 +7,12 @@
 		"src/routes/api/query/+server.ts"
 	],
 	"/dbeditor": [],
+	"/editorQ": [],
 	"/editor": [],
 	"/loleditor": [],
 	"/plotter": [],
+	"/rListEditor": [],
+	"/raj": [],
 	"/tileworks": [],
 	"/vhelsing": []
 }

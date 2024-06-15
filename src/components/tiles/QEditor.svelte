@@ -1,29 +1,21 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Editor } from '$lib/ConstListEditor';
+	import { QEditor } from '$lib/qListEditor';
 	import { RS1 } from '../../lib/RS';
 	import { packStore } from '../../stores/packStore.js';
 	import { createEventDispatcher } from 'svelte';
     //import { subscribe } from 'svelte/internal';
 
 	let CLString: string = '';
-	export let Pack: RS1.BufPack;
+	// export let String = '';
+	export let qList = new RS1.qList('');
+	
 	let receivedPack: RS1.BufPack;
-	//let SpecialData: RS1.RSData = new RS1.RSData();
-	let SpecialData: RS1.vList = new RS1.vList();
-	//CLString = Pack.str('data');
-	//SpecialData.LoadPack(Pack);
-	SpecialData.PostLoad(Pack)
-	//CLString = SpecialData.Data.LStr;
-	CLString = SpecialData.qstr;
+	
 	console.log('CLString' + CLString);
-	//let showEditorfields = true;
+	
 
-	const unsubscribe = packStore.subscribe(value => {
-      		receivedPack = value;
-      		// console.dir('store pack' + receivedPack.str('data')); 
-      
-    });
 
 
 	const dispatch = createEventDispatcher();
@@ -35,28 +27,10 @@
 		//unsubscribe;
 	}
 
-	// const list1: RS1.vList = new RS1.vList(
-	// 	'Test1|Test1Name:[%=Jane]Your Name|ListNum:[#=1]The List Number|'
-	// );
-	// const list2: RS1.vList = new RS1.vList(
-	// 	'Test2|Test2Name:[%=John]Your Name|ListNum:[#=2]The List Number|'
-	// );
-	// const list3: RS1.vList = new RS1.vList(
-	// 	'Test3|Test3Name:[%=Jacob]Your Name|ListNum:[#=3]The List Number|'
-	// );
+	
 	const LoL: RS1.LoL = new RS1.LoL();
-	// LoL.Add(list1.Str);
-	// LoL.Add(list2.Str);
-	// LoL.Add(list3.Str);
-
-// 	function handleSavePack() {
-// 	//  let newPack = new RS1.BufPack();
-// 	//  let newPack: RS1.BufPack = new RS1.vList(CLString).SavePack
-// 	let newPack: RS1.BufPack = new RS1.BufPack();
-// 	 newPack.add(['type', 'List', 'data', CLString]);
-//     packStore.set(newPack); // assuming packStore has an update method to send data to the store
-// 	console.log(newPack)
-//   }
+	const rList: RS1.rList = new RS1.rList();
+	
 
 	onMount(async () => {
 		const container: HTMLDivElement | null = document.getElementById(
@@ -64,61 +38,14 @@
 		) as HTMLDivElement | null;
 
 		if (container) {
-			const list: RS1.vList = new RS1.vList(CLString);
-			const edit: Editor = new Editor(container, list, LoL);
+			
+			const edit: QEditor = new QEditor(container, qList, rList);
 			edit.Populate();
 		}
-		// console.dir('prop pack' + Pack.str ('data'))
-	// 	const unsubscribe = packStore.subscribe(value => {
-    //   		receivedPack = value;
-    //   		//console.dir('store pack' + receivedPack.str('data')); 
-      
-    // });
-
-    	//return unsubscribe; 
+	
 	});
 
-	// let name = "";
-	// let type = "";
-	// let sub = "";
-  
-	// function handleNameChange(event:any) {
-	//   if (name === "") {
-	// 	name = event.target.value;
-	//   }
-	// }
-  
-	// function handleTypeChange(event:any) {
-	//   if (type === "") {
-	// 	type = event.target.value;
-	//   }
-	// }
-  
-	// function handleSubChange(event:any) {
-	//   if (sub === "") {
-	// 	sub = event.target.value;
-	//   }
-	// }
-
-	// let name = "";
-	// let type = "";
-	// let sub = "";
-
-	// $: nameSet = name !== "";
-	// $: typeSet = type !== "";
-	// $: subSet = sub !== "";
-
-	// function handleNameChange(event:any) {
-	// 	name = event.target.value;
-	// }
-
-	// function handleTypeChange(event:any) {
-	// 	type = event.target.value;
-	// }
-
-	// function handleSubChange(event:any) {
-	// 	sub = event.target.value;
-	// }
+	
 </script>
 
 
