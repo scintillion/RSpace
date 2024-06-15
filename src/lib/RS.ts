@@ -24,20 +24,41 @@ export namespace RS1 {
 
 	type RSDT=RSD|undefined;
 	export class RSD {
+		get K ():RSK|undefined { return undefined; }
+		get dirty () { 
+			let k = this.K;
+			if (!k)
+				return true;
+			
+			return (!k._tree  ||  !k._AB);
+		}
+		get mark () {
+			let k = this.K;
+			if (k)
+				k.mark;
+			return true;
+		}
+		get Tree () {
+			let k = this.K;
+			if (!k)
+				return undefined;
+
+			if (!k._tree)
+				k._tree = this.makeTree ();
+
+			return k._tree;
+		}
+
 		get CName () { return 'RSD'; }
-
 		get Name () { return this.CName; }
-
 		get Desc () { return 'RSD.Desc'; }
-
 		get Data () : any { return undefined; }
-
 		get List () { return NILqList; }
-
 		get Pack () { return NILPack; }
 		PostSavePack () {}
 		
 		get toPack () { return NILPack; }
+		get toAB () { return NILAB; }
 
 		get Type () { return 'RSD'; }
 		get Sub () { return 'RSD.Sub'; }
@@ -144,34 +165,58 @@ export namespace RS1 {
 			}
 		}
 
-		LevList (D:RSD = this, Lev = 0, Levs:RSDLev[] = []) : RSDLev[] {
-			let L = new RSDLev ();
-			L.D = D; L.Lev = Lev;
-			Levs.push (L);
+		makeTree (D:RSD = this, Lev = 0,Tree:RSTree=new RSTree ()) {
+			Tree.add (D,Lev);
 			
 			let Kids = D.Kids;
 			for (const K of Kids)
 				if (K)
-					this.LevList (K, Lev + 1, Levs);
+					this.makeTree (K, Lev + 1, Tree);
 
-			return Levs;
+			return Tree;
 		}
-	}
 
-	export class RSDLev {
-		D : RSDT;
-		Lev = 0;
-	}
+		Links (List : RSLeaf[]) {
+			// calculate relations   for the TDEs
+			let limit = List.length;
 
-	export class RSDParent extends RSD {
-		_names:string[] = [];
-		_kids:RSDT[] = [];
+			for (let tnum = 0; ++tnum < limit; ) {
+				let me = List[tnum];
+				let mylev = me.level;
+				let parentlev = mylev - 1;
+				let childlev = mylev + 1;
+				let lev;
 
-		get Kids () : RSDT[] { return []; }
-		protected get Names () : string[] { return []; }
+				me.first = me.next = me.parent = me.prev = 0;
+
+				for (let i = tnum; --i > 0; )
+					if ((lev = List[i].level) >= parentlev) {
+						if (lev == parentlev) {
+							me.parent = i;
+							break;
+						} else if (lev == mylev && !me.prev) me.prev = i;
+					}
+
+				for (let i = me.last = tnum; ++i < limit; )
+					if ((lev = List[i].level) >= mylev) {
+						if (lev === mylev) {
+							me.next = i;
+							break;
+						}
+						me.last = i;
+						if (i > 10) console.log('i = ' + i.toString() + ':' + i);
+						if (lev == childlev && !me.first) me.first = i; // first child
+					} else break;
+			} // for each TDE/tile
+		}
 
 		addKid (kid : RSD) {
-			let Kids = this._kids, Names = this._names, i = Kids.indexOf (undefined);
+			let k = this.K;
+			if (k)
+				k = k as RSK;
+			else return;
+			
+			let Kids = k._kids, Names = k._names, i = Kids.indexOf (undefined);
 			if (i >= 0) {
 				Names[i] = kid.Name;
 				Kids[i] = kid;
@@ -184,7 +229,12 @@ export namespace RS1 {
 		}
 
 		setKid (kid : RSD) {
-			let Kids = this._kids, Names = this._names, Name = kid.Name, i = Names.indexOf (Name);
+			let k = this.K;
+			if (k)
+				k = k as RSK;
+			else return;
+
+			let Kids = k._kids, Names = k._names, Name = kid.Name, i = Names.indexOf (Name);
 			if (i >= 0) {
 				Kids[i] = kid;
 			}
@@ -202,6 +252,99 @@ export namespace RS1 {
 
 			return kid;
 		}
+	}
+
+	export const NILRSD = new RSD ();
+
+	export class RSLeaf {
+		D : RSD;
+		level = 0; prev=0; first=0; parent=0; next=0; count=0; fam=0; last = 0;
+
+		constructor (D:RSD,level=0) {
+			this.D = D;
+			this.level = level;
+		}
+	}
+
+	export class RSTree {
+		Leafs = [new RSLeaf (NILRSD)];
+		RSDs=[NILRSD];
+		Names=[''];
+
+		index (Name:string|RSD) {
+			if ((typeof Name) === 'string')
+				return this.Names.indexOf (Name as string);
+
+			let i = this.RSDs.indexOf (Name as RSD);
+			return i > 0 ? i : 0;
+		}
+
+		add (D:RSD, level=0) {
+			let L = new RSLeaf (D,level), i = this.RSDs.indexOf(NILRSD,1);
+
+			if (i > 0) {
+				this.Leafs[i] = L;
+				this.RSDs[i] = D;
+				this.Names[i] = D.Name;
+			}
+			else {
+				this.Leafs.push (L);
+				this.RSDs.push (D);
+				this.Names.push (D.Name);
+			}
+		}
+
+		links () {
+			// calculate relations   for the TDEs
+			let Leafs = this.Leafs, limit = Leafs.length;
+
+			for (let tnum = 0; ++tnum < limit; ) {
+				let me = Leafs[tnum];
+				let mylev = me.level;
+				let parentlev = mylev - 1;
+				let childlev = mylev + 1;
+				let lev;
+
+				me.first = me.next = me.parent = me.prev = 0;
+
+				for (let i = tnum; --i > 0; )
+					if ((lev = Leafs[i].level) >= parentlev) {
+						if (lev == parentlev) {
+							me.parent = i;
+							break;
+						} else if (lev == mylev && !me.prev) me.prev = i;
+					}
+
+				for (let i = me.last = tnum; ++i < limit; )
+					if ((lev = Leafs[i].level) >= mylev) {
+						if (lev === mylev) {
+							me.next = i;
+							break;
+						}
+						me.last = i;
+						if (i > 10) console.log('i = ' + i.toString() + ':' + i);
+						if (lev == childlev && !me.first) me.first = i; // first child
+					} else break;
+			} // for each TDE/tile
+		}
+	}
+
+	export class RSK {
+		_names:string[]=[];
+		_kids:RSDT[]=[];
+		_tree:RSTree|undefined;
+		_AB:ArrayBuffer|undefined;
+
+		get mark () { this._tree = undefined; this._AB = undefined; return true; }
+		get dirty () { return !this._tree  ||  !this._AB; }
+	}
+
+	export class RSM extends RSD {
+		_k = new RSK ();
+
+		get K () { return this._k; }
+		get Kids () : RSDT[] { return this._k._kids; }
+		protected get Names () : string[] { return this._k._names; }
 	}
 
 	export class strPair {
