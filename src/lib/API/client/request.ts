@@ -112,9 +112,12 @@ export async function InitClient () {
 	];
 
     let RList = new RS1.rList (TileStrings);
-    console.log ('RList =\n' + RList.info + '\nRList.toStr=\n' + RList.toStr + '!');
+    console.log ('RList =\n' + RList.info);
+    console.log ('toStr =  ' + '\nRList.toStr=\n' + RList.toStr + '!');
     if (RList.Tree)
     console.log ('RList.TREE!!\n' + RList.Tree.expand);
+    let ABC:RS1.RSD = RList;
+        console.log ('RList.RSD.constructor=' + ABC.constructor.name);
 
     // let  TList = new RS1.TileList(TileStrings); // remove temporarily
     // console.log ('TList.ToString = \n' + TList.ToString ());
