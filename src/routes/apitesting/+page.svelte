@@ -16,7 +16,7 @@
 			console.log ('Write=' + Write + ' Name:' + List.Name + ' Str=' + List.Str);
 			}
 
-		let BP = await RS1.ReqStr ('SELECT * from S;');	//	('SELECT name from sqlite_master;');
+		let BP = await RS1.ReqStr ('SELECT * from S;','S');	//	('SELECT name from sqlite_master;');
 		console.log ('Select Tile S\n' + BP.expand);
 
 		let Tables = await RS1.ReqTiles ();

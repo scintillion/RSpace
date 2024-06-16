@@ -55,7 +55,7 @@ export namespace RS1 {
 				k.mark;
 			return true;
 		}
-		get Tree () {
+		get Tree () : RSTree|undefined {
 			let k = this.K;
 			if (!k)
 				return undefined;
@@ -86,7 +86,7 @@ export namespace RS1 {
 
 		get info () {
 			return this.Name + '[' + this.Type + '/' + this.cName + ']' +
-				(this.Desc? (':'+this.Desc):'') + '=' + this.toStr; 
+				(this.Desc? (':'+this.Desc):'') + '=' + this.toStr.slice(0,40); 
 		}
 
 		get Parent () : RSDT { return undefined; }
@@ -103,8 +103,16 @@ export namespace RS1 {
 			}
 		}
 
-		get Kids () : RSDT[] { return []; }
-		protected get _Names () : string[] { return []; }
+		get Kids () : RSDT[] 
+		{
+			let k = this.K;
+			return k ? k._kids : [];
+		}
+
+		protected get _Names () : string[] {
+			let k = this.K;
+			return k ? k._names : [];
+		}
 
 		get nKids () {
 			let Kids = this.Kids, count = 0;
@@ -263,15 +271,48 @@ export namespace RS1 {
 
 			return kid;
 		}
+
+		get expand () {
+			let lines = this.info, Kids = this.Kids, count = 0;
+
+			for (const K of Kids)
+				if (K)
+					lines += '\n    ' + padNumStr (++count) + K.info;
+			return lines;
+		}
 	}
 
 	export const NILRSD = new RSD ();
 
-	export class RSLeaf {
+	export class RSK {
+		_names:string[]=[];
+		_kids:RSDT[]=[];
+		_tree:RSTree|undefined;
+		_AB:ArrayBuffer|undefined;
+
+		get mark () { this._tree = undefined; this._AB = undefined; return true; }
+		get dirty () { return !this._tree  ||  !this._AB; }
+		get clear () { 
+			this._names = [];
+			this._kids = [];
+			
+			return this.mark;
+		 }
+	}
+
+	export class RSMom extends RSD {
+		_k = new RSK ();
+
+		get K () { return this._k; }
+	}
+	export const NILRSMom = new RSMom ();
+
+	export class RSLeaf extends RSD {
 		D : RSD;
 		level = 0; prev=0; first=0; parent=0; next=0; count=0; fam=0; last = 0;
 
 		constructor (D:RSD,level=0) {
+			super ();
 			this.D = D;
 			this.level = level;
 		}
@@ -287,7 +328,7 @@ export namespace RS1 {
 		}
 	}
 
-	export class RSTree {
+	export class RSTree extends RSMom {
 		Leafs:RSLeaf[]=[];
 		private RSDs:RSD[]=[];
 		private Names=[''];
@@ -296,9 +337,11 @@ export namespace RS1 {
 			this.Leafs=[new RSLeaf (D)];
 			this.RSDs=[D];
 			this.Names=[''];
+			this._k.clear;
 		}
 
 		constructor (D : RSD) {
+			super ();
 			this.add (D,0);
 			this.links ();
 		}
@@ -314,6 +357,11 @@ export namespace RS1 {
 		add (D:RSD, level:number) {
 			if (!level)
 				this.clear (D);
+
+			let L = new RSLeaf (D,level);
+			this.Leafs.push (L);
+			this.RSDs.push (D);
+			this.Names.push (D.Name);
 
 			let Kids = D.Kids;
 			++level;
@@ -355,26 +403,16 @@ export namespace RS1 {
 					} else break;
 			} // for each TDE/tile
 		}
+
+		get toStr () {
+			let Lines = '', count = 0;
+			for (const L of this.Leafs) {
+				if (count++)
+					Lines += padNumStr (count,3) + '.' + L.toStr + '\n';
+			}
+			return Lines;
+		}
 	}
-
-	export class RSK {
-		_names:string[]=[];
-		_kids:RSDT[]=[];
-		_tree:RSTree|undefined;
-		_AB:ArrayBuffer|undefined;
-
-		get mark () { this._tree = undefined; this._AB = undefined; return true; }
-		get dirty () { return !this._tree  ||  !this._AB; }
-	}
-
-	export class RSMom extends RSD {
-		_k = new RSK ();
-
-		get K () { return this._k; }
-		get Kids () : RSDT[] { return this._k._kids; }
-		protected get _Names () : string[] { return this._k._names; }
-	}
-
 
 	export class strPair {
 		a:string;b:string;
@@ -1609,6 +1647,11 @@ export namespace RS1 {
 	export class rList extends xList {
 		private Lists:ListTypes[]=[];
 		private Names:string[]=[];
+		_k = new RSK ();
+
+		get K () { return this._k; }
+		get Kids () : RSDT[] { return this._k._kids; }
+		protected get _Names () : string[] { return this._k._names; }
 
 		get NILchk () { return this === NILrList; }
 
