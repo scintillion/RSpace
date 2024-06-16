@@ -28,6 +28,14 @@ export namespace RS1 {
 		return String (num).padStart (len,' ');
 	}
 
+	export function SafeStr (str:string) {
+		for (let i = DelimList.length; --i > 0; )
+			if (DelimList[i] != '\n')
+				str = str.replace (DelimList[i],'~~');
+
+		return str;
+	}
+
 	export function strToStrings (S:string) {
 		let D = S.slice(-1);
 		if (D === '|')
@@ -85,8 +93,11 @@ export namespace RS1 {
 		PostLoadPack () {}
 
 		get info () {
-			return this.Name + '[' + this.Type + '/' + this.cName + ']' +
-				(this.Desc? (':'+this.Desc):'') + '=' + this.toStr.slice(0,40); 
+			if (this !== NILRSD)
+				return this.Name + '[' + this.Type + '/' + this.cName + ']' + 
+					(this.Desc? (':'+this.Desc):'') + '=\n   ' + this.toSafe.slice(0,75); 
+
+			return 'NILRSD!';
 		}
 
 		get Parent () : RSDT { return undefined; }
@@ -272,13 +283,26 @@ export namespace RS1 {
 			return kid;
 		}
 
+		get Items () : RSD[] {
+			let Kids = this.Kids, lim = Kids.length, count = 0, NewKids:RSD[] = [];
+
+			for (const K of Kids) 
+				if (K  &&  K !== NILRSD)
+					NewKids.push (K);
+
+			return NewKids;
+		}
 		get expand () {
-			let lines = this.info, Kids = this.Kids, count = 0;
+			let lines = this.info, Kids = this.Items, count = 0;
 
 			for (const K of Kids)
-				if (K)
-					lines += '\n    ' + padNumStr (++count) + K.info;
+				lines += '\n    ' + padNumStr (++count) + '.' + K.info;
+
 			return lines;
+		}
+
+		get toSafe () {
+			return SafeStr (this.toStr);
 		}
 	}
 
@@ -304,7 +328,15 @@ export namespace RS1 {
 		_k = new RSK ();
 
 		get K () { return this._k; }
+
+		clear () {
+			this._k.clear;
+		}
 	}
+
+
+
+
 	export const NILRSMom = new RSMom ();
 
 	export class RSLeaf extends RSD {
@@ -328,6 +360,76 @@ export namespace RS1 {
 		}
 	}
 
+	export class RSTree extends RSMom {
+		get Leafs () {
+			let Ks = this.Kids, count = 0, Items:RSLeaf[]=[];
+
+			for (const K of Ks)
+				if (count++  &&  K)
+					Items.push (K as RSLeaf);
+
+			return Items;
+		}
+
+		constructor (D : RSD) {
+			super ();
+			this.addLeaf (D,0);
+			this.links ();
+		}
+
+		addLeaf (D:RSD, level:number) {
+			let L = new RSLeaf (D, level);
+			if (!level) {
+				this.clear ();
+				this.addKid (NILRSD);	// "0" element
+			}
+
+			this.addKid (L);
+
+			let Kids = D.Kids;
+			++level;
+			for (const K of Kids)
+				if (K)
+					this.addLeaf (K, level);
+		}
+
+		private links () {
+			// calculate relations   for the TDEs
+			let Kids = this.Kids, limit = Kids.length;
+
+			for (let tnum = 0; ++tnum < limit; ) {
+				let me = Kids[tnum] as RSLeaf;
+				let mylev = me.level;
+				let parentlev = mylev - 1;
+				let childlev = mylev + 1;
+				let lev;
+
+				me.first = me.next = me.parent = me.prev = 0;
+
+				for (let i = tnum; --i > 0; )
+					if ((lev = (Kids[i] as RSLeaf).level) >= parentlev) {
+						if (lev == parentlev) {
+							me.parent = i;
+							break;
+						} else if (lev == mylev && !me.prev) me.prev = i;
+					}
+
+				for (let i = me.last = tnum; ++i < limit; )
+					if ((lev = (Kids[i] as RSLeaf).level) >= mylev) {
+						if (lev === mylev) {
+							me.next = i;
+							break;
+						}
+						me.last = i;
+						if (lev == childlev && !me.first)
+							me.first = i; // first child
+					} else break;
+			} // for each TDE/tile
+		}
+	}
+
+
+/*
 	export class RSTree extends RSMom {
 		Leafs:RSLeaf[]=[];
 		private RSDs:RSD[]=[];
@@ -413,6 +515,7 @@ export namespace RS1 {
 			return Lines;
 		}
 	}
+*/
 
 	export class strPair {
 		a:string;b:string;
@@ -1228,7 +1331,22 @@ export namespace RS1 {
 
 		get listDesc () { return this.namedesc().b; }
 
-		get toStr () { return this.qstr; }
+		get toStr () {
+			let D = this.delim;
+			if (this.cName === 'rList')
+				D = D;
+			
+			if (D === '|')
+				 return this.qstr;
+
+			let str = this.qstr + D, Lists = this.Kids;
+			for (const L of Lists)
+				if (L)
+					str += (L as xList).toSafe + D;
+	
+			
+			return str;
+		}
 	}
 
 	export const NILxList = new xList ();
