@@ -4,14 +4,19 @@
 	import RListEditor from './rListEditor.svelte';
 	
     export let rList: RS1.rList;
-    // let rListArray = rList.lists;
-	let rListArray = rList._k._kids;
+	let rListArray = rList.Tree?.Leafs;
 	let selectedList: ListTypes;
-	// type ListTypes = RS1.qList|RS1.rList|undefined;
-	type ListTypes = RS1.RSD
+	let root: ListTypes;
+	const Str: string = '>'
+
+	type ListTypes = RS1.RSLeaf
 
 	function selectList(list:ListTypes) {
+		if (list.level === 0) {
+			root = list;
+		}
 		selectedList = list;
+		rListArray = rList.Tree?.Leafs;
 	}
 
 	function copyVID(list: ListTypes) {
@@ -20,26 +25,23 @@
 		
 		if (list instanceof RS1.qList) {
 			newqList = list.copy;
-			// rList.add(newqList);
 			rList.kidAdd(newqList);
 		}
 		else if (list instanceof RS1.rList) {
 			newrList = list.copy;
-			// rList.add(newrList);
 			rList.kidAdd(newrList);
 		}
 		else {
 			throw new Error('undefined');
 		}
 		
-		// rListArray = rList.lists;
-		rListArray = rList._k._kids;
+		rListArray = rList.K._tree?.Leafs;
 			
 		}
 
 		function edit(list: ListTypes) {
 			
-			if (list instanceof RS1.qList) {
+			if (list.D instanceof RS1.qList) {
 				const modalContent = document.createElement('div');
 				modalContent.style.position = 'absolute';
 				modalContent.style.top = '40%';
@@ -55,7 +57,7 @@
 					const editorComponent = new QEditor({
 							target: modalContent,
 							props: {
-								qList: list,
+								qList: list.D,
 							},
 						});
 						editorComponent.$on('close', () => {
@@ -64,26 +66,42 @@
 				}
     		}
 			
-			else if (list instanceof RS1.rList) {
-				const modalContent = document.getElementById('editor');
+			// else if (list.D instanceof RS1.rList) {
+			// 	const modalContent = document.getElementById('editor');
 								
-				if(modalContent) {
-					modalContent.innerHTML = '';
+			// 	if(modalContent) {
+			// 		modalContent.innerHTML = '';
 				
-					const editorComponent = new RListEditor({
-						target: modalContent,
-						props: {
-							rList: list,
-						}
-					});
-				}
-			}
+			// 		const editorComponent = new RListEditor({
+			// 			target: modalContent,
+			// 			props: {
+			// 				rList: list.D,
+			// 			}
+			// 		});
+			// 	}
+			// }
 
-			else {
-				throw new Error('Invalid list. Please select a list');
-			}
+			// else {
+			// 	throw new Error('Invalid list. Please select a list');
+			// }
 	
 		}
+
+		// function handleBack(list: ListTypes) {
+		// 	let parent
+		// 	console.log('parent' + list?.D.Name)
+		// 	if (rListArray) {
+		// 		parent = rListArray[list?.parent]
+		// 	}
+			
+		// 	if (parent) {
+		// 		selectList(parent);
+		// 	}
+		// 	else {
+		// 		console.log('no parent')
+		// 	}
+			
+		// }
 
 
 
@@ -92,25 +110,27 @@
 <main>
 	<div id="editor">
         <div class="selectContainer">
+			{#if rListArray}
 			{#each rListArray as list}
 				{#if list}
 					<div on:click={() => selectList(list)} class:selected={list === selectedList} >
-						<span>{list?.Name}</span>
+						<span>{Str.repeat(list.level)}{list.D?.Name}</span>
 					</div>
 				{/if}
 			{/each}
+			{/if}
         </div>
 		
 		<div class="Buttons">
 			<!-- <button id="save">Save</button> -->
 			<button id="edit" on:click={() => edit(selectedList)}>Edit</button>
-			<button id="del" on:click={() => {rList.kidDel(selectedList); rListArray = rList._k._kids; }}>Delete</button>
+			<button id="del" on:click={() => {rList.kidDel(selectedList.D); rListArray = rList.Tree?.Leafs; }}>Delete</button>
 			<!-- <button id="clear">Clear</button> -->
 			<button id="copy" on:click={() => copyVID(selectedList)}>Copy</button>
-			<button id="up" on:click={() => {rList.bubbleKid(selectedList,-1); rListArray = rList._k._kids;}}>Up</button>
-			<button id="down" on:click={() => {rList.bubbleKid(selectedList,1); rListArray = rList._k._kids;}}>Down</button>
+			<button id="up" on:click={() => {rList.bubbleKid(selectedList.D,-1); rListArray = rList.Tree?.Leafs; }}>Up</button>
+			<button id="down" on:click={() => {rList.bubbleKid(selectedList.D,1); rListArray = rList.Tree?.Leafs; }}>Down</button>
 			<!-- <button id="add">Add</button> -->
-			<!-- <button>Back</button> -->
+			<!-- <button id="back" on:click={() => handleBack(selectedList)}>Back</button> -->
 			</div>
 			
 		</div>
