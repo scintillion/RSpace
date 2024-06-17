@@ -49,7 +49,10 @@ export namespace RS1 {
 
 	type RSDT=RSD|undefined;
 	export class RSD {
+		get NILchk () { return false; }
+
 		get K ():RSK|undefined { return undefined; }
+
 		get dirty () { 
 			let k = this.K;
 			if (!k)
@@ -114,6 +117,25 @@ export namespace RS1 {
 			return lines;
 		}
 
+		delKid (list:string|RSD) {
+			let K = this.K;
+			if (K)
+				return K.del (list as string|RSD);
+			return false;
+		}
+
+		addKid (kid1:RSD|RSD[]) {
+			let K = this.K;
+			if (K)
+				return K.add (kid1);
+			return false;
+		}
+
+		getKid (name:string) { 
+			let K = this.K;
+			return K ? K.Get (name) : undefined;
+		}
+
 		get Parent () : RSDT { return undefined; }
 
 		getParent (root : RSD) : RSDT {
@@ -128,38 +150,33 @@ export namespace RS1 {
 			}
 		}
 
-		get Kids () : RSDT[] 
-		{
-			let k = this.K;
-			return k ? k._kids : [];
+		get Kids () : RSDT[] {
+			let K = this.K;
+			return K? K._kids : [];
 		}
-
-		protected get _Names () : string[] {
-			let k = this.K;
-			return k ? k._names : [];
+		protected get kidNames () : string[] {
+			let K = this.K;
+			return K ? K._names : []
 		}
 
 		kidIndex (kid:string|RSD) {
-			if (kid)
-				return ((typeof kid) !== 'string') ? this.Kids.indexOf (kid as RSD) :
-						 this._Names.indexOf (kid as string);
+			if (kid) {
+				let K = this.K;
+				if (K)
+					return K.index(kid);
+			}
 
 			return -1;
 		}
 
-		findKid (kid:string|RSD) : RSDT {
-			let i = this.kidIndex (kid);
-			return (i >= 0) ? this.Kids[i] : undefined;
-		}
-
-		get First () : RSDT {
+		get firstKid () : RSDT {
 			let Kids = this.Kids;
 			for (const R of Kids)
 				if (R)
 					return R;
 		}
 		
-		get Last () : RSDT {
+		get lastKid () : RSDT {
 			let Kids = this.Kids;
 
 			let L;
@@ -168,7 +185,7 @@ export namespace RS1 {
 					L = R;
 
 			if (L) {
-				let LL = L.Last;
+				let LL = L.lastKid;
 				return LL ? LL : L;
 			}
 		}
@@ -233,7 +250,6 @@ export namespace RS1 {
 					} else break;
 			} // for each TDE/tile
 		}
-*/
 
 		addKid (kid : RSD) {
 			let k = this.K;
@@ -277,6 +293,7 @@ export namespace RS1 {
 
 			return kid;
 		}
+*/
 
 		get Items () : RSD[] {
 			let Kids = this.Kids, lim = Kids.length, count = 0, NewKids = Array<RSD> (lim+1);
@@ -1909,8 +1926,8 @@ export namespace RS1 {
 		_k = new RSK ();
 
 		get K () { return this._k; }
-		get Kids () : RSDT[] { return this._k._kids; }
-		protected get _Names () : string[] { return this._k._names; }
+//		get Kids () : RSDT[] { return this._k._kids; }
+//		protected get _Names () : string[] { return this._k._names; }
 
 		get NILchk () { return (this === NILrList); }
 
@@ -1961,7 +1978,7 @@ export namespace RS1 {
 			else if ((typeof Str[0]) === 'string')
 				Strs = Str as string[];
 			else {	// array of Lists!
-				this.addLists (Str as ListTypes[]);
+				this.addKid (Str as RSD[]);
 				console.log ('rList ' + this.qstr + ' created: ' + this.info);
 				return;
 			}
@@ -1995,8 +2012,7 @@ export namespace RS1 {
 		}
 
 		listByName (name:string) {
-			let i = this.kidIndex(name);
-			return (i >= 0) ? this.Kids[i] as xList : undefined;
+			return this.getKid (name);
 		}
 
 		qListByName (name:string) {
@@ -2008,56 +2024,6 @@ export namespace RS1 {
 			let L = this.listByName (name);
 			return (L  &&  (L !== NILrList)  &&  (L.cName === 'rList')) ? L as rList : NILrList;
 		} 
-
-		del (list:string|ListTypes) {
-			let K = this.K;
-			if (K)
-				return K.del (list as string|RSD);
-			return false;
-		}
-
-		add (list:ListTypes) {
-			let K = this.K;
-			if (K)
-				return K.add (list as RSD);
-			return false;
-		}
-
-		addLists (Lists:ListTypes[]) {
-			for (const L of Lists)
-				this.add (L);
-		}
-
-		addStr (Str:string|string[]) {
-			if (this.NILchk) return NILqList;
-
-			if ((typeof Str) === 'string') {
-				let S = Str as string, D = S.slice (-1);
-
-				return (D === '|') ? this.add (new qList (S)) :
-					this.add (new rList (S));
-			}
-
-			let Strs = Str as string[];
-			let L = NILqList;
-			for (const S of Strs) {
-				let D = S.slice(-1);
-				if (D === '|') {
-					this.add (new qList (S));
-					continue;
-				}
-				if (!isDelim (D))
-					continue;		// tragic error - bad Delim - reject line...
-
-				let LStrs = S.split (D);
-				LStrs.length = LStrs.length - 1;
-				let L = new rList (LStrs);
-				if (L)
-					this.add (L);
-			}
-
-			return L;
-		}
 
 		get toStr () {
 			let D = this.delim, str = this.qstr + D, Kids = this.Kids;
@@ -2084,6 +2050,37 @@ export namespace RS1 {
 
 			return new qList(qstrs.join('|') + '|');
 		}		
+
+		addStr (Str:string|string[]) {
+			if (this.NILchk) return NILqList;
+
+			if ((typeof Str) === 'string') {
+				let S = Str as string, D = S.slice (-1);
+
+				return (D === '|') ? this.addKid (new qList (S)) :
+					this.addKid (new rList (S));
+			}
+
+			let Strs = Str as string[];
+			let L = NILqList;
+			for (const S of Strs) {
+				let D = S.slice(-1);
+				if (D === '|') {
+					this.addKid (new qList (S));
+					continue;
+				}
+				if (!isDelim (D))
+					continue;		// tragic error - bad Delim - reject line...
+
+				let LStrs = S.split (D);
+				LStrs.length = LStrs.length - 1;
+				let L = new rList (LStrs);
+				if (L)
+					this.addKid (L);
+			}
+
+			return L;
+		}
 
 		toSelect(Select: HTMLSelectElement) {
 			let List = this.toQList;
