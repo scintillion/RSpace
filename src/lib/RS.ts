@@ -51,32 +51,6 @@ export namespace RS1 {
 	export class RSD {
 		get NILchk () { return false; }
 
-		get K ():RSK|undefined { return undefined; }
-
-		get dirty () { 
-			let k = this.K;
-			if (!k)
-				return true;
-			
-			return (!k._tree  ||  !k._AB);
-		}
-		get mark () {
-			let k = this.K;
-			if (k)
-				k.mark;
-			return true;
-		}
-		get Tree () : RSTree|undefined {
-			let k = this.K;
-			if (!k)
-				return undefined;
-
-			if (!k._tree)
-				k._tree = new RSTree (this);
-
-			return k._tree;
-		}
-
 		get cName () { return 'RSD'; }
 		get Name () { return this.cName; }
 		get Desc () { return 'RSD.Desc'; }
@@ -117,21 +91,65 @@ export namespace RS1 {
 			return lines;
 		}
 
-		delKid (list:string|RSD) {
+		get expand () {
+			let lines = this.info, Kids = this.Kids, count = 0;
+
+			for (const K of Kids)
+				if (K)
+					lines += '\n    ' + padNumStr (++count) + '.' + K.info;
+
+			return lines;
+		}
+
+		get toSafe () {
+			return SafeStr (this.toStr);
+		}
+
+
+
+		// **** Kid functions ****
+
+		get K ():RSK|undefined { return undefined; }
+
+		get dirty () { 
+			let k = this.K;
+			if (!k)
+				return true;
+			
+			return (!k._tree  ||  !k._AB);
+		}
+		get mark () {
+			let k = this.K;
+			if (k)
+				k.mark;
+			return true;
+		}
+		get Tree () : RSTree|undefined {
+			let k = this.K;
+			if (!k)
+				return undefined;
+
+			if (!k._tree)
+				k._tree = new RSTree (this);
+
+			return k._tree;
+		}
+
+		kidDel (list:string|RSD) {
 			let K = this.K;
 			if (K)
 				return K.del (list as string|RSD);
 			return false;
 		}
 
-		addKid (kid1:RSD|RSD[]) {
+		kidAdd (kid1:RSD|RSD[]) {
 			let K = this.K;
 			if (K)
 				return K.add (kid1);
 			return false;
 		}
 
-		getKid (name:string) { 
+		kidGet (name:string) { 
 			let K = this.K;
 			return K ? K.Get (name) : undefined;
 		}
@@ -169,14 +187,14 @@ export namespace RS1 {
 			return -1;
 		}
 
-		get firstKid () : RSDT {
+		get kidFirst () : RSDT {
 			let Kids = this.Kids;
 			for (const R of Kids)
 				if (R)
 					return R;
 		}
 		
-		get lastKid () : RSDT {
+		get kidLast () : RSDT {
 			let Kids = this.Kids;
 
 			let L;
@@ -185,7 +203,7 @@ export namespace RS1 {
 					L = R;
 
 			if (L) {
-				let LL = L.lastKid;
+				let LL = L.kidLast;
 				return LL ? LL : L;
 			}
 		}
@@ -216,86 +234,7 @@ export namespace RS1 {
 			}
 		}
 
-/*		
-		Links (List : RSLeaf[]) {
-			// calculate relations   for the TDEs
-			let limit = List.length;
-
-			for (let tnum = 0; ++tnum < limit; ) {
-				let me = List[tnum];
-				let mylev = me.level;
-				let parentlev = mylev - 1;
-				let childlev = mylev + 1;
-				let lev;
-
-				me.first = me.next = me.parent = me.prev = 0;
-
-				for (let i = tnum; --i > 0; )
-					if ((lev = List[i].level) >= parentlev) {
-						if (lev == parentlev) {
-							me.parent = i;
-							break;
-						} else if (lev == mylev && !me.prev) me.prev = i;
-					}
-
-				for (let i = me.last = tnum; ++i < limit; )
-					if ((lev = List[i].level) >= mylev) {
-						if (lev === mylev) {
-							me.next = i;
-							break;
-						}
-						me.last = i;
-						if (i > 10) console.log('i = ' + i.toString() + ':' + i);
-						if (lev == childlev && !me.first) me.first = i; // first child
-					} else break;
-			} // for each TDE/tile
-		}
-
-		addKid (kid : RSD) {
-			let k = this.K;
-			if (k)
-				k = k as RSK;
-			else return;
-			
-			let Kids = k._kids, Names = k._names, i = Kids.indexOf (undefined);
-			if (i >= 0) {
-				Names[i] = kid.Name;
-				Kids[i] = kid;
-			}
-			else {
-				Names.push (kid.Name);
-				Kids.push (kid);
-			}
-			return kid;
-		}
-
-		setKid (kid : RSD) {
-			let k = this.K;
-			if (k)
-				k = k as RSK;
-			else return;
-
-			let Kids = k._kids, Names = k._names, Name = kid.Name, i = Names.indexOf (Name);
-			if (i >= 0) {
-				Kids[i] = kid;
-			}
-			else {
-				i = Kids.indexOf (undefined);
-				if (i >= 0) {
-					Kids[i] = kid;
-					Names[i] = Name;
-				}
-				else {
-					Kids.push (kid);
-					Names.push (Name);
-				}
-			}
-
-			return kid;
-		}
-*/
-
-		get Items () : RSD[] {
+		get kidList () : RSD[] {
 			let Kids = this.Kids, lim = Kids.length, count = 0, NewKids = Array<RSD> (lim+1);
 
 			for (const K of Kids) 
@@ -307,33 +246,20 @@ export namespace RS1 {
 			NewKids.length = count;
 			return NewKids;
 		}
-		get expand () {
-			let lines = this.info, Kids = this.Items, count = 0;
 
-			for (const K of Kids)
-				if (K)
-					lines += '\n    ' + padNumStr (++count) + '.' + K.info;
-
-			return lines;
-		}
-
-		get toSafe () {
-			return SafeStr (this.toStr);
-		}
-
-		get nItems () {
+		get kidCount () {
 			let n = 0, K = this.K;
 			return K ? K.nItems : 0;
 		}
 
-		get nFam () {
+		get kidXtnd () {
 			let sum = 0, Kids = this.K;
 			if (!Kids)
 				return 0;
 
 			for (const K of Kids._kids) {
 				if (K  &&  K !==  NILRSD)
-					sum += K.nFam + 1;
+					sum += K.kidXtnd + 1;
 			}
 
 			if (sum)
@@ -440,7 +366,7 @@ export namespace RS1 {
 
 			for (const K of Kids)
 				if (K  &&  K !== NILRSD)
-					count += K.nFam + 1;
+					count += K.kidXtnd + 1;
 
 			return count;
 		}
@@ -547,10 +473,10 @@ export namespace RS1 {
 			let L = new RSLeaf (D, level);
 			if (!level) {
 				this.clear ();
-				this.addKid (NILRSD);	// "0" element
+				this.kidAdd (NILRSD);	// "0" element
 			}
 
-			this.addKid (L);
+			this.kidAdd (L);
 
 			let Kids = D.Kids;
 			++level;
@@ -1935,7 +1861,7 @@ export namespace RS1 {
 			return this.qstr;
 		}
 		get size () {
-			 return (this.qstr!=='')  ||  (this.nItems > 0);
+			 return (this.qstr!=='')  ||  (this.kidCount > 0);
 		}
 
 		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
@@ -1978,7 +1904,7 @@ export namespace RS1 {
 			else if ((typeof Str[0]) === 'string')
 				Strs = Str as string[];
 			else {	// array of Lists!
-				this.addKid (Str as RSD[]);
+				this.kidAdd (Str as RSD[]);
 				console.log ('rList ' + this.qstr + ' created: ' + this.info);
 				return;
 			}
@@ -2012,7 +1938,7 @@ export namespace RS1 {
 		}
 
 		listByName (name:string) {
-			return this.getKid (name);
+			return this.kidGet (name);
 		}
 
 		qListByName (name:string) {
@@ -2039,7 +1965,7 @@ export namespace RS1 {
 		}
 
 		get toQList () {
-			let qstrs: string[] = [''], Lists = this.Items;
+			let qstrs: string[] = [''], Lists = this.kidList;
 
 			for (const L of Lists) {
 					let D = L.Desc, N = L.Name;
@@ -2057,8 +1983,8 @@ export namespace RS1 {
 			if ((typeof Str) === 'string') {
 				let S = Str as string, D = S.slice (-1);
 
-				return (D === '|') ? this.addKid (new qList (S)) :
-					this.addKid (new rList (S));
+				return (D === '|') ? this.kidAdd (new qList (S)) :
+					this.kidAdd (new rList (S));
 			}
 
 			let Strs = Str as string[];
@@ -2066,7 +1992,7 @@ export namespace RS1 {
 			for (const S of Strs) {
 				let D = S.slice(-1);
 				if (D === '|') {
-					this.addKid (new qList (S));
+					this.kidAdd (new qList (S));
 					continue;
 				}
 				if (!isDelim (D))
@@ -2076,7 +2002,7 @@ export namespace RS1 {
 				LStrs.length = LStrs.length - 1;
 				let L = new rList (LStrs);
 				if (L)
-					this.addKid (L);
+					this.kidAdd (L);
 			}
 
 			return L;
@@ -3089,7 +3015,7 @@ export namespace RS1 {
 			this.TList = List1;
 			// console.log('TDE List[' + this.List.Name + ']=' + this.List.fStr + '.');
 
-			this.Lists = List1.Items as ListTypes[];
+			this.Lists = List1.kidList as ListTypes[];
 			this.aList = this.qListByName ('a');
 			this.sList = this.qListByName ('s');
 			this.vList = this.qListByName ('v');
@@ -4610,7 +4536,7 @@ export namespace RS1 {
 				return;
 			}
 
-			let i = 0, Lists = List.Items as ListTypes[];
+			let i = 0, Lists = List.kidList as ListTypes[];
 			this.tiles = Array(Lists.length + 1);
 			for (const L of Lists)
 				if (L) this.tiles[++i] = new TDE (L as rList);
