@@ -342,7 +342,7 @@ export namespace RS1 {
 			return -1;
 		}
 
-		add (kid : RSD) {
+		add1 (kid : RSD) {
 			let Kids = this._kids, Names = this._names, i = Kids.indexOf (undefined);
 			if (i >= 0) {
 				Names[i] = kid.Name;
@@ -374,26 +374,28 @@ export namespace RS1 {
 			return (i >= 0) ? this._kids[i] : undefined;
 		}
 
-		Set (kid : RSD) {
-			let Kids = this._kids, Names = this._names, Name = kid.Name, i = Names.indexOf (Name);
-			if (i >= 0) {
-				Kids[i] = kid;
-			}
-			else {
-				i = Kids.indexOf (undefined);
-				if (i >= 0) {
-					Kids[i] = kid;
-					Names[i] = Name;
-				}
-				else {
+		Set (kid1 : RSD|RSD[], replace=false) {
+			let Kids = this._kids, Names = this._names, changed = 0;
+			let NewKids = (Array.isArray (kid1)) ? kid1 as RSD[] : [kid1 as RSD];
+
+			for (const kid of NewKids) {
+				let Name = kid.Name, i = replace ? Names.indexOf (Name) : Kids.indexOf (undefined);
+				if (i < 0) {
 					Kids.push (kid);
 					Names.push (Name);
 				}
+				else {
+					Kids[i] = kid;
+					Names[i] = Name;
+				}
+				++changed;
 			}
 
-			this.mark;
-			return kid;
+			if (changed)
+				this.mark;
 		}
+
+		add (kid1:RSD|RSD[], replace=false) { this.Set (kid1,replace); }
 
 		get items () : RSD[] {
 			let Kids = this._kids, lim = Kids.length, count = 0, NewKids = Array<RSD> (lim+1);
