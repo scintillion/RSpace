@@ -1,6 +1,4 @@
 export namespace RS1 {
-
-	
 	export const NILAB = new ArrayBuffer (0);
 	export const NILArray = new Uint8Array (NILAB);
 	const NILNums:number[]=[];
@@ -5205,7 +5203,7 @@ export namespace RS1 {
 
 	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData;
 
-	export class PackField {
+	export class PackField extends RSD {
 		protected _name = '';
 		protected _type=tNone;
 		protected _data : any = NILAB;
@@ -5488,6 +5486,7 @@ export namespace RS1 {
 		}
 
 		constructor (N : string, D : PFData,Type1='') {
+			super ();
 			this._name = N;
 
 			if (N === 'ist')
