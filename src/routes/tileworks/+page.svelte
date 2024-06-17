@@ -53,7 +53,7 @@
 	console.log ('List of Tiles in TileWorks:');
 	for (const T of Tiles) {
 		if (T)
-			console.log (T.summary);
+			console.log (T.info);
 	}
 
 	List.tiles.forEach(tile => {

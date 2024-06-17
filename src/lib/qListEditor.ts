@@ -614,7 +614,7 @@ export class LOLEditor {
 		const newList: RS1.qList = this.rList.ListByName(
 			this.select.value
 		)?.copy ();//  as RS1.vList;
-		this.rList.add(newList);
+		this.rList.kidAdd(newList);
 		console.log(this.CL);
 		this.Reload();
 	}

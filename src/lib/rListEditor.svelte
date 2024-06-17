@@ -4,9 +4,11 @@
 	import RListEditor from './rListEditor.svelte';
 	
     export let rList: RS1.rList;
-    let rListArray = rList.lists;
+    // let rListArray = rList.lists;
+	let rListArray = rList._k._kids;
 	let selectedList: ListTypes;
-	type ListTypes = RS1.qList|RS1.rList|undefined;
+	// type ListTypes = RS1.qList|RS1.rList|undefined;
+	type ListTypes = RS1.RSD
 
 	function selectList(list:ListTypes) {
 		selectedList = list;
@@ -18,17 +20,20 @@
 		
 		if (list instanceof RS1.qList) {
 			newqList = list.copy;
-			rList.add(newqList);
+			// rList.add(newqList);
+			rList.kidAdd(newqList);
 		}
 		else if (list instanceof RS1.rList) {
 			newrList = list.copy;
-			rList.add(newrList);
+			// rList.add(newrList);
+			rList.kidAdd(newrList);
 		}
 		else {
 			throw new Error('undefined');
 		}
 		
-		rListArray = rList.lists;
+		// rListArray = rList.lists;
+		rListArray = rList._k._kids;
 			
 		}
 
@@ -88,20 +93,22 @@
 	<div id="editor">
         <div class="selectContainer">
 			{#each rListArray as list}
-				<div on:click={() => selectList(list)} class:selected={list === selectedList} >
-					<span>{list?.Name}</span>
-				</div>
+				{#if list}
+					<div on:click={() => selectList(list)} class:selected={list === selectedList} >
+						<span>{list?.Name}</span>
+					</div>
+				{/if}
 			{/each}
         </div>
 		
 		<div class="Buttons">
 			<!-- <button id="save">Save</button> -->
 			<button id="edit" on:click={() => edit(selectedList)}>Edit</button>
-			<button id="del" on:click={() => {rList.del(selectedList); rListArray = rList.lists; }}>Delete</button>
+			<button id="del" on:click={() => {rList.kidDel(selectedList); rListArray = rList._k._kids; }}>Delete</button>
 			<!-- <button id="clear">Clear</button> -->
 			<button id="copy" on:click={() => copyVID(selectedList)}>Copy</button>
-			<button id="up" on:click={() => {rList.bubble(selectedList,-1); rListArray = rList.lists;}}>Up</button>
-			<button id="down" on:click={() => {rList.bubble(selectedList,1); rListArray = rList.lists;}}>Down</button>
+			<button id="up" on:click={() => {rList.bubbleKid(selectedList,-1); rListArray = rList._k._kids;}}>Up</button>
+			<button id="down" on:click={() => {rList.bubbleKid(selectedList,1); rListArray = rList._k._kids;}}>Down</button>
 			<!-- <button id="add">Add</button> -->
 			<!-- <button>Back</button> -->
 			</div>
