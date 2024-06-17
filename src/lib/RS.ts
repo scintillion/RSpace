@@ -30,8 +30,7 @@ export namespace RS1 {
 
 	export function SafeStr (str:string) {
 		for (let i = DelimList.length; --i > 0; )
-			if (DelimList[i] != '\n')
-				str = str.replace (DelimList[i],'~~');
+			str = str.replaceAll (DelimList[i],' ~');
 
 		return str;
 	}
@@ -53,18 +52,53 @@ export namespace RS1 {
 
 		get cName () { return 'RSD'; }
 		get Name () { return this.cName; }
-		get Desc () { return 'RSD.Desc'; }
+		set Name (N:string) {
+			let q = this.Q;
+			if (q)
+				q.Set ('Name',N);
+		}
+		get Desc () { return ''; }
+		set Desc (D:string) {
+			let q = this.Q;
+			if (q)
+				q.Set ('Desc',D);
+		}
+
+		get Group () { return ''; }
+		set Group (D:string) {
+			let q = this.Q;
+			if (q)
+				q.Set ('Group',D);
+		}
+
+		get Type () { return ''; }
+		set Type (D:string) {
+			let q = this.Q;
+			if (q)
+				q.Set ('Type',D);
+		}
+
+		get Sub () { return ''; }
+		set Sub (D:string) {
+			let q = this.Q;
+			if (q)
+				q.Set ('Sub',D);
+		}
+
+		get Q () : qList|undefined { return undefined; }
+		get R () : rList|undefined { return undefined; }
+		get P () : BufPack|undefined { return undefined; }
+
 		get Data () : any { return undefined; }
-		get List () { return NILqList; }
-		get Pack () { return NILPack; }
 		PostSavePack () {}
 		
+		get toS () { return ''; }
+		fromS (S:string) : string|undefined { return S; }
 		get toPack () { return NILPack; }
 		get toAB () { return NILAB; }
+		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
 		get toStr () { return "RSD.toStr"; }
 
-		get Type () { return 'RSD'; }
-		get Sub () { return 'RSD.Sub'; }
 		Set (VName:string,ValStr:string|number) { }
 		Get (VName:string) { return 'Get.RSD'; }
 		PostLoadPack () {}
@@ -76,8 +110,20 @@ export namespace RS1 {
 				return 'NILRSD!';
 
 
-			let lines = this.Name + '[' + this.Type + '/' + this.cName + ']' + 
-					(this.Desc? (':'+this.Desc):'') + '=\n   ' + this.toSafe.slice(0,75); 
+			let lines = this.Name;
+			if (this.Desc)
+				lines += ':' + this.Desc;
+				
+			lines += '[' + this.cName;
+				
+			if (this.Type)
+				lines += ' T=' + this.Type;
+			if (this.Sub)
+				lines += ' S=' + this.Sub;
+			if (this.Group)
+				lines += ' G=' + this.Group;
+
+			lines += ']\n   ' + this.toSafe.slice(0,75); 
 
 			let n = 0, K = this.K;
 			if (!K)
@@ -426,7 +472,16 @@ export namespace RS1 {
 		}
 	}
 
+	export class Bead extends RSMom {
+		p = new BufPack ();
+		q = new qList ();
+		r = new rList ();
 
+		private get toStrPrefix () {
+			let q = this.q.toS, r = this.r.toS;
+			return '$' + q.length.toString () + ',' + r.length.toString () + '$' + q + r;
+		}
+	}
 
 
 	export const NILRSMom = new RSMom ();
@@ -1403,7 +1458,7 @@ export namespace RS1 {
 
 		get info () {
 			let str = super.info;
-			return str + '  Q' + this.indent.toString () + '=' + this.qstr;
+			return str + '  Q' + this.indent.toString () + '=' + SafeStr (this.toStr).slice (0,60);
 		}
 
 		setNameOrDesc (name='',ifDesc=false) {
@@ -1495,26 +1550,7 @@ export namespace RS1 {
 			}
 
 			this.qstr = '|';
-			let Strs = Str as string[], len = Strs.length;
-			if (!len)
-				return;
-
-			let S = Strs[0];
-			if (S.indexOf (':') < 0) {
-				if (len & 1) {
-					this.qstr = 'NOTPairs|';
-					return;	// odd number , need pairs, fail
-				}
-
-				let count = 0, i = 0;
-				while (i < len) {
-					Strs[count++] = Strs[i] + ':' + Strs[i+1];
-					i+=2;
-				}
-
-				Strs.length = count;
-			}
-			this.fromRaw (Strs);
+			this.fromRaw (Str as string[]);
 			console.log ('creating ' + this.info);
 		}
 
@@ -1667,9 +1703,24 @@ export namespace RS1 {
 
 		get names () { return this.splitNames.a; }
 
-		merge (addend : qList) {
-			let dest = this.splitNames, add = addend.splitNames;
+		merge (addend1 : qList|string) {
+			let addend = ((typeof addend1) === 'string') ? new qList (addend1 as string) : addend1 as qList;
+			let add = addend.splitNames, notFound = true;
 
+			for (const a of add.a)
+				if (this.findname (a) >= 0) {
+					notFound = false;
+					break;
+				}
+
+			if (notFound) {
+				let str = addend.toStr;
+				str = str.slice (str.indexOf ('|'));
+				this.qstr += str.slice (str.indexOf ('|'));
+				return;	// fast merge!
+			}
+
+			let dest = this.splitNames;
 			for (let lim = add.a.length, i = 0; i < lim;++i) {
 				let j = dest.a.indexOf (add.a[i]);
 				if (j >= 0) 	// need to replace
@@ -1681,6 +1732,29 @@ export namespace RS1 {
 			}
 
 			this.fromRaw (dest.b);
+		}
+
+		extract (xq : qList|string) {
+			let x;
+			if (typeof xq === 'string')
+				x = (xq as string).split ('|');
+			else {
+				let split = (xq as qList).splitNames;
+				x = split.a;
+			}
+
+			let split = this.splitNames, count = 0, newRaw = [];
+			for (const s of x) {
+				if (s) {
+					let i = split.a.indexOf (s);
+					if (i >= 0) {
+						newRaw.push (split.b[i]);
+						++count;
+					}
+				}
+			}
+
+			return count ? new qList (newRaw) : new qList ();
 		}
 
 		get toVIDs () {
@@ -3510,7 +3584,7 @@ export namespace RS1 {
 			if (!NewDelim || NewDelim.length != 1 || NewDelim == OldDelim || isDigit(NewDelim))
 				return false;
 
-			this.qstr.replace(OldDelim, NewDelim);
+			this.qstr.replaceAll(OldDelim, NewDelim);
 			this.Delim = NewDelim;
 			return true;
 		}
