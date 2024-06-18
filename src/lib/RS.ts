@@ -315,6 +315,11 @@ export namespace RS1 {
 
 	export const NILRSD = new RSD ();
 
+	export class RSQ extends RSD {
+		q = new qList ();
+		get Q () { return this.q; }
+	}
+
 	export class RSK {
 		_names:string[]=[];
 		_kids:RSDT[]=[];
@@ -5203,7 +5208,7 @@ export namespace RS1 {
 
 	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData;
 
-	export class PackField extends RSD {
+	export class PackField extends RSQ {
 		protected _name = '';
 		protected _type=tNone;
 		protected _data : any = NILAB;
@@ -5488,9 +5493,6 @@ export namespace RS1 {
 		constructor (N : string, D : PFData,Type1='') {
 			super ();
 			this._name = N;
-
-			if (N === 'ist')
-				throw 'ist!1';
 
 			if (Type1)		// AB coming in with type
 				this.setByAB (D as ArrayBuffer, Type1);
