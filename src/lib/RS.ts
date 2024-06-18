@@ -50,41 +50,46 @@ export namespace RS1 {
 
 		get cName () { return 'RSD'; }
 
-		getStr (s:string) {
+		Get (s:string) {
 			let q = this.Q;
 			return q ? q.descByName (s) : '';
 		}
 
-		setStr (name:string,str:string) {
+		getStr (s:string) { return this.Get (s); }
+
+		getNum (s:string) { return Number (this.Get (s)); }
+
+		Set (name:string,str:string|number) {
 			let q = this.Q;
 			if (q)
 				q.set (name,str);
 		}
+		setStr (name:string,val:string) { this.Set (name,val); }
 
-		get Name () { return this.getStr ('Name'); }
+		get Name () { return this.Get ('Name'); }
 		set Name (N:string) {
-			this.setStr ('Name',N);
+			this.Set ('Name',N);
 		}
 
-		get Desc () { return this.getStr ('Desc'); }
+		get Desc () { return this.Get ('Desc'); }
 		set Desc (N:string) {
-			this.setStr ('Desc',N);
+			this.Set ('Desc',N);
 		}
 
-		get Group () { return this.getStr ('Group'); }
+		get Group () { return this.Get ('Group'); }
 		set Group (N:string) {
-			this.setStr ('Group',N);
+			this.Set ('Group',N);
 		}
 
-		get Type () { return this.getStr ('Type'); }
+		get Type () { return this.Get ('Type'); }
 		set Type (N:string) {
 			if (!this.Type)
-				this.setStr ('Type',N);
+				this.Set ('Type',N);
 		}
 
-		get Sub () { return this.getStr ('Sub'); }
+		get Sub () { return this.Get ('Sub'); }
 		set Sub (N:string) {
-			this.setStr ('Sub',N);
+			this.Set ('Sub',N);
 		}
 
 		get Q () : qList|undefined { return undefined; }
@@ -101,17 +106,6 @@ export namespace RS1 {
 		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
 		get toStr () { return "RSD.toStr"; }
 
-		Set (VName:string,ValStr:string|number) {
-			let q = this.Q;
-			if (q)
-				q.set (VName,ValStr.toString ());
-		}
-
-		Get (VName:string) {
-			let q = this.Q;
-			return q ? q.descByName (VName) : '';
-		}
-
 		PostLoadPack () {}
 
 		get indent () { return 0; }
@@ -121,7 +115,7 @@ export namespace RS1 {
 				return 'NILRSD!';
 
 
-			let lines = this.Name;
+			let lines = 'Name ' + this.Name;
 			if (this.Desc)
 				lines += ':' + this.Desc;
 				

@@ -262,7 +262,7 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 
 	let QF = InPack.xField;
 
-	console.log ('-----------\nInPack=' + InPack.summary + 'Q=' + QF?.Str + '\n-----------\n'
+	console.log ('-----------\nInPack=' + InPack.info + 'Q=' + QF?.Str + '\n-----------\n'
 		 + InPack.desc);
 
 		 
