@@ -49,38 +49,42 @@ export namespace RS1 {
 		get NILchk () { return false; }
 
 		get cName () { return 'RSD'; }
-		get Name () { return this.cName; }
+
+		getStr (s:string) {
+			let q = this.Q;
+			return q ? q.descByName (s) : '';
+		}
+
+		setStr (name:string,str:string) {
+			let q = this.Q;
+			if (q)
+				q.set (name,str);
+		}
+
+		get Name () { return this.getStr ('Name'); }
 		set Name (N:string) {
-			let q = this.Q;
-			if (q)
-				q.Set ('Name',N);
-		}
-		get Desc () { return ''; }
-		set Desc (D:string) {
-			let q = this.Q;
-			if (q)
-				q.Set ('Desc',D);
+			this.setStr ('Name',N);
 		}
 
-		get Group () { return ''; }
-		set Group (D:string) {
-			let q = this.Q;
-			if (q)
-				q.Set ('Group',D);
+		get Desc () { return this.getStr ('Desc'); }
+		set Desc (N:string) {
+			this.setStr ('Desc',N);
 		}
 
-		get Type () { return ''; }
-		set Type (D:string) {
-			let q = this.Q;
-			if (q)
-				q.Set ('Type',D);
+		get Group () { return this.getStr ('Group'); }
+		set Group (N:string) {
+			this.setStr ('Group',N);
 		}
 
-		get Sub () { return ''; }
-		set Sub (D:string) {
-			let q = this.Q;
-			if (q)
-				q.Set ('Sub',D);
+		get Type () { return this.getStr ('Type'); }
+		set Type (N:string) {
+			if (!this.Type)
+				this.setStr ('Type',N);
+		}
+
+		get Sub () { return this.getStr ('Sub'); }
+		set Sub (N:string) {
+			this.setStr ('Sub',N);
 		}
 
 		get Q () : qList|undefined { return undefined; }
@@ -97,8 +101,17 @@ export namespace RS1 {
 		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
 		get toStr () { return "RSD.toStr"; }
 
-		Set (VName:string,ValStr:string|number) { }
-		Get (VName:string) { return 'Get.RSD'; }
+		Set (VName:string,ValStr:string|number) {
+			let q = this.Q;
+			if (q)
+				q.set (VName,ValStr.toString ());
+		}
+
+		Get (VName:string) {
+			let q = this.Q;
+			return q ? q.descByName (VName) : '';
+		}
+
 		PostLoadPack () {}
 
 		get indent () { return 0; }
