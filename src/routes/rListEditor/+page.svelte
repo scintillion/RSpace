@@ -27,5 +27,5 @@
 </script>
 
 <main>
-    <RListEditor rList={list} />
+    <RListEditor RSD={list} />
 </main>

@@ -3,43 +3,44 @@
 	import QEditor from '../components/tiles/QEditor.svelte';
 	import RListEditor from './rListEditor.svelte';
 	
-    export let rList: RS1.rList;
-	let rListArray = rList.Tree?.Leafs;
-	let selectedList: ListTypes;
-	let root: ListTypes;
+    export let RSD: RS1.RSD;
+	let leafArray = RSD.Tree?.Leafs;
+	let selectedLeaf: Type;
+	let root: Type;
 	const Str: string = '>'
+	let step = 'Home';
 
-	type ListTypes = RS1.RSLeaf
+	type Type = RS1.RSLeaf
 
-	function selectList(list:ListTypes) {
-		if (list.level === 0) {
-			root = list;
+	function selectLeaf(leaf:Type) {
+		if (leaf.level > 1) {
+			step = 'edit';
 		}
-		selectedList = list;
-		rListArray = rList.Tree?.Leafs;
+		selectedLeaf = leaf;
+		leafArray = RSD.Tree?.Leafs;
 	}
 
-	function copyVID(list: ListTypes) {
+	function copyVID(leaf: Type) {
 		let newqList = new RS1.qList();
 		let newrList = new RS1.rList();
 		
-		if (list instanceof RS1.qList) {
-			newqList = list.copy;
-			rList.kidAdd(newqList);
+		if (leaf.D instanceof RS1.qList) {
+			newqList = leaf.D.copy;
+			RSD.kidAdd(newqList);
 		}
-		else if (list instanceof RS1.rList) {
-			newrList = list.copy;
-			rList.kidAdd(newrList);
+		else if (leaf.D instanceof RS1.rList) {
+			newrList = leaf.D.copy;
+			RSD.kidAdd(newrList);
 		}
 		else {
 			throw new Error('undefined');
 		}
 		
-		rListArray = rList.K._tree?.Leafs;
+		leafArray = RSD.Tree?.Leafs;
 			
 		}
 
-		function edit(list: ListTypes) {
+		function edit(list: Type) {
 			
 			if (list.D instanceof RS1.qList) {
 				const modalContent = document.createElement('div');
@@ -66,20 +67,20 @@
 				}
     		}
 			
-			// else if (list.D instanceof RS1.rList) {
-			// 	const modalContent = document.getElementById('editor');
+			else  {
+				const modalContent = document.getElementById('editor');
 								
-			// 	if(modalContent) {
-			// 		modalContent.innerHTML = '';
+				if(modalContent) {
+					modalContent.innerHTML = '';
 				
-			// 		const editorComponent = new RListEditor({
-			// 			target: modalContent,
-			// 			props: {
-			// 				rList: list.D,
-			// 			}
-			// 		});
-			// 	}
-			// }
+					const editorComponent = new RListEditor({
+						target: modalContent,
+						props: {
+							RSD: list.D,
+						}
+					});
+				}
+			}
 
 			// else {
 			// 	throw new Error('Invalid list. Please select a list');
@@ -87,7 +88,7 @@
 	
 		}
 
-		// function handleBack(list: ListTypes) {
+		// function handleBack(list: Type) {
 		// 	let parent
 		// 	console.log('parent' + list?.D.Name)
 		// 	if (rListArray) {
@@ -95,12 +96,27 @@
 		// 	}
 			
 		// 	if (parent) {
-		// 		selectList(parent);
+		// 		selectLeaf(parent);
 		// 	}
 		// 	else {
 		// 		console.log('no parent')
 		// 	}
 			
+		// }
+
+		// function handleBack() {
+		// 	let parent: Type
+		// 	console.log('parent' + selectedLeaf?.parent)
+		// 	console.log('level' + selectedLeaf?.level)
+		// 	if (rListArray) {
+		// 		parent = rListArray[selectedLeaf?.parent-1]
+		// 		if (parent) 
+		// 			selectLeaf(parent);
+			
+		// 	}
+		// 	else {
+		// 		console.log('no parent')
+		// 	}
 		// }
 
 
@@ -110,27 +126,36 @@
 <main>
 	<div id="editor">
         <div class="selectContainer">
-			{#if rListArray}
-			{#each rListArray as list}
-				{#if list}
-					<div on:click={() => selectList(list)} class:selected={list === selectedList} >
-						<span>{Str.repeat(list.level)}{list.D?.Name}</span>
-					</div>
-				{/if}
-			{/each}
+			{#if leafArray}
+				{#each leafArray as leaf}
+					{#if step === 'Home'}
+						{#if leaf.level === 1}
+							<div on:click={() => selectLeaf(leaf)} class:selected={leaf === selectedLeaf} >
+								<span>{leaf.D?.Name} lvl - {leaf.level} parent - {leaf.parent} </span>
+							</div>
+						{/if}
+					{/if}
+					{#if step === 'edit'}
+						{#if leaf}
+							<div on:click={() => selectLeaf(leaf)} class:selected={leaf === selectedLeaf} >
+								<span>{leaf.D?.Name} lvl - {leaf.level} parent - {leaf.parent}</span>
+							</div>
+						{/if}
+					{/if}
+				{/each}
 			{/if}
         </div>
 		
 		<div class="Buttons">
 			<!-- <button id="save">Save</button> -->
-			<button id="edit" on:click={() => edit(selectedList)}>Edit</button>
-			<button id="del" on:click={() => {rList.kidDel(selectedList.D); rListArray = rList.Tree?.Leafs; }}>Delete</button>
+			<button id="edit" on:click={() => edit(selectedLeaf)}>Edit</button>
+			<button id="del" on:click={() => {RSD.kidDel(selectedLeaf.D); leafArray = RSD.Tree?.Leafs; }}>Delete</button>
 			<!-- <button id="clear">Clear</button> -->
-			<button id="copy" on:click={() => copyVID(selectedList)}>Copy</button>
-			<button id="up" on:click={() => {rList.bubbleKid(selectedList.D,-1); rListArray = rList.Tree?.Leafs; }}>Up</button>
-			<button id="down" on:click={() => {rList.bubbleKid(selectedList.D,1); rListArray = rList.Tree?.Leafs; }}>Down</button>
+			<button id="copy" on:click={() => copyVID(selectedLeaf)}>Copy</button>
+			<button id="up" on:click={() => {RSD.K?.bubble(selectedLeaf.D,-1); leafArray = RSD.Tree?.Leafs; }}>Up</button>
+			<button id="down" on:click={() => {RSD.K?.bubble(selectedLeaf.D,1); leafArray = RSD.Tree?.Leafs; }}>Down</button>
 			<!-- <button id="add">Add</button> -->
-			<!-- <button id="back" on:click={() => handleBack(selectedList)}>Back</button> -->
+			<!-- <button id="back" on:click={() => handleBack()}>Back</button> -->
 			</div>
 			
 		</div>
