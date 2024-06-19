@@ -166,11 +166,9 @@ export namespace RS1 {
 
 		get dirty () { 
 			let k = this.K;
-			if (!k)
-				return true;
-			
-			return (!k._tree  ||  !k._AB);
+			return k ? k.dirty : true;
 		}
+
 		get mark () {
 			let k = this.K;
 			if (k)
@@ -334,6 +332,7 @@ export namespace RS1 {
 		_kids:RSDT[]=[];
 		_tree:RSTree|undefined;
 		_AB:ArrayBuffer|undefined;
+		_S='';
 		_me : RSD;
 
 		constructor (me : RSD) {
@@ -346,20 +345,6 @@ export namespace RS1 {
 						 this._names.indexOf (kid as string);
 
 			return -1;
-		}
-
-		add1 (kid : RSD) {
-			let Kids = this._kids, Names = this._names, i = Kids.indexOf (undefined);
-			if (i >= 0) {
-				Names[i] = kid.Name;
-				Kids[i] = kid;
-			}
-			else {
-				Names.push (kid.Name);
-				Kids.push (kid);
-			}
-			this.mark;
-			return kid;
 		}
 
 		del (kid : RSD|string|number) {
@@ -439,7 +424,12 @@ export namespace RS1 {
 		}
 
 		get mark () { this._tree = undefined; this._AB = undefined; return true; }
-		get dirty () { return !this._tree  ||  !this._AB; }
+		get dirty () { return this._S ||  this._AB; }
+
+		get Tree () {
+			return this._tree = new RSTree (this._me);
+		}
+
 		get clear () { 
 			this._names = [];
 			this._kids = [];
