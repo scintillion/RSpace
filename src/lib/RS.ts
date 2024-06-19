@@ -46,6 +46,8 @@ export namespace RS1 {
 
 	type RSDT=RSD|undefined;
 	export class RSD {
+		mom : RSD|undefined;
+
 		get NILchk () { return false; }
 
 		get cName () { return 'RSD'; }
@@ -332,8 +334,13 @@ export namespace RS1 {
 		_kids:RSDT[]=[];
 		_tree:RSTree|undefined;
 		_AB:ArrayBuffer|undefined;
+		_me : RSD;
 
-		index (kid:string|RSD) {
+		constructor (me : RSD) {
+			this._me = me;
+		}
+
+		index (kid:string|RSD)	 {
 			if (kid)
 				return ((typeof kid) !== 'string') ? this._kids.indexOf (kid as RSD) :
 						 this._names.indexOf (kid as string);
@@ -359,6 +366,9 @@ export namespace RS1 {
 			let i = ((typeof kid) === 'number') ? kid as number : this.index (kid as RSD|string);
 			if (i >= 0) {
 				this._names[i] = '';
+				let Kid = this._kids[i];
+				if (Kid)
+					Kid.mom = undefined;
 				this._kids[i] = undefined;
 				this.mark;
 			}
@@ -379,6 +389,7 @@ export namespace RS1 {
 
 			for (const kid of NewKids) {
 				let Name = kid.Name, i = replace ? Names.indexOf (Name) : Kids.indexOf (undefined);
+				kid.mom = this._me;
 				if (i < 0) {
 					Kids.push (kid);
 					Names.push (Name);
@@ -473,7 +484,12 @@ export namespace RS1 {
 	}
 
 	export class RSMom extends RSD {
-		_k = new RSK ();
+		_k:RSK;
+		
+		constructor () {
+			super ();
+			this._k = new RSK (this);
+		}
 
 		get K () { return this._k; }
 
@@ -1415,9 +1431,9 @@ export namespace RS1 {
 		protected qstr='';
 
 		get delim () { return '|'; }
-		protected namedescstr (start=0) {	// this is for qList only, replace on rList
+		protected namedescstr (start=0) {
 			let end = this.qstr.indexOf ('|',start);
-			return this.qstr.slice (start, end);
+			return end >= 0 ? this.qstr.slice (start, end) : this.qstr.slice (start);
 		}
 		get size () { return this.qstr.length > 1; }	// not NULL list, only for qList!
 
@@ -1437,9 +1453,7 @@ export namespace RS1 {
 			if (desc===name)
 				desc = '';
 
-			let str = desc ? (name + ':' + desc) : name;
-			let D = this.delim;
-
+			let str = (desc ? (name + ':' + desc) : name).padStart (this.indent,' '), D = this.delim;
 			if (D === '|')
 				this.qstr = str + this.qstr.slice (this.qstr.indexOf ('|'));
 			else this.qstr = str;
@@ -1452,15 +1466,18 @@ export namespace RS1 {
 		}
 
 		get Name () {
-			return this.namedesc ().a;
+			return this.namedesc ().a.trim ();
 		}
+		set Name (s:string) { this.setNameOrDesc (s); }
 
 		get Desc () {
 			let pair = this.namedesc ();
-			return pair.b ? pair.b : pair.a;
+			return pair.b ? pair.b : pair.a.trim ();
 		}
+		set Desc (s:string) { this.setNameOrDesc (s,true); }
 
 		get Type () { return 'List'; }
+		set Type (s:string) { }
 
 		getNFD (start=0) {
 			return new NFD (this.namedescstr (start));
@@ -1473,8 +1490,9 @@ export namespace RS1 {
 
 		setNameOrDesc (name='',ifDesc=false) {
 			let pair = this.getNameDesc ();
-			if (ifDesc)
-				pair.b = name
+			if (ifDesc) {
+				pair.b = name;
+			}
 			else pair.a = name;
 
 			this.setNameDesc (pair.a, pair.b);
@@ -1933,7 +1951,7 @@ export namespace RS1 {
 	}
 
 	export class rList extends xList {
-		_k = new RSK ();
+		_k:RSK = new RSK (this);
 
 		get K () { return this._k; }
 //		get Kids () : RSDT[] { return this._k._kids; }
