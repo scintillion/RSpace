@@ -47,14 +47,20 @@ export namespace RS1 {
 	type RSDT=RSD|undefined;
 	export class RSD {
 		mom : RSD|undefined;
+		get I ():qList|undefined { return undefined; }
+		get R ():rList|undefined { return undefined; }
+		get X ():xList|undefined { return undefined; }
+		get Q ():qList|undefined { return undefined; }
+		get K ():RSK|undefined { return undefined; }
+
 
 		get NILchk () { return false; }
 
 		get cName () { return 'RSD'; }
 
 		Get (s:string) {
-			let q = this.Q;
-			return q ? q.descByName (s) : '';
+			let i = this.I;
+			return i ? i.descByName (s) : '';
 		}
 
 		getStr (s:string) { return this.Get (s); }
@@ -93,10 +99,6 @@ export namespace RS1 {
 		set Sub (N:string) {
 			this.Set ('Sub',N);
 		}
-
-		get Q () : qList|undefined { return undefined; }
-		get R () : rList|undefined { return undefined; }
-		get P () : BufPack|undefined { return undefined; }
 
 		get Data () : any { return undefined; }
 		PostSavePack () {}
@@ -164,8 +166,6 @@ export namespace RS1 {
 
 		// **** Kid functions ****
 
-		get K ():RSK|undefined { return undefined; }
-
 		get dirty () { 
 			let k = this.K;
 			return k ? k.dirty : true;
@@ -188,8 +188,6 @@ export namespace RS1 {
 			return k._tree;
 		}
 
-/*
-
 		kidDel (list:string|RSD) {
 			let K = this.K;
 			if (K)
@@ -197,11 +195,15 @@ export namespace RS1 {
 			return false;
 		}
 
-		kidAdd (kid1:RSD|RSD[]) {
+		kidSet (kid1:RSD|RSD[],replace=true) {
 			let K = this.K;
 			if (K)
-				return K.add (kid1);
+				return K.Set (kid1,replace);
 			return false;
+		}
+
+		kidAdd (kid1:RSD|RSD[]) {
+			return this.kidSet (kid1, false);
 		}
 
 		kidGet (name:string) { 
@@ -209,127 +211,35 @@ export namespace RS1 {
 			return K ? K.Get (name) : undefined;
 		}
 
-		get Parent () : RSDT { return undefined; }
-
-		getParent (root : RSD) : RSDT {
-			if (root) {
-				let kids = root.Kids
-				if (kids.indexOf (this) >= 0)
-					return root;
-
-				for (const K of kids)
-					if (K  &&  this.getParent (K))
-						return K;
-			}
-		}
-
-		get Kids () : RSDT[] {
+		get Kids () : RSD[] {
 			let K = this.K;
-			return K? K._kids : [];
+			return K ? K.List : [];
 		}
-		protected get kidNames () : string[] {
+
+		get nKids () {
 			let K = this.K;
-			return K ? K._names : []
-		}
-
-		kidIndex (kid:string|RSD) {
-			if (kid) {
-				let K = this.K;
-				if (K)
-					return K.index(kid);
-			}
-
-			return -1;
-		}
-
-		get kidFirst () : RSDT {
-			let Kids = this.Kids;
-			for (const R of Kids)
-				if (R)
-					return R;
-		}
-		
-		get kidLast () : RSDT {
-			let Kids = this.Kids;
-
-			let L;
-			for (const R of Kids)
-				if (R)
-					L = R;
-
-			if (L) {
-				let LL = L.kidLast;
-				return LL ? LL : L;
-			}
-		}
-
-		Previous (parent:RSDT) : RSDT {
-			if (parent) {
-				let Kids = (parent as RSD).Kids;
-				let i = Kids.indexOf (this);
-				if (i < 0)
-					return undefined;	// consider THROW, should NOT happen!
-
-				while (--i >= 0)
-					if (Kids[i])
-						return Kids[i];
-			}
-		}
-
-		Next (parent:RSDT) : RSDT {
-			if (parent) {
-				let Kids = (parent as RSD).Kids;
-				let i = Kids.indexOf (this);
-				if (i < 0)
-					return undefined;	// consider THROW, should NOT happen!
-
-				for (let len = Kids.length; ++i < len;)
-					if (Kids[i])
-						return Kids[i];
-			}
-		}
-
-		get kidList () : RSD[] {
-			let Kids = this.Kids, lim = Kids.length, count = 0, NewKids = Array<RSD> (lim+1);
-
-			for (const K of Kids) 
-				if (K  &&  K !== NILRSD) {
-					NewKids.push (K);
-					++count;
-				}
-
-			NewKids.length = count;
-			return NewKids;
-		}
-
-		get kidCount () {
-			let n = 0, K = this.K;
 			return K ? K.nItems : 0;
 		}
-
-		get kidXtnd () {
-			let sum = 0, Kids = this.K;
-			if (!Kids)
-				return 0;
-
-			for (const K of Kids._kids) {
-				if (K  &&  K !==  NILRSD)
-					sum += K.kidXtnd + 1;
-			}
-
-			if (sum)
-				sum = sum;
-
-			return sum;
-		}
-	*/
 	}
 
 	export const NILRSD = new RSD ();
 
-	export class RSQ extends RSD {
-		q = new qList ();
-		get Q () { return this.q; }
+	export class RSI extends RSD {
+		i = new qList ();
+		get I () { return this.i; }
+	}
+
+	export class RSX extends RSI {
+		x = new rList ();
+		get X () { return this.x; }
+		get Q ():qList|undefined {
+			let x = this.x as xList;
+			return (x.delim === '!') ? x as qList : undefined;
+		}
+		get R ():rList|undefined {
+			let x = this.x;
+			return (x.delim !== '!') ? x as rList : undefined;
+		}
 	}
 
 	export class RSK {
@@ -5239,7 +5149,7 @@ export namespace RS1 {
 
 	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData;
 
-	export class PackField extends RSQ {
+	export class PackField extends RSI {
 		protected _name = '';
 		protected _type=tNone;
 		protected _data : any = NILAB;
