@@ -23,9 +23,10 @@
 
 	// ]
     const list = new RS1.rList(rString);
+	const listK = list.K;
     
 </script>
 
 <main>
-    <RListEditor RSD={list} />
+    <RListEditor RSK={listK} />
 </main>

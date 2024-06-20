@@ -3,46 +3,48 @@
 	import QEditor from '../components/tiles/QEditor.svelte';
 	import RListEditor from './rListEditor.svelte';
 	
-    export let RSD: RS1.RSD;
-	let leafArray = RSD.Tree?.Leafs;
-	let selectedLeaf: Type;
-	let root: Type;
-	const Str: string = '>'
+    export let RSK: RS1.RSK;
+	let kidArray = RSK._kids
+	let selectedKid: Types
 	let step = 'Home';
+	if (kidArray.length > 0 && kidArray[0]) 
+    	selectedKid = kidArray[0];
 
-	type Type = RS1.RSLeaf
+	type Types = RS1.RSD;
 
-	function selectLeaf(leaf:Type) {
-		if (leaf.level > 1) {
+	function selectKid(kid:Types | undefined) {
+		console.log('select!')
+		if (kid?.mom) {
 			step = 'edit';
 		}
-		selectedLeaf = leaf;
-		leafArray = RSD.Tree?.Leafs;
+		if (kid) selectedKid = kid;
+		console.log('selectKid()' + selectedKid.Desc)
 	}
 
-	function copyVID(leaf: Type) {
+	function copyVID(kid: Types) {
 		let newqList = new RS1.qList();
 		let newrList = new RS1.rList();
 		
-		if (leaf.D instanceof RS1.qList) {
-			newqList = leaf.D.copy;
-			RSD.kidAdd(newqList);
+		if (kid instanceof RS1.qList) {
+			newqList = kid.copy;
+			RSK.add(newqList);
 		}
-		else if (leaf.D instanceof RS1.rList) {
-			newrList = leaf.D.copy;
-			RSD.kidAdd(newrList);
+		else if (kid instanceof RS1.rList) {
+			newrList = kid.copy;
+			RSK.add(newrList);
 		}
 		else {
 			throw new Error('undefined');
 		}
 		
-		leafArray = RSD.Tree?.Leafs;
+		kidArray = RSK._kids;
 			
 		}
 
-		function edit(list: Type) {
+		function edit(list: Types) {
+			console.log('Edit!')
 			
-			if (list.D instanceof RS1.qList) {
+			if (list instanceof RS1.qList) {
 				const modalContent = document.createElement('div');
 				modalContent.style.position = 'absolute';
 				modalContent.style.top = '40%';
@@ -58,7 +60,7 @@
 					const editorComponent = new QEditor({
 							target: modalContent,
 							props: {
-								qList: list.D,
+								qList: list,
 							},
 						});
 						editorComponent.$on('close', () => {
@@ -69,16 +71,19 @@
 			
 			else  {
 				const modalContent = document.getElementById('editor');
+				console.log('Edit' + selectedKid?.Desc)
 								
 				if(modalContent) {
 					modalContent.innerHTML = '';
-				
+
+					if (list?.K) {
 					const editorComponent = new RListEditor({
 						target: modalContent,
 						props: {
-							RSD: list.D,
+							RSK: list.K,
 						}
 					});
+				}
 				}
 			}
 
@@ -88,36 +93,17 @@
 	
 		}
 
-		// function handleBack(list: Type) {
-		// 	let parent
-		// 	console.log('parent' + list?.D.Name)
-		// 	if (rListArray) {
-		// 		parent = rListArray[list?.parent]
-		// 	}
+		function handleBack() {
+			let parent: RS1.RSD | undefined
+			console.log('handleBack()' + selectedKid?.Desc)
+			parent = selectedKid?.mom
+			if (!parent?.mom) return
 			
-		// 	if (parent) {
-		// 		selectLeaf(parent);
-		// 	}
-		// 	else {
-		// 		console.log('no parent')
-		// 	}
+			selectKid(parent.mom);
 			
-		// }
-
-		// function handleBack() {
-		// 	let parent: Type
-		// 	console.log('parent' + selectedLeaf?.parent)
-		// 	console.log('level' + selectedLeaf?.level)
-		// 	if (rListArray) {
-		// 		parent = rListArray[selectedLeaf?.parent-1]
-		// 		if (parent) 
-		// 			selectLeaf(parent);
-			
-		// 	}
-		// 	else {
-		// 		console.log('no parent')
-		// 	}
-		// }
+			if (selectedKid.K) RSK = selectedKid.K
+			kidArray = RSK._kids
+		}
 
 
 
@@ -126,19 +112,17 @@
 <main>
 	<div id="editor">
         <div class="selectContainer">
-			{#if leafArray}
-				{#each leafArray as leaf}
+			{#if kidArray}
+				{#each kidArray as kid}
 					{#if step === 'Home'}
-						{#if leaf.level === 1}
-							<div on:click={() => selectLeaf(leaf)} class:selected={leaf === selectedLeaf} >
-								<span>{leaf.D?.Name} lvl - {leaf.level} parent - {leaf.parent} </span>
+							<div on:click={() => selectKid(kid)} class:selected={kid === selectedKid} >
+								<span>{kid?.Name} </span>
 							</div>
-						{/if}
 					{/if}
 					{#if step === 'edit'}
-						{#if leaf}
-							<div on:click={() => selectLeaf(leaf)} class:selected={leaf === selectedLeaf} >
-								<span>{leaf.D?.Name} lvl - {leaf.level} parent - {leaf.parent}</span>
+						{#if kid}
+							<div on:click={() => selectKid(kid)} class:selected={kid === selectedKid} >
+								<span>{kid?.Name}</span>
 							</div>
 						{/if}
 					{/if}
@@ -148,14 +132,14 @@
 		
 		<div class="Buttons">
 			<!-- <button id="save">Save</button> -->
-			<button id="edit" on:click={() => edit(selectedLeaf)}>Edit</button>
-			<button id="del" on:click={() => {RSD.kidDel(selectedLeaf.D); leafArray = RSD.Tree?.Leafs; }}>Delete</button>
+			<button id="edit" on:click={() => edit(selectedKid)}>Edit</button>
+			<button id="del" on:click={() => {RSK.del(selectedKid); kidArray = RSK._kids }}>Delete</button>
 			<!-- <button id="clear">Clear</button> -->
-			<button id="copy" on:click={() => copyVID(selectedLeaf)}>Copy</button>
-			<button id="up" on:click={() => {RSD.K?.bubble(selectedLeaf.D,-1); leafArray = RSD.Tree?.Leafs; }}>Up</button>
-			<button id="down" on:click={() => {RSD.K?.bubble(selectedLeaf.D,1); leafArray = RSD.Tree?.Leafs; }}>Down</button>
+			<button id="copy" on:click={() => copyVID(selectedKid)}>Copy</button>
+			<button id="up" on:click={() => {RSK.bubble(selectedKid,-1);  kidArray = RSK._kids }}>Up</button>
+			<button id="down" on:click={() => {RSK.bubble(selectedKid,1); kidArray = RSK._kids }}>Down</button>
 			<!-- <button id="add">Add</button> -->
-			<!-- <button id="back" on:click={() => handleBack()}>Back</button> -->
+			<button id="back" on:click={() => handleBack()}>Back</button>
 			</div>
 			
 		</div>
