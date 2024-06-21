@@ -408,18 +408,6 @@ export namespace RS1 {
 		}
 	}
 
-	export class Bead extends RSMom {
-		p = new BufPack ();
-		q = new qList ();
-		r = new rList ();
-
-		private get toStrPrefix () {
-			let q = this.q.toS, r = this.r.toS;
-			return '$' + q.length.toString () + ',' + r.length.toString () + '$' + q + r;
-		}
-	}
-
-
 	export const NILRSMom = new RSMom ();
 
 	export class RSLeaf extends RSD {
@@ -2251,12 +2239,9 @@ export namespace RS1 {
 		}
 	}
 
-	export class RSr extends xList {
+	export class RSr extends RSM {
 		_k:RSK = new RSK (this);
-
 		get K () { return this._k; }
-//		get Kids () : RSDT[] { return this._k._kids; }
-//		protected get _Names () : string[] { return this._k._names; }
 
 		protected namedescstr (start=0) {
 			return this.qstr;
@@ -2426,10 +2411,25 @@ export namespace RS1 {
 		}
 	}
 
-	export class RSR extends RSI {
+	export class RSR extends RSM {
 		protected r : RSr|undefined = new RSr ();
 		get R () : RSr|undefined { return this.r;}
 		set R (r:RSr|undefined) { this.r = r; }
+	}
+
+	export class Bead extends RSR {
+		_k:RSK = new RSK (this);
+		get K () { return this._k; }
+
+		protected q : RSI|undefined = new RSI ();
+		get Q () : RSI|undefined { return this.q;}
+		set Q (q:RSI|undefined) { this.q = q; }
+	
+		private get toStrPrefix () {
+			// let q = this.q.toS, r = this.r.toS;
+			// return '$' + q.length.toString () + ',' + r.length.toString () + '$' + q + r;
+			return '$';
+		}
 	}
 
 	export class rList extends xList {
