@@ -50,7 +50,7 @@ export namespace RS1 {
 		set Mom (m:RSD|undefined) {}
 
 		get I ():qList|undefined { return undefined; }
-		get R ():rList|undefined { return undefined; }
+		get R ():RSr|undefined { return undefined; }
 		get X ():xList|undefined { return undefined; }
 		get Q ():RSI|undefined { return undefined; }
 		get K ():RSK|undefined { return undefined; }
@@ -1860,9 +1860,10 @@ export namespace RS1 {
 		set Mom (m:RSD) { this.mom = m; }
 	}
 
-	export class RSQ extends RSI {
+	export class RSQ extends RSM {
 		protected q : RSI|undefined = new RSI ();
 		get Q () : RSI|undefined { return this.q;}
+		set Q (q:RSI|undefined) { this.q = q; }
 	}
 
 	export class qList extends xList {
@@ -2250,7 +2251,7 @@ export namespace RS1 {
 		}
 	}
 
-	export class RSR extends RSI {
+	export class RSr extends xList {
 		_k:RSK = new RSK (this);
 
 		get K () { return this._k; }
@@ -2423,6 +2424,12 @@ export namespace RS1 {
 				return k.bubble (nameOrList as string|RSD,dir);
 			return false;
 		}
+	}
+
+	export class RSR extends RSI {
+		protected r : RSr|undefined = new RSr ();
+		get R () : RSr|undefined { return this.r;}
+		set R (r:RSr|undefined) { this.r = r; }
 	}
 
 	export class rList extends xList {
