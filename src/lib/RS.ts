@@ -56,6 +56,8 @@ export namespace RS1 {
 		get Q ():RSI|undefined { return undefined; }
 		get R ():RSr|undefined { return undefined; }
 		get K ():RSK|undefined { return undefined; }
+
+		get size () { return 0; }
 		
 		get toS () : string {
 			let i = this.I;
@@ -166,6 +168,10 @@ export namespace RS1 {
 		}
 
 		get Data () : any { return undefined; }
+
+		get Error () { return ''; }
+		set Error (N:string) { this.Set ('Error',N); }
+
 		PostSavePack () {}
 		
 
@@ -452,7 +458,7 @@ export namespace RS1 {
 
 	export class RSMom extends RSD {
 		_k:RSK;
-		
+
 		constructor () {
 			super ();
 			this._k = new RSK (this);
@@ -1391,7 +1397,7 @@ export namespace RS1 {
 			let end = this.qstr.indexOf ('|',start);
 			return end >= 0 ? this.qstr.slice (start, end) : this.qstr.slice (start);
 		}
-		get size () { return this.qstr.length > 1; }	// not NULL list, only for qList!
+		get size () { return this.qstr.length > 1 ? 1 : 0; }	// not NULL list, only for qList!
 
 		get firstDelim () {	return this.qstr.indexOf('|'); }
 
@@ -2308,9 +2314,9 @@ export namespace RS1 {
 		get size () {
 			for (const K of this._k._kids)
 				if (K  &&  K !== NILRSD)
-					return true;
+					return 1;
 
-			 return (this.qstr!=='');
+			 return this.qstr ? 1 : 0;
 		}
 
 		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
@@ -2392,12 +2398,12 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L !== NILqList)  &&  (L.cName === 'qList')) ? L as qList : NILqList;
+			return (L  &&  (L !== NILqList)  &&  (L.cName === 'qList')) ? L as qList : undefined;
 		} 
 
 		rListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L !== NILrList)  &&  (L.cName === 'rList')) ? L as rList : NILrList;
+			return (L  &&  (L.cName === 'rList')) ? L as RSr : undefined;
 		} 
 
 		get toStr () {
@@ -2435,7 +2441,7 @@ export namespace RS1 {
 				let S = Str as string, D = S.slice (-1);
 
 				return (D === '|') ? this._k.Set (new qList (S),false) :
-					this._k.Set (new rList (S),false);
+					this._k.Set (new RSr (S),false);
 			}
 
 			let Strs = Str as string[];
@@ -2447,7 +2453,7 @@ export namespace RS1 {
 				else if (isDelim (D)) {
 					let LStrs = S.split (D);
 					LStrs.length = LStrs.length - 1;
-					let L = new rList (LStrs);
+					let L = new RSr (LStrs);
 					if (L)
 						this._k.Set (L,false);
 				}
@@ -2504,9 +2510,9 @@ export namespace RS1 {
 		get size () {
 			for (const K of this._k._kids)
 				if (K  &&  K !== NILRSD)
-					return true;
+					return 1;
 
-			 return (this.qstr!=='');
+			 return this.qstr ? 1 : 0;
 		}
 
 		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
@@ -6152,7 +6158,7 @@ export namespace RS1 {
 		protected _name = '';
 		protected _type=tNone;
 		protected _data : any = NILAB;
-		protected _error = '';
+	//	protected _error = '';
 		protected _AB1 = NILAB;
 
 		copyField (newName='') {
@@ -6252,7 +6258,7 @@ export namespace RS1 {
 			return NILList;
 		 }
 
-		get Error () { return this._error; }
+		get Error () { return this.descByName ('Error'); }
 		get Data () { return this._data; }
 
 		setAB (AB:ArrayBuffer|null = NILAB) { 
@@ -6283,7 +6289,7 @@ export namespace RS1 {
 
 				case tPack : AB = this.Pack.bufOut (); break;
 				case tList : AB = str2ab ((this._data as vList).x.toStr); break;
-				default : AB = NILAB; this._error = 'toArray Error, Type =' + this._type + '.';
+				default : AB = NILAB; this.Set ('Error','toArray Error, Type =' + this._type + '.');
 			}
 
 			return AB;
@@ -6386,7 +6392,7 @@ export namespace RS1 {
 					break;
 				case tAB : D = AB.slice (0); break;
 				case tList : D = new vList (ab2str (AB)); break;
-				default : this._error = 'constructor error Type =' + Type1 + ', converted to NILAB.';
+				default : this.Set ('Error','constructor error Type =' + Type1 + ', converted to NILAB.');
 					Type1 = tAB;
 					D = NILAB;
 					AB = NILAB;
@@ -6504,8 +6510,8 @@ export namespace RS1 {
 				default : Str += ' DEFAULT AB, Type =' + this._type + ' ' + this._AB1.byteLength.toString () + ' bytes'; break;
 			}
 
-			if (this._error)
-				Str += ' ***ERROR*** ' + this._error;
+			if (this.Error)
+				Str += ' ***ERROR*** ' + this.Error;
 
 			return Str;
 		}
