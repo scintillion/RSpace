@@ -6206,6 +6206,17 @@ export namespace RS1 {
 			this.Set ('Type',s);
 		}
 
+		get _AB () {
+			if (this._AB1  &&  this._AB1 !== NILAB)
+				return this._AB1;
+
+			return this.toAB1;
+		}
+
+		set _AB (AB:ArrayBuffer) {
+			this._AB1 = AB ? AB : NILAB;
+		}
+
 		copyField (newName='') {
 			let AB = this.toAB1;
 			if (!newName)
