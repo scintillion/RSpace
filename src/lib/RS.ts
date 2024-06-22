@@ -49,6 +49,8 @@ export namespace RS1 {
 		get Mom ():RSD|undefined { return undefined; }
 		set Mom (m:RSD|undefined) {}
 
+		get notNIL () { return this !== NILRSD; }
+
 		get I ():RSI|undefined { return undefined; }
 		// get X ():xList|undefined { return undefined; }
 		get Q ():RSI|undefined { return undefined; }
@@ -77,7 +79,7 @@ export namespace RS1 {
 			return str; 
 		}
 
-		fromS (S:string|string[]) : string|string[]|undefined {
+		fromS (S:string|string[]) : string|string[] {
 			let remain:string[] = [];
 			let Strs = ((typeof S) === 'string') ? [S as string] : S as string[];
 
@@ -1899,13 +1901,13 @@ export namespace RS1 {
 		}
 	}
 
-	export class RSM extends RSI {
+	export class RSChild extends RSI {
 		protected mom : RSD|undefined;
 		get Mom () : RSD|undefined { return this.mom; }
 		set Mom (m:RSD) { this.mom = m; }
 	}
 
-	export class RSQ extends RSM {
+	export class RSQ extends RSChild {
 		protected q : RSI|undefined = new RSI ();
 		get Q () : RSI|undefined { return this.q; }
 		set Q (q:RSI|undefined) { this.q = q; }
@@ -2468,7 +2470,7 @@ export namespace RS1 {
 		}
 	}
 
-	export class RSR extends RSM {
+	export class RSR extends RSChild {
 		protected r : RSr|undefined = new RSr ();
 		get R () : RSr|undefined { return this.r;}
 		set R (r:RSr|undefined) { this.r = r; }
@@ -6141,6 +6143,369 @@ export namespace RS1 {
 
 			if (this === NILField)
 				Str = 'NILField!';
+
+			return Str;
+		}
+	}
+
+	export class RSField extends RSI {
+		protected _name = '';
+		protected _type=tNone;
+		protected _data : any = NILAB;
+		protected _error = '';
+		protected _AB1 = NILAB;
+
+		copyField (newName='') {
+			let AB = this.toAB1;
+			if (!newName)
+				newName = this._name;
+			return new PackField (newName, AB, this._type);
+		}
+
+		from (Src : RSField) {
+			this._name = Src._name;
+			this._type = Src._type;
+			this.setByAB (Src.toAB1, this._type);
+		}
+
+		get Type () { return this._type; }
+		get Name () { return this._name; }
+		get Str () { return (this._type === tStr) ? this._data as string : ''; }
+		get Num () { return (this._type === tNum) ? this._data as number : NaN; }
+
+		get AB () {
+			// return this._AB;
+			return (this._AB1 !== NILAB) ? this._AB1 : this.toAB1;
+		}
+
+		fromDisk (Type:string) {
+			if (this._type !== tDisk)
+				return this._data;
+			
+			switch (Type) {
+
+
+
+			}
+
+			return NILAB;
+		}
+
+		get rawAB () {
+			if ((this._type !== tAB)  ||  (this._data === NILAB))
+				return NILAB;
+
+			return this.AB;
+		}
+
+		get rawList () {
+			let AB = this.rawAB;
+
+			if (AB.byteLength  &&  AB !== NILAB) {
+				let Str = ab2str (AB);
+
+				if (Str)
+					return new vList (Str);
+			}
+
+			return NILList;
+		}
+
+		get rawPack () {
+			let AB = this.rawAB;
+
+			if (AB.byteLength  &&  AB !== NILAB) {
+				let Pack = new BufPack ();
+				Pack.bufIn (AB);
+				return Pack;
+			}
+			return NILPack;
+		}
+
+		get Pack () {
+			switch (this._type)
+			{
+				case tPack :	return this._data ? this._data as BufPack : new BufPack ();
+				case tAB :
+					this._type = tPack;
+					let Pack = new BufPack ();
+					Pack.bufIn (this._data);
+					this._data = Pack;
+					return Pack;					
+			}
+			return NILPack;
+		}
+
+
+		get rsPack () { return (this._type == tData) ? this._data as BufPack : NILPack; }
+		get List () {
+			switch (this._type) {
+				case tList :	return this._data ? this._data as vList : new vList ();
+				case tAB : case tStr : 
+					let Str = this._data;
+					if (!Str)
+						return new vList ();
+					if (typeof (Str) !== 'string')
+						Str = ab2str (Str);
+					return new vList (Str);
+			}
+			return NILList;
+		 }
+
+		get Error () { return this._error; }
+		get Data () { return this._data; }
+
+		setAB (AB:ArrayBuffer|null = NILAB) { 
+			if (AB) 
+				return this._AB1 = (AB === NILAB) ? this.toAB1 : AB as ArrayBuffer;
+			else return this._AB1 = NILAB;
+		}
+
+		get toAB1 () {
+			let AB = this._AB1;
+			if (AB !== NILAB)
+				return AB;
+
+			switch (this._type) {
+				case tNum : AB = this._AB1 = num2ab (this._data as number); break;
+				case tStr : AB = this._AB1 = str2ab (this._data as string); break;
+				case tAB :  AB = (this._data as ArrayBuffer).slice (0);
+					// console.log ('  toAB ' + this._name + '[=' + AB.byteLength.toString ());
+					return AB;
+				case tData : 
+					if (this._data === NILData) {
+						AB = NILAB;
+						break;
+					}
+					let Pack = (this._data as RSData).SavePack ();
+					AB = Pack.bufOut ();
+					break;
+
+				case tPack : AB = this.Pack.bufOut (); break;
+				case tList : AB = str2ab ((this._data as vList).x.toStr); break;
+				default : AB = NILAB; this._error = 'toArray Error, Type =' + this._type + '.';
+			}
+
+			return AB;
+		}
+
+		setName (N:string) {
+			if (this.notNIL  &&  !this._name)
+				this._name = N;
+		}
+
+		setData (D : PFData) {
+		    this.notNIL;
+			this._AB1 = NILAB;
+
+			let Type;
+			switch (typeof (D)) {
+				case 'number' : Type = tNum; break;
+				case 'string' : Type = tStr; break;
+				default :
+					if (!D) {
+						D = NILAB;
+						Type = tAB;
+					} else
+					{
+						let CName = D.constructor.name;
+						switch (CName) {
+							case 'BufPack' :
+								Type = tPack;
+								D = (D as BufPack).copy;
+								break;
+							case 'vList' :
+								Type = tList;
+								D = new vList ((D as vList).x.toStr);
+								break;
+							case 'ArrayBuffer' :
+								Type = tAB;
+								D = this.setAB ((D as ArrayBuffer)).slice (0);
+								break;
+							case 'Buffer' :
+								Type = tAB;
+								let TBuf = (D as Int8Array).slice(0);
+								D = this.setAB (ABfromArray (TBuf));
+								break;
+							default :
+								if (D instanceof RSData) {
+									Type = tData;
+									D = (D as RSData).SavePack ();
+									log ('setData:Not allowed without TypeLists, field='+this._name);
+									// we cannot directly create the appropriate
+									// RSData record because we don't have TypeLists
+									// fully implemented
+								}
+								else
+									throw ('tNone! Name =' + this._name + ' CName=' + CName);
+									Type = tNone;
+									this._data = NILAB;
+								}
+						}
+			}
+			this._type = Type;
+			this._data = D;
+			return this.setAB ();
+		}
+
+		clear () {
+			let D : any;
+			this._AB1 = NILAB;
+			
+			switch (this._type) {
+				case tNum : D = NaN; break;
+				case tStr : D = ''; break;
+				case tPack : D = new BufPack (); break;
+				case tAB : D = new ArrayBuffer (0); break;
+				case tList : D = new vList (''); break;
+				default : 
+					D = NILAB;
+			}
+			this._data = D;
+			this.setAB ();
+		}
+
+
+		private setByAB (AB : ArrayBuffer,Type1 : string) {
+		    this.notNIL;
+			this._AB1 = NILAB;
+
+			let D;
+			switch (Type1) {
+				case tNum : D = ab2num (AB); break;
+
+				case tStr : D = ab2str (AB); break;
+				case tPack : case tData :
+					let Pack = new BufPack (); Pack.bufIn (AB);
+					D = Pack;
+					if (Type1 === tData)
+						console.log ('setByAB: type = ' + Type1 + ' Not allowed without TypeLists, field='+this._name);
+					// currently we cannot support tData by creating
+					// the appropriate RSData record because we don't
+					// have TypeLists fully implemented (Name/new/EditFunc)
+					break;
+				case tAB : D = AB.slice (0); break;
+				case tList : D = new vList (ab2str (AB)); break;
+				default : this._error = 'constructor error Type =' + Type1 + ', converted to NILAB.';
+					Type1 = tAB;
+					D = NILAB;
+					AB = NILAB;
+					break;
+			}
+
+			this._data = D;
+			this._type = Type1;
+			return this.setAB ();
+		}
+
+		private _setByBuf (Type : string, InBuffer : Int8Array | ArrayBuffer, Start = -1, nBytes = -1) {
+		    this.notNIL;
+
+			let ABuf : ArrayBuffer;
+			let IBuf,TBuf : Int8Array;
+
+			if (Start < 0) {
+				Start = 0; nBytes = 999999999;
+			}
+			else if (nBytes < 0)
+				nBytes = 999999999;
+
+			let CName = InBuffer.constructor.name;
+			if (CName === 'ArrayBuffer') {
+				ABuf = (InBuffer as ArrayBuffer).slice (Start, Start + nBytes);
+				IBuf = new Int8Array (ABuf);
+			}
+			else {	// Int8Array
+				TBuf = (InBuffer as Int8Array).slice (Start, Start+nBytes);
+				ABuf = ABfromArray (TBuf);
+			}
+
+			this.setByAB (ABuf, Type);
+		}
+
+		constructor (N : string, D : PFData,Type1='') {
+			super ();
+			this._name = N;
+
+			if (Type1)		// AB coming in with type
+				this.setByAB (D as ArrayBuffer, Type1);
+			else this.setData (D);
+		}
+
+		get NameVal () {
+			let Str = this._type + this._name + '=';
+
+			switch (this._type) {
+				case tNum : Str += this.Num.toString (); break;
+				case tStr : Str += this.Str; break;
+				case tList : let L = this.List;
+					Str += 'LIST=' + L.Name + ' Desc:' + L.Desc + ' Count=' + L.x.count;
+					break;
+				case tPack : case tData : case tAB :
+					 Str += '(' ;
+					 if (this._type === tAB) {
+							Str += this._AB1.byteLength.toString () + ')';
+							break;
+					 }
+
+					let Pack = this.Pack;
+
+					Str += 'C:'+Pack.fetch('<').length.toString() + ' D:' + Pack.fetch('>').length.toString () + ')';
+					break;
+
+				default : Str += 'BADTYPE=' + this._type + ' ' + this.AB.byteLength.toString () + ' bytes';
+			}
+
+			return Str;
+		}
+
+
+		Equal (Ref : RSField) : boolean {
+		    this.notNIL;
+
+			if (this._type === Ref._type) {
+				switch (this._type) {
+					case tNum : return this.Num === Ref.Num;
+					case tStr : return this.Str === Ref.Str;
+					case tAB :
+						let limit = this._AB1.byteLength;
+						if (Ref._AB1.byteLength != limit)
+							return false;
+
+						let B = new Uint8Array (this._AB1);
+						let R = new Uint8Array (Ref._AB1);
+
+						for (let i = limit; --i >= 0;) {
+							if (B[i] !== R[i])
+								return false;
+						}
+						return true;	// no mismatch, equal.
+					default : return false;
+				}
+			}
+			return false;
+		}
+
+		get desc() {
+			let Str = this.NameVal + ' ';
+
+			switch (this._type) {
+				case tNum : break; // Str += '= ' + this._num.toString (); break;
+				case tStr : break; // Str += '= ' + this._str; break;
+				case tList : break;
+				case tPack : case tData :  
+					let Pack = this.Pack;
+					let Ds = Pack.fetch('>');
+					for (const F of Ds)
+						Str += ' ' + F.NameVal;
+					break;
+				case tAB : break;
+
+				default : Str += ' DEFAULT AB, Type =' + this._type + ' ' + this._AB1.byteLength.toString () + ' bytes'; break;
+			}
+
+			if (this._error)
+				Str += ' ***ERROR*** ' + this._error;
 
 			return Str;
 		}
