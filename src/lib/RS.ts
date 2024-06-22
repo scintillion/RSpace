@@ -77,7 +77,41 @@ export namespace RS1 {
 			return str; 
 		}
 
-		fromS (S:string) : string|undefined { return S; }
+		fromS (S:string|string[]) : string|string[]|undefined {
+			let remain:string[] = [];
+			let Strs = ((typeof S) === 'string') ? [S as string] : S as string[];
+
+			for (const str of Strs) {
+				if (!str)
+					continue;
+
+				let last = str.slice (-1), first = str.slice (0,-1);
+				switch (last) {
+					case 'I' :
+						let i = this.I;
+						if (i)
+							i.fromS (first);
+						break;
+
+					case 'Q' :
+						let q = this.Q;
+						if (q)
+							q.fromS (first);
+						break;
+
+					case 'R' :
+						let r = this.R;
+						if (r)
+							r.fromS (first);
+						break;
+
+					default : remain.push (str);
+				}
+			}
+			
+			return remain;
+		}
+
 		get toPack () { return NILPack; }
 		get toAB () { return NILAB; }
 		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
