@@ -49,12 +49,39 @@ export namespace RS1 {
 		get Mom ():RSD|undefined { return undefined; }
 		set Mom (m:RSD|undefined) {}
 
-		get I ():qList|undefined { return undefined; }
-		get R ():RSr|undefined { return undefined; }
-		get X ():xList|undefined { return undefined; }
+		get I ():RSI|undefined { return undefined; }
+		// get X ():xList|undefined { return undefined; }
 		get Q ():RSI|undefined { return undefined; }
+		get R ():RSr|undefined { return undefined; }
 		get K ():RSK|undefined { return undefined; }
+		
+		get toS () : string {
+			let i = this.I;
+			let iStr = i ? i.toS : '';
+			if (iStr)
+				iStr += 'I\x00';
 
+			let q = this.Q;
+			let qStr = q ? q.toS : '';
+			if (qStr)
+				qStr += 'Q\x00';
+
+			let r = this.R;
+			let rStr = r ? r.toS + 'R': '';
+			if (rStr)
+				rStr += 'R\x00';
+
+			let str = iStr + qStr + rStr;
+			if (str)
+				str = '$' + str.length.toString () + '\x00' + str;
+			return str; 
+		}
+
+		fromS (S:string) : string|undefined { return S; }
+		get toPack () { return NILPack; }
+		get toAB () { return NILAB; }
+		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
+		get toStr () { return "RSD.toStr"; }
 
 		get NILchk () { return false; }
 
@@ -105,12 +132,6 @@ export namespace RS1 {
 		get Data () : any { return undefined; }
 		PostSavePack () {}
 		
-		get toS () { return ''; }
-		fromS (S:string) : string|undefined { return S; }
-		get toPack () { return NILPack; }
-		get toAB () { return NILAB; }
-		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
-		get toStr () { return "RSD.toStr"; }
 
 		PostLoadPack () {}
 
@@ -1466,6 +1487,8 @@ export namespace RS1 {
 
 
 	export class RSI extends xList {	// RSI is the NEW qList!!
+		get I () : RSI|undefined { return this; }
+
 		fromStr (Str:string|string[]='|') {
 			if ((typeof Str) === 'string') {
 				let S = Str as string;
@@ -1850,7 +1873,7 @@ export namespace RS1 {
 
 	export class RSQ extends RSM {
 		protected q : RSI|undefined = new RSI ();
-		get Q () : RSI|undefined { return this.q;}
+		get Q () : RSI|undefined { return this.q; }
 		set Q (q:RSI|undefined) { this.q = q; }
 	}
 
@@ -2239,7 +2262,7 @@ export namespace RS1 {
 		}
 	}
 
-	export class RSr extends RSM {
+	export class RSr extends xList {
 		_k:RSK = new RSK (this);
 		get K () { return this._k; }
 
@@ -2436,8 +2459,6 @@ export namespace RS1 {
 		_k:RSK = new RSK (this);
 
 		get K () { return this._k; }
-//		get Kids () : RSDT[] { return this._k._kids; }
-//		protected get _Names () : string[] { return this._k._names; }
 
 		get NILchk () { return (this === NILrList); }
 
