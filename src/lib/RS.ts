@@ -57,6 +57,24 @@ export namespace RS1 {
 		get R ():RSr|undefined { return undefined; }
 		get K ():RSK|undefined { return undefined; }
 
+		get _AB () : ArrayBuffer|undefined {
+			let k = this.K, AB;
+			if (k) {
+				AB = k._AB;
+				if (AB)
+					return AB;
+			}
+
+			return undefined;
+		}
+
+		set _AB (AB : ArrayBuffer|undefined) {
+			let k = this.K;
+
+			if (k)
+				k._AB = AB;
+		}
+
 		get size () { return 0; }
 		
 		get toS () : string {
@@ -453,6 +471,22 @@ export namespace RS1 {
 			this._names[i] = this._names[j]; this._kids[i] = this._kids[j];
 			this._names[j] = OldName; this._kids[j] = OldKid;
 			return true;
+		}
+
+		get names () {
+			let Kids = this._kids, Names = Array<string> (Kids.length), i = 0, count = 0;
+
+			for (const K of Kids) {
+				++i;
+				if (K) {
+					let N = K.Name;
+					if (N)
+						Names[count++] = N;
+				}				
+			}
+
+			Names.length = count;
+			return Names;
 		}
 	}
 
@@ -5779,7 +5813,7 @@ export namespace RS1 {
 		return Num;
 	}
 
-	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData;
+	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData|undefined;
 
 	export class PackField extends RSD {
 		protected _name = '';
@@ -6158,8 +6192,19 @@ export namespace RS1 {
 		protected _name = '';
 		protected _type=tNone;
 		protected _data : any = NILAB;
-	//	protected _error = '';
-		protected _AB1 = NILAB;
+		protected _AB1=NILAB;
+
+		get Name () { return this._name; }
+		set Name (s:string) { 
+			this._name = s;
+			this.Set ('Name',s);
+		}
+
+		get Type () { return this._type; }
+		set Type (s:string) { 
+			this._type = s;
+			this.Set ('Type',s);
+		}
 
 		copyField (newName='') {
 			let AB = this.toAB1;
@@ -6174,15 +6219,15 @@ export namespace RS1 {
 			this.setByAB (Src.toAB1, this._type);
 		}
 
-		get Type () { return this._type; }
-		get Name () { return this._name; }
 		get Str () { return (this._type === tStr) ? this._data as string : ''; }
 		get Num () { return (this._type === tNum) ? this._data as number : NaN; }
 
+		/*
 		get AB () {
 			// return this._AB;
 			return (this._AB1 !== NILAB) ? this._AB1 : this.toAB1;
 		}
+		*/
 
 		fromDisk (Type:string) {
 			if (this._type !== tDisk)
@@ -6201,7 +6246,7 @@ export namespace RS1 {
 			if ((this._type !== tAB)  ||  (this._data === NILAB))
 				return NILAB;
 
-			return this.AB;
+			return this._AB ? this._AB : NILAB;
 		}
 
 		get rawList () {
@@ -6293,11 +6338,6 @@ export namespace RS1 {
 			}
 
 			return AB;
-		}
-
-		setName (N:string) {
-			if (this.notNIL  &&  !this._name)
-				this._name = N;
 		}
 
 		setData (D : PFData) {
@@ -6459,7 +6499,11 @@ export namespace RS1 {
 					Str += 'C:'+Pack.fetch('<').length.toString() + ' D:' + Pack.fetch('>').length.toString () + ')';
 					break;
 
-				default : Str += 'BADTYPE=' + this._type + ' ' + this.AB.byteLength.toString () + ' bytes';
+				default :
+					let AB = this._AB;
+					if (!AB)
+						AB = NILAB;
+					Str += 'BADTYPE=' + this._type + ' ' + AB.byteLength.toString () + ' bytes';
 			}
 
 			return Str;
