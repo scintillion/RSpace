@@ -2,7 +2,8 @@
 	import { onMount } from 'svelte';
 	import { Editor } from '$lib/ConstListEditor';
 	import { QEditor } from '$lib/qListEditor';
-	import { RS1 } from '../../lib/RS';
+	// import { RS1 } from '../../lib/RS';
+	import { RS1 } from '$lib/RSsvelte.svelte';
 	import { packStore } from '../../stores/packStore.js';
 	import { createEventDispatcher } from 'svelte';
     //import { subscribe } from 'svelte/internal';
@@ -162,25 +163,7 @@
 		flex-direction: column;
 	}
 
-	// input,
-	// select {
-	// 	width: 200px;
-	// 	height: 40px;
-	// 	border-radius: 10px;
-	// 	font-family: inherit;
-	// 	outline: none;
-	// 	border: none;
-	// 	padding-left: 10px;
-	// 	transition: 0.3s linear;
-	// }
-
-	// select[name='format'] {
-	// 	width: 100px;
-	// }
-
-	// input[name='fmtstr'] {
-	// 	width: 70px;
-	// }
+	
 
 	button {
 		margin-top:   10px;

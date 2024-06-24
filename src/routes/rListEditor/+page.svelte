@@ -1,7 +1,7 @@
 <script lang="ts">
     import RListEditor from '../../lib/rListEditor.svelte';
     import rListEditor from '../../lib/rListEditor.svelte';
-    import { RS1 } from '../../lib/RS';
+    import { RS1 } from '../../lib/RSsvelte.svelte';
 
     const rString = [
 		'T\ta|name:Full|\ts|display:flex|\t',

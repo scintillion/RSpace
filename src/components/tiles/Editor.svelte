@@ -235,25 +235,7 @@
 		flex-direction: column;
 	}
 
-	// input,
-	// select {
-	// 	width: 200px;
-	// 	height: 40px;
-	// 	border-radius: 10px;
-	// 	font-family: inherit;
-	// 	outline: none;
-	// 	border: none;
-	// 	padding-left: 10px;
-	// 	transition: 0.3s linear;
-	// }
-
-	// select[name='format'] {
-	// 	width: 100px;
-	// }
-
-	// input[name='fmtstr'] {
-	// 	width: 70px;
-	// }
+	
 
 	button {
 		margin-top:   10px;

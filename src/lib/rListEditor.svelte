@@ -1,24 +1,25 @@
 <script lang="ts">
-    import { RS1 } from '$lib/RS';
+    import { RS1 } from './RSsvelte.svelte';
 	import QEditor from '../components/tiles/QEditor.svelte';
 	import RListEditor from './rListEditor.svelte';
-	
-    export let RSK: RS1.RSK;
-	let kidArray = RSK._kids
-	let selectedKid: Types
-	let step = 'Home';
-	if (kidArray.length > 0 && kidArray[0]) 
-    	selectedKid = kidArray[0];
+	import { mount } from 'svelte';
 
-	type Types = RS1.RSD;
+    // export let RSK: RS1.RSK;
+	let {RSK}:{RSK: RS1.RSK} = $props();
+	// let {RSK}:{RSK: RS1.RSK} = $props<{RSK:RS1.RSK}>();
+	let kidArray = $state(RSK._kids);
+	let selectedKid: Types = $state(kidArray[0]) ;
+	let step = $state('Home');
+	
+	type Types = RS1.RSD | undefined;
 
 	function selectKid(kid:Types | undefined) {
 		console.log('select!')
-		if (kid?.mom) {
+		if (kid?.Mom) {
 			step = 'edit';
 		}
 		if (kid) selectedKid = kid;
-		console.log('selectKid()' + selectedKid.Desc)
+		console.log('selectKid()' + selectedKid?.Desc)
 	}
 
 	function copyVID(kid: Types) {
@@ -37,7 +38,6 @@
 			throw new Error('undefined');
 		}
 		
-		kidArray = RSK._kids;
 			
 		}
 
@@ -57,12 +57,12 @@
 				document.body.appendChild(modalContent);
 
 				if (modalContent) {
-					const editorComponent = new QEditor({
+					const editorComponent = mount (QEditor,({
 							target: modalContent,
 							props: {
 								qList: list,
 							},
-						});
+						}));
 						editorComponent.$on('close', () => {
 						modalContent.remove();
 					});
@@ -77,12 +77,12 @@
 					modalContent.innerHTML = '';
 
 					if (list?.K) {
-					const editorComponent = new RListEditor({
+					const editorComponent = mount( RListEditor,({
 						target: modalContent,
 						props: {
 							RSK: list.K,
 						}
-					});
+					}));
 				}
 				}
 			}
@@ -96,15 +96,35 @@
 		function handleBack() {
 			let parent: RS1.RSD | undefined
 			console.log('handleBack()' + selectedKid?.Desc)
-			parent = selectedKid?.mom
-			if (!parent?.mom) return
+			parent = selectedKid?.Mom
+			if (!parent?.Mom) return
 			
-			selectKid(parent.mom);
+			selectKid(parent.Mom);
 			
-			if (selectedKid.K) RSK = selectedKid.K
-			kidArray = RSK._kids
+			if (selectedKid?.K) RSK = selectedKid.K
+			// kidArray = RSK._kids
 		}
 
+		function del() {
+			if (selectedKid) { 
+				let storearray = kidArray; 
+				console.log('bdel kidarray0' + storearray[0]?.Desc); 
+				console.log('bdel kidaaray:')
+				console.log(storearray.forEach((kid) => console.log(kid?.Name)));
+				console.log('bdel RSL._kidaaray:')
+				console.log(RSK._kids.forEach((kid) => console.log(kid?.Name)));
+				RSK.del(selectedKid);
+				console.log('adel kidarray0' + kidArray[0]?.Desc);
+				console.log($state.is('equality check' + RSK._kids,kidArray)); 
+				console.log('adel kidarray:');
+				console.log(kidArray.forEach((kid) => console.log(kid?.Name)));
+				// console.log(RSK._kids.forEach((kid) => console.log(kid?.Name)));
+				console.log('adel RSL._kidaaray:')
+				console.log(RSK._kids.forEach((kid) => console.log(kid?.Name)));
+				}
+				}
+		
+	
 
 
 </script>
@@ -115,13 +135,13 @@
 			{#if kidArray}
 				{#each kidArray as kid}
 					{#if step === 'Home'}
-							<div on:click={() => selectKid(kid)} class:selected={kid === selectedKid} >
+							<div onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
 								<span>{kid?.Name} </span>
 							</div>
 					{/if}
 					{#if step === 'edit'}
 						{#if kid}
-							<div on:click={() => selectKid(kid)} class:selected={kid === selectedKid} >
+							<div onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
 								<span>{kid?.Name}</span>
 							</div>
 						{/if}
@@ -132,14 +152,14 @@
 		
 		<div class="Buttons">
 			<!-- <button id="save">Save</button> -->
-			<button id="edit" on:click={() => edit(selectedKid)}>Edit</button>
-			<button id="del" on:click={() => {RSK.del(selectedKid); kidArray = RSK._kids }}>Delete</button>
+			<button id="edit" onclick={() => edit(selectedKid)}>Edit</button>
+			<button id="del" onclick={() => del()}>Delete</button>
 			<!-- <button id="clear">Clear</button> -->
-			<button id="copy" on:click={() => copyVID(selectedKid)}>Copy</button>
-			<button id="up" on:click={() => {RSK.bubble(selectedKid,-1);  kidArray = RSK._kids }}>Up</button>
-			<button id="down" on:click={() => {RSK.bubble(selectedKid,1); kidArray = RSK._kids }}>Down</button>
+			<button id="copy" onclick={() => copyVID(selectedKid)}>Copy</button>
+			<button id="up" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,-1); console.log(RSK._kids.forEach((kid) => console.log(kid?.Name))); }}>Up</button>
+			<button id="down" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,1);console.log(RSK._kids.forEach((kid) => console.log(kid?.Name)));  }}>Down</button>
 			<!-- <button id="add">Add</button> -->
-			<button id="back" on:click={() => handleBack()}>Back</button>
+			<button id="back" onclick={() => handleBack()}>Back</button>
 			</div>
 			
 		</div>
