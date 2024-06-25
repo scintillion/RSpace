@@ -159,7 +159,7 @@ export class QEditor {
 
 			const rawFMT = vID.Fmt as RS1.IFmt;
 			const format1: string = rawFMT.TypeStr;
-			const format = this.formats.descByName(rawFMT.Ch) as string;
+			const format = this.formats?.descByName(rawFMT.Ch) as string;
 			
 			if (format === 'Member') {
 				this.LoadMemberAndSetFields();

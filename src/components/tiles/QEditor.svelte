@@ -5,27 +5,25 @@
 	// import { RS1 } from '../../lib/RS';
 	import { RS1 } from '$lib/RSsvelte.svelte';
 	import { packStore } from '../../stores/packStore.js';
-	import { createEventDispatcher } from 'svelte';
-    //import { subscribe } from 'svelte/internal';
+	
 
 	let CLString: string = '';
 	// export let String = '';
-	export let qList = new RS1.qList('');
+	// export let qList = new RS1.qList('');
+	// let qList = new RS1.qList('');
+	// let receivedPackEditor: RS1.BufPack;
 	
-	let receivedPack: RS1.BufPack;
-	
-	console.log('CLString' + CLString);
-	
+	let  { modalContent, modalBackground,qList }:{modalContent:HTMLElement, modalBackground:HTMLDivElement, qList: RS1.qList}= $props();
 
-
-
-	const dispatch = createEventDispatcher();
+	// const dispatch = createEventDispatcher();
 	const TypeArray = RS1.TypeNames;
 
 	function close() {
-		dispatch('close');
-		dispatch('save', {value: receivedPack});
+		// dispatch('close');
+		// dispatch('save', {value: receivedPackEditor});
 		//unsubscribe;
+		modalContent?.remove();
+    	modalBackground?.remove();
 	}
 
 	
@@ -53,7 +51,7 @@
 <div class="editor">
 	<div id="cledit">
 		<!-- {#if showEditorfields == true} -->
-		<div class="selectContainer" />
+		<div class="selectContainer"></div>
 		<!-- <button on:click={() => showEditorfields = false} >Edit </button> -->
 		<!-- {/if} -->
 		
@@ -115,7 +113,7 @@
 				<button id="up">Up</button>
 				<button id="down">Down</button>
 				<button id="add">Add</button>
-				<button on:click={close}>Back</button>
+				<button onclick={close}>Back</button>
 			</div>
 		</div>
 		<!-- {/if} -->

@@ -10,7 +10,7 @@
 	let kidArray = $state(RSK._kids);
 	let selectedKid: Types = $state(kidArray[0]) ;
 	let step = $state('Home');
-	
+
 	type Types = RS1.RSD | undefined;
 
 	function selectKid(kid:Types | undefined) {
@@ -61,11 +61,13 @@
 							target: modalContent,
 							props: {
 								qList: list,
+								modalBackground: modalContent,
+								modalContent: modalContent,
 							},
 						}));
-						editorComponent.$on('close', () => {
-						modalContent.remove();
-					});
+					// 	editorComponent.$on('close', () => {
+					// 	modalContent.remove();
+					// });
 				}
     		}
 			
@@ -100,29 +102,17 @@
 			if (!parent?.Mom) return
 			
 			selectKid(parent.Mom);
-			
+
 			if (selectedKid?.K) RSK = selectedKid.K
 			// kidArray = RSK._kids
 		}
 
 		function del() {
 			if (selectedKid) { 
-				let storearray = kidArray; 
-				console.log('bdel kidarray0' + storearray[0]?.Desc); 
-				console.log('bdel kidaaray:')
-				console.log(storearray.forEach((kid) => console.log(kid?.Name)));
-				console.log('bdel RSL._kidaaray:')
-				console.log(RSK._kids.forEach((kid) => console.log(kid?.Name)));
+				// let storearray = kidArray; 
 				RSK.del(selectedKid);
-				console.log('adel kidarray0' + kidArray[0]?.Desc);
-				console.log($state.is('equality check' + RSK._kids,kidArray)); 
-				console.log('adel kidarray:');
-				console.log(kidArray.forEach((kid) => console.log(kid?.Name)));
-				// console.log(RSK._kids.forEach((kid) => console.log(kid?.Name)));
-				console.log('adel RSL._kidaaray:')
-				console.log(RSK._kids.forEach((kid) => console.log(kid?.Name)));
-				}
-				}
+			}
+		}
 		
 	
 
@@ -156,8 +146,8 @@
 			<button id="del" onclick={() => del()}>Delete</button>
 			<!-- <button id="clear">Clear</button> -->
 			<button id="copy" onclick={() => copyVID(selectedKid)}>Copy</button>
-			<button id="up" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,-1); console.log(RSK._kids.forEach((kid) => console.log(kid?.Name))); }}>Up</button>
-			<button id="down" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,1);console.log(RSK._kids.forEach((kid) => console.log(kid?.Name)));  }}>Down</button>
+			<button id="up" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,-1);}}>Up</button>
+			<button id="down" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
 			</div>
