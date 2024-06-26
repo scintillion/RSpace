@@ -1,6 +1,8 @@
 <script lang="ts">
 	import QEditor from '../../components/tiles/QEditor.svelte';
-    import { RS1 } from '../../lib/RS';
+    // import { RS1 } from '../../lib/RS';
+    import { RS1 } from '../../lib/RSsvelte.svelte';
+    import { mount } from 'svelte';
 
 	let CLString =
     'Test|Name:[%=John]Your Name|XY:[#=123]A Number Value|Member:[@Test1=ListNum]TestMem|Set:[{Test1=ListNum,Test1Name}]TestSet|';
@@ -19,17 +21,19 @@
         document.body.appendChild(modalContent);
 
     if (modalContent) {
-    const editorComponent = new QEditor({
+    const editorComponent = mount(QEditor,({
             target: modalContent,
             props: {
-                qList,
+                qList: qList,
+                modalBackground: modalContent,
+				modalContent: modalContent,
             },
-        });
-        editorComponent.$on('close', () => {
-        modalContent.remove();
-        // modalBackground.remove();
-        //unsubscribe();
-    });
+        }));
+    //     editorComponent.$on('close', () => {
+    //     modalContent.remove();
+    //     // modalBackground.remove();
+    //     //unsubscribe();
+    // });
     }
 
 </script>

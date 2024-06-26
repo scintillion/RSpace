@@ -6194,6 +6194,9 @@ export namespace RS1 {
 		protected _name = '';
 		protected _type=tNone;
 		protected _data : any = NILAB;
+		protected _arrSize=-1;
+		protected _arrType='';
+		protected _arrDims:number[]|undefined;
 		protected _AB1=NILAB;
 
 		get Name () { return this._name; }
@@ -6230,6 +6233,39 @@ export namespace RS1 {
 			this._name = Src._name;
 			this._type = Src._type;
 			this.setByAB (Src.toAB1, this._type);
+		}
+
+		get toPrefix () {
+			let str = this._type;
+			if (this._arrSize >= 0) {
+				let Arr = this._data as Array<any>, aType;
+				str += ':' + this._arrSize.toString () + ':';
+				if (this._type[0] >= '0') {	// RSD derived
+					for (const E of Arr)
+						if (E) {
+							aType = E.constructor.name;
+							break;
+						}
+
+
+
+
+				}
+				else if (this._type === tNum) {
+					str += (this._arrSize * 8).toString ();
+
+
+				}
+				else if (this._type === tStr) {
+					let newStrs:string[] = [];
+
+					for (const E of Arr)
+						newStrs.push (E ? E : '');
+				}
+			}
+
+
+			return str;
 		}
 
 		get Str () { return (this._type === tStr) ? this._data as string : ''; }
