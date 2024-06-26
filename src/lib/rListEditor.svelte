@@ -119,21 +119,23 @@
 
 </script>
 
+{#snippet selectBox(kid)}
+	<button onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
+		<span>{kid?.Name} </span>
+	</button>
+{/snippet}	
+
 <main>
 	<div id="editor">
         <div class="selectContainer">
 			{#if kidArray}
 				{#each kidArray as kid}
 					{#if step === 'Home'}
-							<div onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
-								<span>{kid?.Name} </span>
-							</div>
+							{@render selectBox(kid)}
 					{/if}
 					{#if step === 'edit'}
 						{#if kid}
-							<div onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
-								<span>{kid?.Name}</span>
-							</div>
+							{@render selectBox(kid)}
 						{/if}
 					{/if}
 				{/each}
@@ -159,47 +161,8 @@
 
 
 <style lang="scss">
-	.selectContainer {
-        width: 100%;
-        height: auto;
-        padding: 10px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        max-height: 500px;
-        overflow-y: auto;
-        gap: 10px;
-        background-color: white;
-        color: black;
-    }
-    .selectContainer div {
-        cursor: pointer;
-        padding: 2px;
-        margin-bottom: 4px;
-        border-radius: 4px;
-        transition: background-color 0.3s ease;
-    }
-
-    .selectContainer div:hover,
-    .selectContainer div.selected {
-        background-color: #3297FD;
-        color: white;
-    }
-   
-    button {
-		margin-top:   10px;
-		width:   80px;
-		height:   32px;
-		border-radius:   8px;
-		font-family: inherit;
-		background: black;
-		outline: none;
-		border: none;
-		cursor: pointer;
-		color: white;
-		transition:   0.3s linear;
-   }
-	
-   #editor {
+	main {
+	  #editor {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -208,6 +171,63 @@
 		width: 450px;
 		height: 100%;
 		padding: 10px;
-   }
-	
-</style>
+  
+		.selectContainer {
+		  width: 100%;
+		  height: auto;
+		  padding: 10px;
+		  border-radius: 8px;
+		  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		  max-height: 500px;
+		  overflow-y: auto;
+		  background-color: white;
+		  color: black;
+		  display: flex;
+		  flex-direction: column;
+		  gap: 4px;
+  
+		  button {
+			cursor: pointer;
+			padding: 2px;
+			border-radius: 4px;
+			margin-bottom: 4px;
+			transition: background-color 0.3s ease;
+			width: 100%;
+			text-align: left;
+			background: none;
+			border: none;
+			font-family: inherit;
+			font-size: inherit;
+			color: inherit;
+			display: block;
+  
+			&:hover,
+			&.selected {
+			  background-color: #3297FD;
+			  color: white;
+			}
+		  }
+		}
+  
+		.Buttons {
+		  display: flex;
+		  flex-wrap: wrap;
+		  gap: 10px;
+		  justify-content: center;
+  
+		  button {
+			width: 80px;
+			height: 32px;
+			border-radius: 8px;
+			font-family: inherit;
+			background: black;
+			outline: none;
+			border: none;
+			cursor: pointer;
+			color: white;
+			transition: 0.3s linear;
+		  }
+		}
+	  }
+	}
+  </style>

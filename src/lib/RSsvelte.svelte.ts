@@ -9,7 +9,7 @@ export namespace RS1 {
 	type StoreBuffer = string | ArrayBuffer | Function | undefined;
 
 	export const SysPrefix='/';
-	export const tNone='',tStr='$',tNum='#',tAB='[',tPack='&',tList='@',tData='^',tCore='+',tDisk='*';
+	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tCore='+',tDisk='*',tArray='[';
 
 	const DelimList='|\t\n\x0b\f\r\x0e\x0f';
 
@@ -6194,9 +6194,10 @@ export namespace RS1 {
 		protected _name = '';
 		protected _type=tNone;
 		protected _data : any = NILAB;
-		protected _arrSize=-1;
+		protected _array=false;
 		protected _arrType='';
 		protected _arrDims:number[]|undefined;
+		protected _arrABs:ArrayBuffer[]|undefined;
 		protected _AB1=NILAB;
 
 		get Name () { return this._name; }
@@ -6236,15 +6237,15 @@ export namespace RS1 {
 		}
 
 		get toPrefix () {
-			let str = this._type;
-			if (this._arrSize >= 0) {
-				let Arr = this._data as Array<any>, aType;
-				str += ':' + this._arrSize.toString () + ':';
+//			export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tCore='+',tDisk='*',tArray='[';
+			let str = this._type, arrayStr='';
+			if (this._array) {
+				let Arr = this._data as Array<any>, aType='', dimStr=Arr.length.toString ();
 				if (this._type[0] >= '0') {	// RSD derived
 					for (const E of Arr)
 						if (E) {
-							aType = E.constructor.name;
-							break;
+							if (!aType)
+								aType = E.constructor.name + '=';
 						}
 
 
