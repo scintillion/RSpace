@@ -1207,7 +1207,7 @@ export namespace RS1 {
 
 	export class vID  {
         // often abbreviated as VID
-        List=NILqList;
+        List=NILRSI;
 
 		Values: number[] = [];
 		Name='';
@@ -1228,7 +1228,7 @@ export namespace RS1 {
 			return v;
 		}
 
-		constructor(Str: string, List1=NILqList) {
+		constructor(Str: string, List1=NILRSI) {
 			if (!Str)
 				return;
 
@@ -2753,6 +2753,7 @@ export namespace RS1 {
 	export const rLoL = new rLOL ();
 
 	export const NILqList = new qList ('NIL|');
+	export const NILRSI = new RSI ('NIL|');
 
 
 	function NData () { return new RSData () }
@@ -5027,7 +5028,7 @@ export namespace RS1 {
     } // vList
 
 	export const NILList = new vList ('NIL|');
-	export const NILVID = new vID ('NIL:NIL',NILqList);
+	export const NILVID = new vID ('NIL:NIL',NILRSI);
 	export const NILvLX = new vListXtra (NILList);
 
 	export class vFast {
