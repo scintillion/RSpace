@@ -68,6 +68,7 @@ export namespace RS1 {
 		get size () { return 0; }
 
 		get toABI () : ABInfo { return undefined; }
+		get toAB () : ABInfo { return undefined; }
 		
 		get toS () : string {
 			let i = this.I;
@@ -126,7 +127,6 @@ export namespace RS1 {
 			return remain;
 		}
 
-		get toAB () { return NILAB; }
 		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
 		fromPack (Pack:RSPack) {}
 		fromField (Field : RSField|RSField[]) {}
@@ -6171,13 +6171,14 @@ export namespace RS1 {
 		protected _data : any = NILAB;
 		protected _arrType='';
 		protected _elname='';
-		protected _arrDims:ArrayBuffer[]|undefined;
-		protected _prefix:string|undefined;
+		protected _arrDims:Uint32Array|undefined;
+		protected _pFormat:string|undefined;
+		protected _prefix='';
 		protected _dim=0;
 		protected _AB1=NILAB;
 
 		getType () {
-			this._arrType = ''; this._arrDims = undefined; this._prefix = undefined; this._AB1 = NILAB;
+			this._arrType = ''; this._arrDims = undefined; this._pFormat = undefined; this._AB1 = NILAB;
 
 			let D = this._data, arrayStr='';
 			if (!D) {
@@ -6215,7 +6216,7 @@ export namespace RS1 {
 					this._type = tRSD;
 			}	// switch
 
-			this._prefix = ',' + this._type + arrayStr + this._name + ':';
+			this._pFormat = ',' + this._type + '[]' + this._name + ':';
 			return this._type;
 		}
 
@@ -6228,7 +6229,7 @@ export namespace RS1 {
 			this._data=NILAB;
 			this._arrType='';
 			this._arrDims=undefined;
-			this._prefix=undefined;
+			this._pFormat=undefined;
 			this._dim = 0;
 			this._AB1=NILAB;
 
@@ -6255,10 +6256,10 @@ export namespace RS1 {
 					this._elname = arrayStr.slice (equal + 1);
 					arrayStr = arrayStr.slice (0,equal);
 				}
-				let Strs = arrayStr.split (' '), count = 0, Dims = Array<ArrayBuffer>(Strs.length-1);
+				let Strs = arrayStr.split (' '), count = 0, Dims = new Uint32Array (Strs.length-1);
 				for (const S of Strs) {
 					if (count++)
-						Dims[count-1] = new ArrayBuffer (Number (S));
+						Dims[count-1] = Number (S);
 				}
 				this._arrDims = count ? Dims : undefined;
 			}
@@ -6281,26 +6282,28 @@ export namespace RS1 {
 			this._type = pStr[1];
 		}
 
-		genPrefix () {
-			let prefix, pre = this._prefix;
+		get toAB () : ArrayBuffer|undefined {
+			let prefix, pre = this._pFormat;
 			if (pre)
 				prefix = pre as string;
 			else {
 				this.getType;
-				if (pre = this._prefix)
+				if (pre = this._pFormat)
 					prefix = pre as string;
-				else return '';
+				else return undefined;
 			}
 
-//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
-
-
-
-
-
-//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
-
+			return NILAB;
 		}
+
+//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
+
+
+
+
+
+//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
+
 
 /*
 					if (cName !== 'Array') {	// RSD single record
@@ -6402,18 +6405,18 @@ export namespace RS1 {
 		}
 */
 		getPrefix () {
-			if (this._prefix)
-				return this._prefix as string;
+			if (this._pFormat)
+				return this._pFormat as string;
 
 
 
 
-			return this._prefix as string;
+			return this._pFormat as string;
 		}
 
 		get prefixStr () { 
-			if (this._prefix)
-				return this._prefix;
+			if (this._pFormat)
+				return this._pFormat;
 
 
 		}
