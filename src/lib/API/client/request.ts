@@ -68,7 +68,7 @@ export async function InitClient () {
     console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
 
     let F = new RS1.PackField ('Num',123);
-    F.clear ();
+    F.clear;
     let List = new RS1.vList ();
     let v = new RS1.vID ('ABC:DEF');
     List.x.UpdateVID (v);
@@ -99,6 +99,9 @@ export async function InitClient () {
     console.log ('Postbubble = ' + Q.toStr);
     Q.bubble ('DEF',1);
     console.log ('Bubble again = ',Q.toStr);
+
+    let XYZ = new RS1.RSI ();
+    let DEF:RS1.RSD = XYZ;
 
 	let TileStrings: string[] = [
         'TS2:TileStrings Desc',
