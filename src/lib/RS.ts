@@ -6168,10 +6168,9 @@ export namespace RS1 {
 	export class RSField extends RSI {
 		protected _name = '';
 		protected _type=tNone;
-		protected _cName='';
+		protected _con='';
 		protected _data : any = NILAB;
-		protected _arrType='';
-		protected _elname='';
+		protected _array=false;
 		protected _arrDims:Uint32Array|undefined;
 		protected _pFormat:string|undefined;
 		protected _prefix='';
@@ -6179,14 +6178,14 @@ export namespace RS1 {
 		protected _AB1=NILAB;
 
 		getType () {
-			this._arrType = ''; this._arrDims = undefined; this._pFormat = undefined; this._AB1 = NILAB;
+			this.clear;
 
 			let D = this._data, arrayStr='';
 			if (!D) {
 				return this._type = tNone;
 			}
 
-			let str='', cName = this._cName = D.constructor.name;
+			let str='', cName = D.constructor.name;
 			switch (cName) {
 				case 'Number' : case 'String' : 
 					this._type = (cName === 'String') ? tStr : tNum;
@@ -6202,10 +6201,11 @@ export namespace RS1 {
 							else if (cName === 'String')
 								aType = tStr;
 							else {
-								this._elname = this._cName = cName;
+								this._con = cName;
 								aType = tRSD;
 							}
-							this._type = this._arrType = aType;
+							this._type = aType;
+							this._array=true;
 							break;
 						}
 					}
@@ -6213,7 +6213,7 @@ export namespace RS1 {
 					break;
 
 				default : // non Array object, must be RSD object
-					this._cName = cName;
+					this._con = cName;
 					this._type = tRSD;
 			}	// switch
 
@@ -6226,9 +6226,9 @@ export namespace RS1 {
 
 			this._name = '';
 			this._type=tNone;
-			this._cName='';
+			this._con='';
 			this._data=NILAB;
-			this._arrType='';
+			this._array=false;
 			this._arrDims=undefined;
 			this._pFormat=undefined;
 			this._dim = 0;
@@ -6250,21 +6250,31 @@ export namespace RS1 {
 				if (close < 0)
 					return;		// panic, no close
 
-				nameStr = pStr.slice (close + 1);
-				arrayStr = pStr.slice (3,close);
-				let equal = arrayStr.indexOf('=');
-				if (equal >= 0) {
-					this._elname = arrayStr.slice (equal + 1);
-					arrayStr = arrayStr.slice (0,equal);
+				let aStr = pStr.slice (3,close);
+				if (aStr) {
+					let Strs = aStr.split (' '), cNameStr = Strs[0];
+					if (Strs.length > 1)
+						this._array = true;
+
+					if (cNameStr) {
+						if (cNameStr[0] === '[') {
+							this._array = true;
+							this._con = cNameStr.slice (1);
+						}
+						else this._con = cNameStr;
+					}
+
+					let count = 0, Dims = new Uint32Array (Strs.length-1);
+					for (const S of Strs) {
+						if (count++)
+							Dims[count-1] = Number (S);
+					}
+					this._arrDims = count ? Dims : undefined;
 				}
-				let Strs = arrayStr.split (' '), count = 0, Dims = new Uint32Array (Strs.length-1);
-				for (const S of Strs) {
-					if (count++)
-						Dims[count-1] = Number (S);
-				}
-				this._arrDims = count ? Dims : undefined;
 			}
 			else nameStr = pStr.slice (2);
+
+			/*
 
 			let colon = nameStr.indexOf(':');
 			if (colon < 0)
@@ -6281,6 +6291,7 @@ export namespace RS1 {
 
 			this._name = nameStr.slice (0,colon);
 			this._type = pStr[1];
+			*/
 		}
 
 		get toAB () : ArrayBuffer|undefined {
@@ -6463,116 +6474,14 @@ export namespace RS1 {
 				this._data = D
 			else D = this._data;
 
+			this.getType;	// based on D value
+
 			if (name)
 				this._name = name;
-			if (elname)
-				this._elname = elname;
+			if (!this._con  &&  elname)
+				this._con = elname;
+		}
 
-			let dtype, atype='', arrayStr='', cName, aName, AB, str='';
-			switch (typeof D) {
-				case 'number' : dtype = tNum; break;
-				case 'string' : dtype = tStr; break;
-				case 'object' : 
-					cName = D.constructor.name;
-					if (cName !== 'Array') {	// RSD derived
-
-
-					}
-					else {
-						let Arr = this._data as Array<any>, aType, dimStr='';
-						for (const E of Arr) {
-							if (E  &&  !aType) {
-								aType = E.constructor.name;
-								if (aType === 'Number')
-									aType = tNum;
-								else if (aType === 'String')
-									aType = tStr;
-								else  {
-									this._elname = aType;
-									aType = tRSD;
-								}
-								this._arrType = aType;
-								break;
-							}
-						}
-					}
-				}
-			}
-		
-/*					
-						if (this._type === tNum) {
-							AB = new ArrayBuffer(Arr.length*8);
-							let floats = new Float64Array (AB);
-							floats.set (Arr);
-							arrayStr = '[]';
-						}
-						else if (this._type === tStr) {
-							let newStrs:string[] = [], nBytes = 0, count = 0;
-							arrayStr = '[';
-							for (const E of Arr) {
-								++count;
-								let len = E ? E.length : 0;
-								if (len) {
-									newStrs.push (E);
-									nBytes += len;
-								}
-								dimStr += ' ' + len.toString ();
-							}
-							arrayStr += ']';
-							let newStr = newStrs.join ('');
-							AB = str2ab (newStr);
-						}
-					}
-
-
-					break;
-				default : return;
-			}
-
-
-			//			export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',tDisk='*',tArray='[';
-						str = ',' + this._type;
-						if (this._arrType) {
-							let Arr = this._data as Array<any>, aType;
-							if (this._type[0] >= '0') {	// RSD derived
-								for (const E of Arr)
-									if (E) {
-										if (!aType)
-											aType = E.constructor.name + '=';
-									}
-			
-			
-			
-			
-							}
-							else if (this._type === tNum) {
-								AB = new ArrayBuffer(Arr.length*8);
-								let floats = new Float64Array (AB);
-								floats.set (Arr);
-								arrayStr = '[]';
-							}
-							else if (this._type === tStr) {
-								let newStrs:string[] = [], nBytes = 0, count = 0;
-								arrayStr = '[';
-								for (const E of Arr) {
-									++count;
-									let len = E ? E.length : 0;
-									if (len) {
-										newStrs.push (E);
-										nBytes += len;
-									}
-									str += ' ' + len.toString ();
-								}
-								arrayStr += ']';
-								let newStr = newStrs.join ('');
-								AB = str2ab (newStr);
-							}
-						}
-			
-						str += arrayStr + this._name + ':' + AB?.byteLength.toString();
-						return str;
-					}
-*/			
 
 /*
 		get toAB () {
