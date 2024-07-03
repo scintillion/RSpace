@@ -132,7 +132,7 @@ export namespace RS1 {
 		fromField (Field : RSField|RSField[]) {}
 		fromRSD (D : RSD) {}
 
-		get toPack () { return NILRSPack; }
+		get toPack () { return NILPack; }
 		get toField () { return NILField; }
 
 		get clear () { return true; }
