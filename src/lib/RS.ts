@@ -537,13 +537,6 @@ export namespace RS1 {
 
 	export const NILRSMom = new RSMom ();
 
-	export class RSPack extends RSMom {
-
-
-
-	}
-	export const NILRSPack = new RSPack ();
-
 	export class RSLeaf extends RSD {
 		D : RSD;
 		level = 0; prev=0; first=0; parent=0; next=0; count=0; fam=0; last = 0;
@@ -6240,7 +6233,7 @@ export namespace RS1 {
 		fromPrefix (pStr:string) {
 			this.clear;
 //			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
-			let arrayStr, nameStr, dimStr;
+			let arrayStr, nameStr, dimStr, array=false, con='', Dims;
 
 			if (!pStr  ||  (pStr[0] !== ','))
 				return;
@@ -6250,6 +6243,9 @@ export namespace RS1 {
 				if (close < 0)
 					return;		// panic, no close
 
+				array = true;
+
+				nameStr = pStr.slice (close + 1);
 				let aStr = pStr.slice (3,close);
 				if (aStr) {
 					let Strs = aStr.split (' '), cNameStr = Strs[0];
@@ -6257,33 +6253,26 @@ export namespace RS1 {
 						this._array = true;
 
 					if (cNameStr) {
-						if (cNameStr[0] === '[') {
-							this._array = true;
+						if (cNameStr[0] === ':')
 							this._con = cNameStr.slice (1);
-						}
 						else this._con = cNameStr;
 					}
 
-					let count = 0, Dims = new Uint32Array (Strs.length-1);
+					Dims = new Uint32Array (Strs.length-1);
+					let count = 0;
 					for (const S of Strs) {
 						if (count++)
 							Dims[count-1] = Number (S);
 					}
-					this._arrDims = count ? Dims : undefined;
 				}
 			}
 			else nameStr = pStr.slice (2);
-
-			/*
 
 			let colon = nameStr.indexOf(':');
 			if (colon < 0)
 				return;
 
 			dimStr = nameStr.slice (colon + 1);
-			let comma = dimStr.indexOf (',');
-			if (comma >= 0)
-				dimStr = dimStr.slice (0,comma);	// trim trailing , which belongs to next prefix
 			let dim = Number (dimStr);
 			if (dim &&  dim >= 0)
 				this._dim = dim
@@ -6291,7 +6280,10 @@ export namespace RS1 {
 
 			this._name = nameStr.slice (0,colon);
 			this._type = pStr[1];
-			*/
+			this._con = con;
+			this._array = array;
+			if (Dims)
+				this._arrDims = Dims;
 		}
 
 		get toAB () : ArrayBuffer|undefined {
@@ -6870,6 +6862,13 @@ export namespace RS1 {
 	}
 
 	export const NILField = new PackField ('NIL!',NILAB);
+
+	export class RSPack extends RSMom {
+
+
+
+
+	}
 
 	export class BufPack {
 		_type = '';
