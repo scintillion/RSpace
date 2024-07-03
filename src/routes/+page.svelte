@@ -28,6 +28,7 @@
 	<a href="/editorQ/">qList Editor</a>
 	<a href="/editorRSI/">RSI Editor</a>
 	<a href="/rListEditor/">rList Editor</a>
+	<a href="/RSrEditor/">RSr Editor</a>
 	<a href="/loleditor/">LoL Editor</a>
 	<a href="/dbeditor/">Database Editor</a>
 	<a href="/apitesting/">API Testing</a>

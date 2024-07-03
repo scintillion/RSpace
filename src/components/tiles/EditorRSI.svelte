@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { RSIEditor } from '$lib/RSIEditor';
-	import { RS1 } from '$lib/RS';
+	// import { RS1 } from '$lib/RS';
+	import { RS1 } from '$lib/RSsvelte.svelte';
 	
-	let CLString = $state('');
-	
-	let { modalContent, modalBackground, RSI } = $props<{
+	let { modalContent, RSI } = $props<{
 		modalContent: HTMLElement,
-		modalBackground: HTMLDivElement,
 		RSI: RS1.RSI
 	}>();
 
@@ -14,7 +12,6 @@
 
 	function close() {
 		modalContent?.remove();
-		modalBackground?.remove();
 	}
 
 	const rList = $state(new RS1.rList());
@@ -59,7 +56,6 @@
 				<button id="copy">Copy</button>
 				<button id="up">Up</button>
 				<button id="down">Down</button>
-				<button id="add">Add</button>
 				<button onclick={close}>Back</button>
 			</div>
 		</div>

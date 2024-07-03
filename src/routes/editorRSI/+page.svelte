@@ -1,7 +1,7 @@
 <script lang="ts">
     import RSIEditor from '../../components/tiles/EditorRSI.svelte';
-    import { RS1 } from '../../lib/RS';
-    // import { RS1 } from '../../lib/RSsvelte.svelte';
+    // import { RS1 } from '../../lib/RS';
+    import { RS1 } from '../../lib/RSsvelte.svelte';
     import { mount } from 'svelte';
 
 	let CLString =
@@ -9,26 +9,25 @@
     let RSI = new RS1.RSI(CLString);    
     
 
-        const modalContent = document.createElement('div');
-        modalContent.style.position = 'absolute';
-        modalContent.style.top = '40%';
-        modalContent.style.left = '50%';
-        modalContent.style.transform = 'translate(-50%, -50%)';
-        modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
-        modalContent.style.padding = '20px';
-        modalContent.style.borderRadius = '5px';
-        modalContent.style.zIndex = '1';
-        document.body.appendChild(modalContent);
+    const modalContent = document.createElement('div');
+    modalContent.style.position = 'absolute';
+    modalContent.style.top = '40%';
+    modalContent.style.left = '50%';
+    modalContent.style.transform = 'translate(-50%, -50%)';
+    modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
+    modalContent.style.padding = '20px';
+    modalContent.style.borderRadius = '5px';
+    modalContent.style.zIndex = '1';
+    document.body.appendChild(modalContent);
 
     if (modalContent) {
-    const editorComponent = mount(RSIEditor,({
-            target: modalContent,
-            props: {
-                RSI: RSI,
-                modalBackground: modalContent,
-				modalContent: modalContent,
-            },
-        }));
+        const editorComponent = mount(RSIEditor,({
+                target: modalContent,
+                props: {
+                    RSI: RSI,
+                    modalContent: modalContent,
+                },
+            }));
     //     editorComponent.$on('close', () => {
     //     modalContent.remove();
     //     // modalBackground.remove();

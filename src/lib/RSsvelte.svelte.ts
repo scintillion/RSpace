@@ -9,7 +9,9 @@ export namespace RS1 {
 	type StoreBuffer = string | ArrayBuffer | Function | undefined;
 
 	export const SysPrefix='/';
-	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tCore='+',tDisk='*',tArray='[';
+
+	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',
+		tDisk='*',tArray='[',tArrayStr=':[]:';
 
 	const DelimList='|\t\n\x0b\f\r\x0e\x0f';
 
@@ -45,9 +47,15 @@ export namespace RS1 {
 	}
 
 	type RSDT=RSD|undefined;
+	type RSArgs=string|string[]|ArrayBuffer|RSPack|RSD|RSField|ListTypes[]|undefined;
+
+	type ABInfo=ArrayBuffer|string|undefined;
+
 	export class RSD {
 		get Mom ():RSD|undefined { return undefined; }
 		set Mom (m:RSD|undefined) {}
+
+		get privAB () { return NILAB; }
 
 		get notNIL () { return this !== NILRSD; }
 
@@ -57,25 +65,10 @@ export namespace RS1 {
 		get R ():RSr|undefined { return undefined; }
 		get K ():RSK|undefined { return undefined; }
 
-		get _AB () : ArrayBuffer|undefined {
-			let k = this.K, AB;
-			if (k) {
-				AB = k._AB;
-				if (AB)
-					return AB;
-			}
-
-			return undefined;
-		}
-
-		set _AB (AB : ArrayBuffer|undefined) {
-			let k = this.K;
-
-			if (k)
-				k._AB = AB;
-		}
-
 		get size () { return 0; }
+
+		get toABI () : ABInfo { return undefined; }
+		get toAB () : ABInfo { return undefined; }
 		
 		get toS () : string {
 			let i = this.I;
@@ -134,9 +127,41 @@ export namespace RS1 {
 			return remain;
 		}
 
-		get toPack () { return NILPack; }
-		get toAB () { return NILAB; }
 		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
+		fromPack (Pack:RSPack) {}
+		fromField (Field : RSField|RSField[]) {}
+		fromRSD (D : RSD) {}
+
+		get toPack () { return NILRSPack; }
+		get toField () { return NILField; }
+
+		get clear () { return true; }
+
+		construct (In:RSArgs, clear = true) {
+			if (clear)
+				this.clear;
+
+			let cName = In ? In.constructor.name : '';
+			switch (cName) {
+				case 'String' : this.fromS (In as string); break;
+				case 'RSPack' : this.fromPack (In as RSPack); break;
+				case '' : return;
+				case 'ArrayBuffer' : this.fromAB (In as ArrayBuffer); break;
+				case 'Array' :
+					let Arr = In as Array<any>;
+					if (typeof (Arr[0]) === 'string')
+						this.fromS (Arr as string[]);
+					else this.fromField (Arr as RSField|RSField[]);
+					break;
+				default : this.fromRSD (In as RSD);		// non specific RSD
+			}
+		}
+
+		constructor (In:RSArgs=undefined) {
+			if (In) 
+				this.construct (In);
+		}
+
 		get toStr () { return "RSD.toStr"; }
 
 		get NILchk () { return false; }
@@ -309,27 +334,32 @@ export namespace RS1 {
 
 	export const NILRSD = new RSD ();
 
-/*
-	export class RSX extends RSD {
-		x = new List ();
-		get X () { return this.x; }
-		get Q ():RSI|undefined {
-			let x = this.x as xList;
-			return (x.delim === '!') ? x as RSI : undefined;
-		}
-		get R ():rList|undefined {
-			let x = this.x;
-			return (x.delim !== '!') ? x as rList : undefined;
+	export function newRSD (name='RSD',x:RSArgs=undefined) {
+		let R = NILRSD;
+		switch (name) {
+			case 'RSD' : return new RSD (x);
+			case 'xList' : return new xList (x);
+			case 'RSI' : return new RSI (x);
+			case 'RSLeaf' : return new RSLeaf (x as RSD);
+			case 'RSTree' : return new RSTree (x as RSD);
+			case 'RSQ' : return new RSQ (x);
+			case 'RSChild' : return new RSChild (x);
+			case 'RSr' : return new RSr (x as string|string[]|ListTypes[]);
+			case 'RSR' : return new RSR (x);
+			case 'Bead' : return new Bead (x);
+			case 'rList' : return new rList (x as string|string[]|ListTypes[]);
+			case 'rLOL' : return new rLOL (x as string|string[]|ListTypes[]);
+			case 'TDE' : return new TDE (x as string|rList);
+			// case 'PackField' : return new PackField (x,);
+			// case 'RSField' : return new RSField ();
 		}
 	}
-*/
 
 	export class RSK {
 		_names:string[]=[];
-		_kids:RSDT[]=$state([]);
+		_kids:RSDT[]=[];
 		_tree:RSTree|undefined;
-		_AB:ArrayBuffer|undefined;
-		_S='';
+		_ABI:ABInfo;
 		_me : RSD;
 
 		constructor (me : RSD) {
@@ -341,7 +371,7 @@ export namespace RS1 {
 				// return ((typeof kid) !== 'string') ? this._kids.indexOf (kid as RSD) :
 				// 		 this._names.indexOf (kid as string);
 				return ((typeof kid) !== 'string') ? this._kids.findIndex (element => $state.is(element as RSD,kid as RSD)) :
-						 this._names.findIndex (element => $state.is(element as string,kid as string)) 
+                         this._names.findIndex (element => $state.is(element as string,kid as string)) 
 
 			return -1;
 		}
@@ -426,8 +456,8 @@ export namespace RS1 {
 			return count;
 		}
 
-		get mark () { this._tree = undefined; this._AB = undefined; return true; }
-		get dirty () { return this._S ||  this._AB; }
+		get mark () { this._tree = undefined; this._ABI = undefined; return true; }
+		get dirty () { return this._ABI; }
 
 		get Tree () {
 			return this._tree = new RSTree (this._me);
@@ -502,8 +532,8 @@ export namespace RS1 {
 
 		get K () { return this._k; }
 
-		clear () {
-			this._k.clear;
+		get clear () {
+			return this._k.clear;
 		}
 	}
 
@@ -548,7 +578,7 @@ export namespace RS1 {
 		addLeaf (D:RSD, level:number) {
 			let L = new RSLeaf (D, level);
 			if (!level) {
-				this.clear ();
+				this.clear;
 				this._k.Set (NILRSD,false);	// "0" element
 			}
 
@@ -599,94 +629,6 @@ export namespace RS1 {
 		}
 	}
 
-
-/*
-	export class RSTree extends RSMom {
-		Leafs:RSLeaf[]=[];
-		private RSDs:RSD[]=[];
-		private Names=[''];
-
-		clear (D:RSD) {
-			this.Leafs=[new RSLeaf (D)];
-			this.RSDs=[D];
-			this.Names=[''];
-			this._k.clear;
-		}
-
-		constructor (D : RSD) {
-			super ();
-			this.add (D,0);
-			this.links ();
-		}
-
-		index (Name:string|RSD) {
-			if ((typeof Name) === 'string')
-				return this.Names.indexOf (Name as string);
-
-			let i = this.RSDs.indexOf (Name as RSD);
-			return i > 0 ? i : 0;
-		}
-
-		add (D:RSD, level:number) {
-			if (!level)
-				this.clear (D);
-
-			let L = new RSLeaf (D,level);
-			this.Leafs.push (L);
-			this.RSDs.push (D);
-			this.Names.push (D.Name);
-
-			let Kids = D.Kids;
-			++level;
-			for (const K of Kids)
-				if (K)
-					this.add (K, level);
-		}
-
-		private links () {
-			// calculate relations   for the TDEs
-			let Leafs = this.Leafs, limit = Leafs.length;
-
-			for (let tnum = 0; ++tnum < limit; ) {
-				let me = Leafs[tnum];
-				let mylev = me.level;
-				let parentlev = mylev - 1;
-				let childlev = mylev + 1;
-				let lev;
-
-				me.first = me.next = me.parent = me.prev = 0;
-
-				for (let i = tnum; --i > 0; )
-					if ((lev = Leafs[i].level) >= parentlev) {
-						if (lev == parentlev) {
-							me.parent = i;
-							break;
-						} else if (lev == mylev && !me.prev) me.prev = i;
-					}
-
-				for (let i = me.last = tnum; ++i < limit; )
-					if ((lev = Leafs[i].level) >= mylev) {
-						if (lev === mylev) {
-							me.next = i;
-							break;
-						}
-						me.last = i;
-						if (i > 10) console.log('i = ' + i.toString() + ':' + i);
-						if (lev == childlev && !me.first) me.first = i; // first child
-					} else break;
-			} // for each TDE/tile
-		}
-
-		get toStr () {
-			let Lines = '', count = 0;
-			for (const L of this.Leafs) {
-				if (count++)
-					Lines += padNumStr (count,3) + '.' + L.toStr + '\n';
-			}
-			return Lines;
-		}
-	}
-*/
 
 	export class strPair {
 		a:string;b:string;
@@ -1260,7 +1202,7 @@ export namespace RS1 {
 
 	export class vID  {
         // often abbreviated as VID
-        List=NILqList;
+        List=NILRSI;
 
 		Values: number[] = [];
 		Name='';
@@ -1281,7 +1223,7 @@ export namespace RS1 {
 			return v;
 		}
 
-		constructor(Str: string, List1=NILqList) {
+		constructor(Str: string, List1=NILRSI) {
 			if (!Str)
 				return;
 
@@ -1567,7 +1509,7 @@ export namespace RS1 {
 	export class RSI extends xList {	// RSI is the NEW qList!!
 		get I () : RSI|undefined { return this; }
 
-		fromStr (Str:string|string[]='|') {
+		fromS (Str:string|string[]='|') {
 			if ((typeof Str) === 'string') {
 				let S = Str as string;
 
@@ -1575,20 +1517,33 @@ export namespace RS1 {
 					S += '|';
 				this.qstr = S;
 				console.log ('creating ' + this.info);
-				return;
 			}
-
-			this.qstr = '|';
-			this.fromRaw (Str as string[]);
-			console.log ('creating ' + this.info);
+			else {
+				this.qstr = '|';
+				this.fromRaw (Str as string[]);
+				console.log ('creating ' + this.info);
+			}
+			return '';
 		}
 
-		setStr (Str:string) { this.fromStr (Str); }
+		setFast (Args:any[]) {
+			let str = '|', len = Args.length;
+			if (len & 1)
+				throw 'setFast requires Name:Value pairs';
 
-		constructor (Str:string|string[]='|') {
+			for (let i = 0; i < len; i+=2) {
+				let A0 = Args[i], A1 = Args[i+1];
+				str += A0.toString () + ':' + A1.toString () + '|';
+			}
+			this.merge (str);
+		}
+
+		setStr (Str:string) { this.fromS (Str); }
+
+		constructor (Str:RSArgs='|') {
 			super ();
 	
-			this.fromStr (Str);
+			this.fromS (Str as string|string[]);
 		}
 
 		get descStr () {
@@ -1732,7 +1687,7 @@ export namespace RS1 {
 
 		get names () { return this.splitNames.a; }
 
-		merge (addend1 : qList|string) {
+		merge (addend1 : RSI|qList|string) {
 			let addend = ((typeof addend1) === 'string') ? new qList (addend1 as string) : addend1 as qList;
 			let add = addend.splitNames, notFound = true;
 
@@ -1823,7 +1778,7 @@ export namespace RS1 {
 		}
 
 		fromVList (L : vList) {
-			this.fromStr (L.x.toStr);
+			this.fromS (L.x.toStr);
 		}
 
 		toSelect(Select: HTMLSelectElement | HTMLOListElement | HTMLUListElement) {
@@ -2357,10 +2312,10 @@ export namespace RS1 {
 
 		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
 
-		clear () {
+		get clear () {
 			this.qstr = '';
 			this._k.clear;
-			this.mark;
+			return this.mark;
 		}
 
 		get delim () {
@@ -2553,10 +2508,10 @@ export namespace RS1 {
 
 		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
 
-		clear () {
+		get clear () {
 			this.qstr = '';
 			this._k.clear;
-			this.mark;
+			return this.mark;
 		}
 
 		get delim () {
@@ -2793,6 +2748,7 @@ export namespace RS1 {
 	export const rLoL = new rLOL ();
 
 	export const NILqList = new qList ('NIL|');
+	export const NILRSI = new RSI ('NIL|');
 
 
 	function NData () { return new RSData () }
@@ -3292,14 +3248,6 @@ export namespace RS1 {
 
 	export const NILRID = new RID ('');
 
-	export class RSCore {
-		protected c = new qList('|Type:Core|');
-
-		get Type () { return this.c.descByName('Type'); }
-		get Name () { return this.c.descByName('Name'); }
-		get Desc () { return this.c.descByName('Desc'); }
-	}
-
 	export class RSData {
 		Name = '';
 		Desc = '';
@@ -3745,8 +3693,6 @@ export namespace RS1 {
 						this.IDType = tPack;
 					else if (SampleID instanceof (RSData))
 						this.IDType = tData;
-					else if (SampleID instanceof RSCore)
-						this.IDType = tCore;
 					else this.IDType = tNone;
 			}
 		}
@@ -5077,7 +5023,7 @@ export namespace RS1 {
     } // vList
 
 	export const NILList = new vList ('NIL|');
-	export const NILVID = new vID ('NIL:NIL',NILqList);
+	export const NILVID = new vID ('NIL:NIL',NILRSI);
 	export const NILvLX = new vListXtra (NILList);
 
 	export class vFast {
@@ -5937,7 +5883,7 @@ export namespace RS1 {
 			else return this._AB1 = NILAB;
 		}
 
-		get toAB1 () {
+		get toAB1 () : ArrayBuffer {
 			let AB = this._AB1;
 			if (AB !== NILAB)
 				return AB;
@@ -6024,7 +5970,7 @@ export namespace RS1 {
 			return this.setAB ();
 		}
 
-		clear () {
+		get clear () {
 			let D : any;
 			this._AB1 = NILAB;
 			
@@ -6039,6 +5985,7 @@ export namespace RS1 {
 			}
 			this._data = D;
 			this.setAB ();
+			return true;
 		}
 
 
@@ -6190,15 +6137,295 @@ export namespace RS1 {
 		}
 	}
 
+	class RSFldInfo {
+		RSDType = '';
+		name = '';
+		arrType = '';
+		arrABs:ArrayBuffer[]|undefined;
+		prefix='';
+		AB:ArrayBuffer|undefined;
+		Data:any;
+
+		fromData (D : any, name='') {
+
+
+
+
+
+		}
+
+		get toPrefix () {
+
+			return '';
+		}
+	}
+
 	export class RSField extends RSI {
 		protected _name = '';
 		protected _type=tNone;
+		protected _con='';
 		protected _data : any = NILAB;
 		protected _array=false;
-		protected _arrType='';
-		protected _arrDims:number[]|undefined;
-		protected _arrABs:ArrayBuffer[]|undefined;
+		protected _arrDims:Uint32Array|undefined;
+		protected _pFormat:string|undefined;
+		protected _prefix='';
+		protected _dim=0;
 		protected _AB1=NILAB;
+
+		getType () {
+			this.clear;
+
+			let D = this._data, arrayStr='';
+			if (!D) {
+				return this._type = tNone;
+			}
+
+			let str='', cName = D.constructor.name;
+			switch (cName) {
+				case 'Number' : case 'String' : 
+					this._type = (cName === 'String') ? tStr : tNum;
+					break;
+
+				case 'Array' :
+					let Arr = D as Array<any>, aType;
+					for (const E of Arr) {
+						if (E) {
+							cName = E.constructor.name;
+							if (cName === 'Number')
+								aType = tNum;
+							else if (cName === 'String')
+								aType = tStr;
+							else {
+								this._con = cName;
+								aType = tRSD;
+							}
+							this._type = aType;
+							this._array=true;
+							break;
+						}
+					}
+					arrayStr = tArrayStr;
+					break;
+
+				default : // non Array object, must be RSD object
+					this._con = cName;
+					this._type = tRSD;
+			}	// switch
+
+			this._pFormat = ',' + this._type + '[]' + this._name + ':';
+			return this._type;
+		}
+
+		get clear () {
+			super.clear;
+
+			this._name = '';
+			this._type=tNone;
+			this._con='';
+			this._data=NILAB;
+			this._array=false;
+			this._arrDims=undefined;
+			this._pFormat=undefined;
+			this._dim = 0;
+			this._AB1=NILAB;
+
+			return true;
+		}
+
+		fromPrefix (pStr:string) {
+			this.clear;
+//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
+			let arrayStr, nameStr, dimStr, array=false, con='', Dims;
+
+			if (!pStr  ||  (pStr[0] !== ','))
+				return;
+
+			if (pStr[2] === '[') {	// arrayStr is present!
+				let close = pStr.indexOf(']'), dim=0;
+				if (close < 0)
+					return;		// panic, no close
+
+				array = true;
+
+				nameStr = pStr.slice (close + 1);
+				let aStr = pStr.slice (3,close);
+				if (aStr) {
+					let Strs = aStr.split (' '), cNameStr = Strs[0];
+					if (Strs.length > 1)
+						this._array = true;
+
+					if (cNameStr) {
+						if (cNameStr[0] === ':')
+							this._con = cNameStr.slice (1);
+						else this._con = cNameStr;
+					}
+
+					Dims = new Uint32Array (Strs.length-1);
+					let count = 0;
+					for (const S of Strs) {
+						if (count++)
+							Dims[count-1] = Number (S);
+					}
+				}
+			}
+			else nameStr = pStr.slice (2);
+
+			let colon = nameStr.indexOf(':');
+			if (colon < 0)
+				return;
+
+			dimStr = nameStr.slice (colon + 1);
+			let dim = Number (dimStr);
+			if (dim &&  dim >= 0)
+				this._dim = dim
+			else return;
+
+			this._name = nameStr.slice (0,colon);
+			this._type = pStr[1];
+			this._con = con;
+			this._array = array;
+			if (Dims)
+				this._arrDims = Dims;
+		}
+
+		get toAB () : ArrayBuffer|undefined {
+			let prefix, pre = this._pFormat;
+			if (pre)
+				prefix = pre as string;
+			else {
+				this.getType;
+				if (pre = this._pFormat)
+					prefix = pre as string;
+				else return undefined;
+			}
+
+			return NILAB;
+		}
+
+//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
+
+
+
+
+
+//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
+
+
+/*
+					if (cName !== 'Array') {	// RSD single record
+
+
+					}
+					else {
+						let Arr = D as Array<any>, aType, dimStr='', let arrayStr='';
+						for (const E of Arr)
+							if (E  &&  !aType) {
+								aType = E.constructor.name;
+								if (aType === 'Number')
+									aType = tNum;
+								else if (aType === 'String')
+									aType = tStr;
+								else aType = tRSD;
+								this._arrType = aType;
+								break;
+							}
+		
+		
+		
+		
+						else if (this._type === tNum) {
+							AB = new ArrayBuffer(Arr.length*8);
+							let floats = new Float64Array (AB);
+							floats.set (Arr);
+							arrayStr = '[]';
+						}
+						else if (this._type === tStr) {
+							let newStrs:string[] = [], nBytes = 0, count = 0;
+							arrayStr = '[';
+							for (const E of Arr) {
+								++count;
+								let len = E ? E.length : 0;
+								if (len) {
+									newStrs.push (E);
+									nBytes += len;
+								}
+								dimStr += ' ' + len.toString ();
+							}
+							arrayStr += ']';
+							let newStr = newStrs.join ('');
+							AB = str2ab (newStr);
+						}
+					}
+
+
+					break;
+				default : return;
+			}
+/*
+
+			//			export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',tDisk='*',tArray='[';
+						str = ',' + this._type;
+						if (this._arrType) {
+							let Arr = this._data as Array<any>, aType;
+							if (this._type[0] >= '0') {	// RSD derived
+								for (const E of Arr)
+									if (E) {
+										if (!aType)
+											aType = E.constructor.name + '=';
+									}
+			
+			
+			
+			
+							}
+							else if (this._type === tNum) {
+								AB = new ArrayBuffer(Arr.length*8);
+								let floats = new Float64Array (AB);
+								floats.set (Arr);
+								arrayStr = '[]';
+							}
+							else if (this._type === tStr) {
+								let newStrs:string[] = [], nBytes = 0, count = 0;
+								arrayStr = '[';
+								for (const E of Arr) {
+									++count;
+									let len = E ? E.length : 0;
+									if (len) {
+										newStrs.push (E);
+										nBytes += len;
+									}
+									str += ' ' + len.toString ();
+								}
+								arrayStr += ']';
+								let newStr = newStrs.join ('');
+								AB = str2ab (newStr);
+							}
+						}
+			
+						str += arrayStr + this._name + ':' + AB?.byteLength.toString();
+						return str;
+
+
+
+			return this._type;
+		}
+*/
+		getPrefix () {
+			if (this._pFormat)
+				return this._pFormat as string;
+
+
+
+
+			return this._pFormat as string;
+		}
+
+		get prefixStr () { 
+			if (this._pFormat)
+				return this._pFormat;
+
+
+		}
 
 		get Name () { return this._name; }
 		set Name (s:string) { 
@@ -6236,11 +6463,25 @@ export namespace RS1 {
 			this.setByAB (Src.toAB1, this._type);
 		}
 
-		get toPrefix () {
-//			export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tCore='+',tDisk='*',tArray='[';
-			let str = this._type, arrayStr='';
-			if (this._array) {
-				let Arr = this._data as Array<any>, aType='', dimStr=Arr.length.toString ();
+		setD (D : any, name='',elname='') {
+			if (D)
+				this._data = D
+			else D = this._data;
+
+			this.getType;	// based on D value
+
+			if (name)
+				this._name = name;
+			if (!this._con  &&  elname)
+				this._con = elname;
+		}
+
+
+/*
+		get toAB () {
+			let str = ',' + this._type, arrayStr='',AB;
+			if (this._arrType) {
+				let Arr = this._data as Array<any>, aType;
 				if (this._type[0] >= '0') {	// RSD derived
 					for (const E of Arr)
 						if (E) {
@@ -6253,21 +6494,33 @@ export namespace RS1 {
 
 				}
 				else if (this._type === tNum) {
-					str += (this._arrSize * 8).toString ();
-
-
+					AB = new ArrayBuffer(Arr.length*8);
+					let floats = new Float64Array (AB);
+					floats.set (Arr);
+					arrayStr = '[]';
 				}
 				else if (this._type === tStr) {
-					let newStrs:string[] = [];
-
-					for (const E of Arr)
-						newStrs.push (E ? E : '');
+					let newStrs:string[] = [], nBytes = 0, count = 0;
+					arrayStr = '[';
+					for (const E of Arr) {
+						++count;
+						let len = E ? E.length : 0;
+						if (len) {
+							newStrs.push (E);
+							nBytes += len;
+						}
+						str += ' ' + len.toString ();
+					}
+					arrayStr += ']';
+					let newStr = newStrs.join ('');
+					AB = str2ab (newStr);
 				}
 			}
 
-
+			str += arrayStr + this._name + ':' + AB?.byteLength.toString();
 			return str;
 		}
+*/
 
 		get Str () { return (this._type === tStr) ? this._data as string : ''; }
 		get Num () { return (this._type === tNum) ? this._data as number : NaN; }
@@ -6391,6 +6644,12 @@ export namespace RS1 {
 		}
 
 		setData (D : PFData) {
+			if (!D) {
+				this._data = NILAB;
+				this._type = tAB;
+				return;
+			}
+
 		    this.notNIL;
 			this._AB1 = NILAB;
 
@@ -6399,66 +6658,59 @@ export namespace RS1 {
 				case 'number' : Type = tNum; break;
 				case 'string' : Type = tStr; break;
 				default :
-					if (!D) {
-						D = NILAB;
-						Type = tAB;
-					} else
-					{
-						let CName = D.constructor.name;
-						switch (CName) {
-							case 'BufPack' :
-								Type = tPack;
-								D = (D as BufPack).copy;
-								break;
-							case 'vList' :
-								Type = tList;
-								D = new vList ((D as vList).x.toStr);
-								break;
-							case 'ArrayBuffer' :
-								Type = tAB;
-								D = this.setAB ((D as ArrayBuffer)).slice (0);
-								break;
-							case 'Buffer' :
-								Type = tAB;
-								let TBuf = (D as Int8Array).slice(0);
-								D = this.setAB (ABfromArray (TBuf));
-								break;
-							default :
-								if (D instanceof RSData) {
-									Type = tData;
-									D = (D as RSData).SavePack ();
-									log ('setData:Not allowed without TypeLists, field='+this._name);
-									// we cannot directly create the appropriate
-									// RSData record because we don't have TypeLists
-									// fully implemented
-								}
-								else
-									throw ('tNone! Name =' + this._name + ' CName=' + CName);
-									Type = tNone;
-									this._data = NILAB;
-								}
-						}
+					let CName = D.constructor.name;
+					switch (CName) {
+						case 'BufPack' :
+							Type = tPack;
+							D = (D as BufPack).copy;
+							break;
+						case 'vList' :
+							Type = tList;
+							D = new vList ((D as vList).x.toStr);
+							break;
+						case 'ArrayBuffer' :
+							Type = tAB;
+							D = this.setAB ((D as ArrayBuffer)).slice (0);
+							break;
+						case 'Buffer' :
+							Type = tAB;
+							let TBuf = (D as Int8Array).slice(0);
+							D = this.setAB (ABfromArray (TBuf));
+							break;
+						default :
+							if (D instanceof RSData) {
+								Type = tData;
+								D = (D as RSData).SavePack ();
+								log ('setData:Not allowed without TypeLists, field='+this._name);
+								// we cannot directly create the appropriate
+								// RSData record because we don't have TypeLists
+								// fully implemented
+							}
+							else
+								throw ('tNone! Name =' + this._name + ' CName=' + CName);
+								Type = tNone;
+								this._data = NILAB;
+							}
 			}
 			this._type = Type;
 			this._data = D;
 			return this.setAB ();
 		}
 
-		clear () {
+		get clearData () {
 			let D : any;
 			this._AB1 = NILAB;
 			
 			switch (this._type) {
 				case tNum : D = NaN; break;
 				case tStr : D = ''; break;
-				case tPack : D = new BufPack (); break;
 				case tAB : D = new ArrayBuffer (0); break;
-				case tList : D = new vList (''); break;
 				default : 
 					D = NILAB;
 			}
 			this._data = D;
 			this.setAB ();
+			return true;
 		}
 
 
@@ -6612,6 +6864,13 @@ export namespace RS1 {
 	}
 
 	export const NILField = new PackField ('NIL!',NILAB);
+
+	export class RSPack extends RSMom {
+
+
+
+
+	}
 
 	export class BufPack {
 		_type = '';

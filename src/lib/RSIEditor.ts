@@ -1,6 +1,5 @@
-import { RS1 } from '$lib/RS';
-// import { RS1 } from '$lib/RSsvelte.svelte'; 
-import { Editor_TC, QEditor_TC } from '../components/tiles';
+// import { RS1 } from '$lib/RS';
+import { RS1 } from '$lib/RSsvelte.svelte'; 
 
 export class RSIEditor {
 	private container: HTMLDivElement;
@@ -487,208 +486,208 @@ export class RSIEditor {
 	}
 }
 
-export class LOLEditor {
-	// private LOL: RS1.LoL;
-	private rList: RS1.rList;
-	private container: HTMLDivElement;
-	private select: HTMLSelectElement;
-	private selected: string;
-	private btnsContainer: HTMLDivElement;
-	private editorComponent: any | null; // New property to store the editor component instance
-	private buttons: { Copy: HTMLButtonElement; Merge: HTMLButtonElement };
+// export class LOLEditor {
+// 	// private LOL: RS1.LoL;
+// 	private rList: RS1.rList;
+// 	private container: HTMLDivElement;
+// 	private select: HTMLSelectElement;
+// 	private selected: string;
+// 	private btnsContainer: HTMLDivElement;
+// 	private editorComponent: any | null; // New property to store the editor component instance
+// 	private buttons: { Copy: HTMLButtonElement; Merge: HTMLButtonElement };
 
-	// get CL(): RS1.vList | undefined {
-	// 	return this.LoL.TovList();
-	// }
+// 	// get CL(): RS1.vList | undefined {
+// 	// 	return this.LoL.TovList();
+// 	// }
 
-	get CL(): RS1.qList | undefined {
-		// return this.rList.TovList();
-		return this.rList.toQList;
-	}
+// 	get CL(): RS1.qList | undefined {
+// 		// return this.rList.TovList();
+// 		return this.rList.toQList;
+// 	}
 
-	constructor(rList: RS1.rList, container: HTMLDivElement) {
-		// this.LOL = LoL;
-		this.rList = rList;
-		this.container = container;
+// 	constructor(rList: RS1.rList, container: HTMLDivElement) {
+// 		// this.LOL = LoL;
+// 		this.rList = rList;
+// 		this.container = container;
 
-		this.select = this.container.ownerDocument.createElement('select');
-		this.select.style.width = '250px';
-		this.select.style.paddingLeft = '5px';
-		this.select.style.borderRadius = '5px';
-		this.select.setAttribute('size', '10');
-		this.select.style.padding = '3px';
-		this.select.setAttribute('multiple', '');
+// 		this.select = this.container.ownerDocument.createElement('select');
+// 		this.select.style.width = '250px';
+// 		this.select.style.paddingLeft = '5px';
+// 		this.select.style.borderRadius = '5px';
+// 		this.select.setAttribute('size', '10');
+// 		this.select.style.padding = '3px';
+// 		this.select.setAttribute('multiple', '');
 
-		this.selected = '';
-		this.editorComponent = null; // Initialize the editor component instance
+// 		this.selected = '';
+// 		this.editorComponent = null; // Initialize the editor component instance
 
-		this.btnsContainer = this.container.ownerDocument.createElement('div');
-		this.btnsContainer.style.display = 'flex';
-		this.btnsContainer.style.width = 'auto';
-		this.btnsContainer.style.padding = '10px';
-		this.btnsContainer.style.gap = '5px';
-		this.btnsContainer.style.flexDirection = 'row';
-		this.btnsContainer.style.alignItems = 'center';
-		this.btnsContainer.style.justifyContent = 'center';
-		this.container.appendChild(this.btnsContainer);
+// 		this.btnsContainer = this.container.ownerDocument.createElement('div');
+// 		this.btnsContainer.style.display = 'flex';
+// 		this.btnsContainer.style.width = 'auto';
+// 		this.btnsContainer.style.padding = '10px';
+// 		this.btnsContainer.style.gap = '5px';
+// 		this.btnsContainer.style.flexDirection = 'row';
+// 		this.btnsContainer.style.alignItems = 'center';
+// 		this.btnsContainer.style.justifyContent = 'center';
+// 		this.container.appendChild(this.btnsContainer);
 
-		this.buttons = {
-			Copy: this.container.ownerDocument.createElement('button'),
-			Merge: this.container.ownerDocument.createElement('button')
-		};
-	}
+// 		this.buttons = {
+// 			Copy: this.container.ownerDocument.createElement('button'),
+// 			Merge: this.container.ownerDocument.createElement('button')
+// 		};
+// 	}
 
-	// get LoL(): RS1.LoL {
-	// 	return this.LOL;
-	// }
+// 	// get LoL(): RS1.LoL {
+// 	// 	return this.LOL;
+// 	// }
 
-	get RList(): RS1.rList {
-		return this.rList;
-	}
+// 	get RList(): RS1.rList {
+// 		return this.rList;
+// 	}
 
-	public Reload(): void {
-		this.Destroy();
-		this.Populate();
-	}
+// 	public Reload(): void {
+// 		this.Destroy();
+// 		this.Populate();
+// 	}
 
-	public Destroy(): void {
-		this.container.innerHTML = '';
-	}
+// 	public Destroy(): void {
+// 		this.container.innerHTML = '';
+// 	}
 
-	public Populate(): void {
-		this.LoadSelect();
-	}
+// 	public Populate(): void {
+// 		this.LoadSelect();
+// 	}
 
-	private LoadSelect(): void {
-		// this.LOL.ToSelect(this.select);
-		this.rList.toSelect(this.select);
-
-
-		this.select.onchange = () => this.ListChangeHandler();
-
-		this.container.append(this.select);
-
-		this.LoadButtons();
-	}
-
-	private ListChangeHandler(): void {
-		this.selected = this.select.value;
-		this.LoadList();
-	}
-
-	private LoadButtons() {
-		const buttonsArr = Object.entries(this.buttons);
-		buttonsArr.forEach((btn) => {
-			let button = btn[1];
-			let text = btn[0];
-
-			button.innerText = text;
-
-			button.style.marginTop = '10px';
-			button.style.width = '100px';
-			button.style.height = '40px';
-			button.style.borderRadius = '8px';
-			button.style.fontFamily = 'inherit';
-			button.style.background = 'black';
-			button.style.outline = 'none';
-			button.style.border = 'none';
-			button.style.cursor = 'pointer';
-			button.style.color = 'white';
-			button.style.transition = '0.3s linear';
-
-			// Add a hover effect
-			button.addEventListener('mouseover', function () {
-				button.style.background = 'lighten(#000000, 7%)';
-			});
-
-			button.addEventListener('mouseout', function () {
-				button.style.background = 'black';
-			});
-
-			switch (text) {
-				case 'Copy':
-					button.onclick = () => this.CopyList();
-					break;
-				case 'Merge':
-					button.onclick = () => this.MergeList();
-					break;
-			}
-
-			this.btnsContainer.appendChild(button);
-		});
-	}
-
-	// private CopyList(): void {
-	// 	// @ts-ignore REASON: You've removed the copy function.
-	// 	const newList: RS1.vList = this.LOL.ListByName(
-	// 		this.select.value
-	// 	)?.copy ();//  as RS1.vList;
-	// 	this.LOL.add(newList.Str);
-	// 	console.log(this.CL);
-	// 	this.Reload();
-	// }
-
-	private CopyList(): void {
-		// @ts-ignore REASON: You've removed the copy function.
-		const newList: RS1.qList = this.rList.ListByName(
-			this.select.value
-		)?.copy ();//  as RS1.vList;
-		this.rList.kidAdd(newList);
-		console.log(this.CL);
-		this.Reload();
-	}
+// 	private LoadSelect(): void {
+// 		// this.LOL.ToSelect(this.select);
+// 		this.rList.toSelect(this.select);
 
 
-	private MergeList(): void {
-		// const currentList = this.LOL.List(this.selected) as RS1.vList;
-		const currentList = this.rList.qListByName(this.selected) as RS1.qList;
+// 		this.select.onchange = () => this.ListChangeHandler();
 
-		const mergeWith: string = prompt(
-			'Which list would you like to merge with? *(enter name, case sensitive)'
-		) as string;
-		// currentList.x.Merge(this.LOL.List(mergeWith));
-		currentList.merge(this.rList.qListByName(mergeWith));
-	}
+// 		this.container.append(this.select);
 
-	private LoadList(): void {
-		// const list: RS1.vList = this.LOL.List(this.selected) as RS1.vList;
-		const list: RS1.qList = this.rList.qListByName(this.selected) as RS1.qList;
+// 		this.LoadButtons();
+// 	}
+
+// 	private ListChangeHandler(): void {
+// 		this.selected = this.select.value;
+// 		this.LoadList();
+// 	}
+
+// 	private LoadButtons() {
+// 		const buttonsArr = Object.entries(this.buttons);
+// 		buttonsArr.forEach((btn) => {
+// 			let button = btn[1];
+// 			let text = btn[0];
+
+// 			button.innerText = text;
+
+// 			button.style.marginTop = '10px';
+// 			button.style.width = '100px';
+// 			button.style.height = '40px';
+// 			button.style.borderRadius = '8px';
+// 			button.style.fontFamily = 'inherit';
+// 			button.style.background = 'black';
+// 			button.style.outline = 'none';
+// 			button.style.border = 'none';
+// 			button.style.cursor = 'pointer';
+// 			button.style.color = 'white';
+// 			button.style.transition = '0.3s linear';
+
+// 			// Add a hover effect
+// 			button.addEventListener('mouseover', function () {
+// 				button.style.background = 'lighten(#000000, 7%)';
+// 			});
+
+// 			button.addEventListener('mouseout', function () {
+// 				button.style.background = 'black';
+// 			});
+
+// 			switch (text) {
+// 				case 'Copy':
+// 					button.onclick = () => this.CopyList();
+// 					break;
+// 				case 'Merge':
+// 					button.onclick = () => this.MergeList();
+// 					break;
+// 			}
+
+// 			this.btnsContainer.appendChild(button);
+// 		});
+// 	}
+
+// 	// private CopyList(): void {
+// 	// 	// @ts-ignore REASON: You've removed the copy function.
+// 	// 	const newList: RS1.vList = this.LOL.ListByName(
+// 	// 		this.select.value
+// 	// 	)?.copy ();//  as RS1.vList;
+// 	// 	this.LOL.add(newList.Str);
+// 	// 	console.log(this.CL);
+// 	// 	this.Reload();
+// 	// }
+
+// 	private CopyList(): void {
+// 		// @ts-ignore REASON: You've removed the copy function.
+// 		const newList: RS1.qList = this.rList.ListByName(
+// 			this.select.value
+// 		)?.copy ();//  as RS1.vList;
+// 		this.rList.kidAdd(newList);
+// 		console.log(this.CL);
+// 		this.Reload();
+// 	}
 
 
-		if (list.Name === this.selected) {
-			if (this.editorComponent) {
-				console.log('existing destroyed');
-				this.DestroyComponent('.editor');
-			}
+// 	private MergeList(): void {
+// 		// const currentList = this.LOL.List(this.selected) as RS1.vList;
+// 		const currentList = this.rList.qListByName(this.selected) as RS1.qList;
 
-			this.LoadEditorComponent(list as RS1.qList);
-		} else return;
-	}
+// 		const mergeWith: string = prompt(
+// 			'Which list would you like to merge with? *(enter name, case sensitive)'
+// 		) as string;
+// 		// currentList.x.Merge(this.LOL.List(mergeWith));
+// 		currentList.merge(this.rList.qListByName(mergeWith));
+// 	}
 
-	private DestroyComponent(query: string) {
-		const component = this.container.querySelector(query);
-		if (component) {
-			component.remove();
-			return;
-		} else return;
-	}
+// 	private LoadList(): void {
+// 		// const list: RS1.vList = this.LOL.List(this.selected) as RS1.vList;
+// 		const list: RS1.qList = this.rList.qListByName(this.selected) as RS1.qList;
 
-	// private LoadEditorComponent(list: RS1.vList) {
-	// 	this.editorComponent = new Editor_TC({
-	// 		target: this.container,
-	// 		props: {
-	// 			CLString: list.Str
-	// 		}
-	// 	});
-	// }
 
-	private LoadEditorComponent(list: RS1.qList) {
-		this.editorComponent = new QEditor_TC({
-			target: this.container,
-			props: {
-				// CLString: list.Str [modify]
-				CLString: list.toStr
-			}
-		});
-	}
-}
+// 		if (list.Name === this.selected) {
+// 			if (this.editorComponent) {
+// 				console.log('existing destroyed');
+// 				this.DestroyComponent('.editor');
+// 			}
+
+// 			this.LoadEditorComponent(list as RS1.qList);
+// 		} else return;
+// 	}
+
+// 	private DestroyComponent(query: string) {
+// 		const component = this.container.querySelector(query);
+// 		if (component) {
+// 			component.remove();
+// 			return;
+// 		} else return;
+// 	}
+
+// 	// private LoadEditorComponent(list: RS1.vList) {
+// 	// 	this.editorComponent = new Editor_TC({
+// 	// 		target: this.container,
+// 	// 		props: {
+// 	// 			CLString: list.Str
+// 	// 		}
+// 	// 	});
+// 	// }
+
+// 	private LoadEditorComponent(list: RS1.qList) {
+// 		this.editorComponent = new QEditor_TC({
+// 			target: this.container,
+// 			props: {
+// 				// CLString: list.Str [modify]
+// 				CLString: list.toStr
+// 			}
+// 		});
+// 	}
+// }
