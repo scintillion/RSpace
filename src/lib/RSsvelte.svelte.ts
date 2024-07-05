@@ -357,7 +357,7 @@ export namespace RS1 {
 
 	export class RSK {
 		_names:string[]=[];
-		_kids:RSDT[]=[];
+		_kids:RSDT[]=$state([]);
 		_tree:RSTree|undefined;
 		_ABI:ABInfo;
 		_me : RSD;

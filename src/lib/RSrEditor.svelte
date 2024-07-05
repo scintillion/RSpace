@@ -14,7 +14,7 @@
 	let selectedKid: Types = $state(kidArray[0]) ;
 	let step = $state('Home');
 
-	type Types = RS1.RSD | RS1.RSI | RS1.RSr | undefined;
+	type Types = RS1.RSD | undefined;
 
 	function selectKid(kid:Types | undefined) {
 		console.log('select!')
@@ -28,6 +28,8 @@
 	function copyVID(kid: Types) {
 		let newRSI = new RS1.RSI();
 		let newRSr = new RS1.RSr();
+		console.log(kid instanceof RS1.RSI)
+	
 		
 		if (kid instanceof RS1.RSI) {
 			newRSI = kid.copy;
