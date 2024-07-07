@@ -46,30 +46,25 @@ export namespace RS1 {
 		return Strs.slice (0,-1);
 	}
 
+	type ABS=ArrayBuffer|string|undefined;
 	type RSDT=RSD|undefined;
-	type RSArgs=string|string[]|ArrayBuffer|RSPack|RSD|RSField|ListTypes[]|undefined;
-
-	type ABInfo=ArrayBuffer|string|undefined;
+//	type RSArgs=string|string[]|ArrayBuffer|RSPack|RSD|RSField|ListTypes[]|undefined;
+	type RSArgs=ABS|string[]|RSPack|RSD|RSField|ListTypes[]|undefined;
 
 	export class RSD {
 		get Mom ():RSD|undefined { return undefined; }
 		set Mom (m:RSD|undefined) {}
 
-		get privAB () { return NILAB; }
-
 		get notNIL () { return this !== NILRSD; }
 
 		get I ():RSI|undefined { return undefined; }
-		// get X ():xList|undefined { return undefined; }
+		get K ():RSK|undefined { return undefined; }
 		get Q ():RSI|undefined { return undefined; }
 		get R ():RSr|undefined { return undefined; }
-		get K ():RSK|undefined { return undefined; }
+		get X () : RSD|undefined { return undefined; }
 
 		get size () { return 0; }
 
-		get toABI () : ABInfo { return undefined; }
-		get toAB () : ABInfo { return undefined; }
-		
 		get toS () : string {
 			let i = this.I;
 			let iStr = i ? i.toS : '';
@@ -130,9 +125,10 @@ export namespace RS1 {
 		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
 		fromPack (Pack:RSPack) {}
 		fromField (Field : RSField|RSField[]) {}
+		fromABS (abs : ABS) { return undefined; }
 		fromRSD (D : RSD) {}
 
-		get toPack () { return NILRSPack; }
+		toABS (RSDName='') : ABS { return undefined; }
 		get toField () { return NILField; }
 
 		get clear () { return true; }
@@ -359,7 +355,7 @@ export namespace RS1 {
 		_names:string[]=[];
 		_kids:RSDT[]=[];
 		_tree:RSTree|undefined;
-		_ABI:ABInfo;
+		_ABS:ABS;
 		_me : RSD;
 
 		constructor (me : RSD) {
@@ -454,8 +450,8 @@ export namespace RS1 {
 			return count;
 		}
 
-		get mark () { this._tree = undefined; this._ABI = undefined; return true; }
-		get dirty () { return this._ABI; }
+		get mark () { this._tree = undefined; this._ABS = undefined; return true; }
+		get dirty () { return this._ABS; }
 
 		get Tree () {
 			return this._tree = new RSTree (this._me);
@@ -2438,7 +2434,7 @@ export namespace RS1 {
 			for (const S of Strs) {
 				let D = S.slice(-1);
 				if (D === '|')
-					this._k.Set (new qList (S),false);
+					this._k.Set (new RSI (S),false);
 				else if (isDelim (D)) {
 					let LStrs = S.split (D);
 					LStrs.length = LStrs.length - 1;
