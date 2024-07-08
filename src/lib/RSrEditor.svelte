@@ -13,6 +13,7 @@
     let kidArray = $state(RSK._kids);
 	let selectedKid: Types = $state(kidArray[0]) ;
 	let step = $state('Home');
+	let selectedRSr: RS1.RSr = $state(new RS1.RSr());
 
 	type Types = RS1.RSD | undefined;
 
@@ -22,6 +23,10 @@
 			step = 'edit';
 		}
 		if (kid) selectedKid = kid;
+		if (kid instanceof RS1.RSr) {
+			selectedRSr = kid
+			console.log('selectKid() ' + selectedRSr?.Desc)
+		}
 		console.log('selectKid()' + selectedKid?.Desc)
 	}
 
@@ -67,6 +72,7 @@
 							props: {
 								RSI: list,
 								modalContent: modalContent,
+								onSave:() => handleRSISave(list),
 							},
 						}));
 					// 	editorComponent.$on('close', () => {
@@ -97,6 +103,21 @@
 			// 	throw new Error('Invalid list. Please select a list');
 			// }
 	
+		}
+
+		function addRSI(selectedRSr: RS1.RSr) {
+			console.log('selected Rsr' + selectedRSr?.Desc)
+			if (selectedRSr) {
+				let newRSI = new RS1.RSI();
+				edit(newRSI);
+				newRSI = new RS1.RSI();
+			}
+			
+		}
+
+		async function handleRSISave(editedRSI: RS1.RSI) {
+			console.log('editedRSI' + editedRSI.toRaw)
+			selectedRSr.addStr(editedRSI.toRaw);
 		}
 
 		function handleBack() {
@@ -156,6 +177,7 @@
 			<button id="down" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
+			<button id="add" onclick={() => addRSI(selectedRSr)}>Add</button>
 			</div>
 			
 		</div>

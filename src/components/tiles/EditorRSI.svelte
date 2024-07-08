@@ -3,14 +3,16 @@
 	// import { RS1 } from '$lib/RS';
 	import { RS1 } from '$lib/RSsvelte.svelte';
 	
-	let { modalContent, RSI } = $props<{
+	let { modalContent, RSI, onSave } = $props<{
 		modalContent: HTMLElement,
 		RSI: RS1.RSI
+		onSave: (editedRSI: RS1.RSI) => void
 	}>();
 
 	const TypeArray = RS1.TypeNames;
 
 	function close() {
+		onSave(RSI);
 		modalContent?.remove();
 	}
 
