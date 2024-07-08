@@ -92,8 +92,28 @@ export namespace RS1 {
 					rStr = 'R' + rStr + '\x1f';
 			}
 
-			let str = iStr + qStr + rStr;
-			return str ? str.slice (0,-1) : str;
+			return iStr + qStr + rStr;
+		}
+
+		toABI (RSDName='') : ABI {
+			let k = this.K, Str;
+			if (k) {
+				let abi = k._ABI;
+				if (abi) {
+					if ((typeof abi) === 'string')
+						Str = abi as string;
+					else return abi;
+				}
+
+			
+
+
+
+			}	
+			
+			
+			
+			return undefined;
 		}
 
 		fromS (S:string|string[]) : string|string[] {
@@ -136,8 +156,6 @@ export namespace RS1 {
 		fromField (Field : RSField|RSField[]) {}
 		fromABI (abi : ABI) { return undefined; }
 		fromRSD (D : RSD) {}
-
-		toABI (RSDName='') : ABI { return undefined; }
 
 		get toField () { return NILField; }
 
