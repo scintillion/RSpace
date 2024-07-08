@@ -46,10 +46,10 @@ export namespace RS1 {
 		return Strs.slice (0,-1);
 	}
 
-	type ABS=ArrayBuffer|string|undefined;
+	type ABI=ArrayBuffer|string|undefined;
 	type RSDT=RSD|undefined;
 //	type RSArgs=string|string[]|ArrayBuffer|RSPack|RSD|RSField|ListTypes[]|undefined;
-	type RSArgs=ABS|string[]|RSPack|RSD|RSField|ListTypes[]|undefined;
+	type RSArgs=ABI|string[]|RSPack|RSD|RSField|ListTypes[]|undefined;
 
 	export class RSD {
 		get Mom ():RSD|undefined { return undefined; }
@@ -65,26 +65,35 @@ export namespace RS1 {
 
 		get size () { return 0; }
 
-		get toS () : string {
-			let i = this.I;
-			let iStr = i ? i.toS : '';
-			if (iStr)
-				iStr += 'I\x00';
+		get to$ () : string {
+			let k = this.K;
+			if (k  &&  k._ABI) {
+				if ((typeof k._ABI) === 'string')
+					return k._ABI as string;
+			}
+			
+			let s, iStr='', qStr='', rStr='';
 
-			let q = this.Q;
-			let qStr = q ? q.toS : '';
-			if (qStr)
-				qStr += 'Q\x00';
+			if (s = this.I) {
+				iStr = s.to$;
+				if (iStr)
+					iStr = 'I' + iStr + '\x1f';
+			}
 
-			let r = this.R;
-			let rStr = r ? r.toS + 'R': '';
-			if (rStr)
-				rStr += 'R\x00';
+			if (s = this.Q) {
+				qStr = s.to$;
+				if (qStr)
+					qStr = 'Q' + qStr + '\x1f';
+			}
+
+			if (s = this.R) {
+				rStr = s.to$;
+				if (rStr)
+					rStr = 'R' + rStr + '\x1f';
+			}
 
 			let str = iStr + qStr + rStr;
-			if (str)
-				str = '$' + str.length.toString () + '\x00' + str;
-			return str; 
+			return str ? str.slice (0,-1) : str;
 		}
 
 		fromS (S:string|string[]) : string|string[] {
@@ -125,10 +134,11 @@ export namespace RS1 {
 		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
 		fromPack (Pack:RSPack) {}
 		fromField (Field : RSField|RSField[]) {}
-		fromABS (abs : ABS) { return undefined; }
+		fromABI (abi : ABI) { return undefined; }
 		fromRSD (D : RSD) {}
 
-		toABS (RSDName='') : ABS { return undefined; }
+		toABI (RSDName='') : ABI { return undefined; }
+
 		get toField () { return NILField; }
 
 		get clear () { return true; }
@@ -157,8 +167,6 @@ export namespace RS1 {
 			if (In) 
 				this.construct (In);
 		}
-
-		get toStr () { return "RSD.toStr"; }
 
 		get NILchk () { return false; }
 
@@ -263,7 +271,7 @@ export namespace RS1 {
 		}
 
 		get toSafe () {
-			return SafeStr (this.toStr);
+			return SafeStr (this.to$);
 		}
 
 
@@ -355,7 +363,7 @@ export namespace RS1 {
 		_names:string[]=[];
 		_kids:RSDT[]=[];
 		_tree:RSTree|undefined;
-		_ABS:ABS;
+		_ABI:ABI;
 		_me : RSD;
 
 		constructor (me : RSD) {
@@ -450,8 +458,8 @@ export namespace RS1 {
 			return count;
 		}
 
-		get mark () { this._tree = undefined; this._ABS = undefined; return true; }
-		get dirty () { return this._ABS; }
+		get mark () { this._tree = undefined; this._ABI = undefined; return true; }
+		get dirty () { return this._ABI; }
 
 		get Tree () {
 			return this._tree = new RSTree (this._me);
@@ -1419,7 +1427,7 @@ export namespace RS1 {
 
 		get info () {
 			let str = super.info;
-			return str + '  Q' + this.indent.toString () + '=' + SafeStr (this.toStr).slice (0,60);
+			return str + '  Q' + this.indent.toString () + '=' + SafeStr (this.to$).slice (0,60);
 		}
 
 		setNameOrDesc (name='',ifDesc=false) {
@@ -1440,20 +1448,23 @@ export namespace RS1 {
 
 		get listDesc () { return this.namedesc().b; }
 
-		get toStr () {
+		get to$ () {
 			let D = this.delim;
-			if (this.cName === 'rList')
-				D = D;
-			
 			if (D === '|')
 				 return this.qstr;
 
-			let k = this.K, str = this.qstr + D;
+			let k = this.K, str='';
 			if (k) {
+				if ((typeof k._ABI) === 'string')
+					return k._ABI as string;
+
+				str = this.qstr + D;
 				let Lists = k._kids;
 				for (const L of Lists)
 					if (L)
 						str += (L as xList).toSafe + D;
+
+				k._ABI = str;
 			}
 				
 			return str;
@@ -1692,7 +1703,7 @@ export namespace RS1 {
 				}
 
 			if (notFound) {
-				let str = addend.toStr;
+				let str = addend.to$;
 				str = str.slice (str.indexOf ('|'));
 				this.qstr += str.slice (str.indexOf ('|'));
 				return;	// fast merge!
@@ -1888,7 +1899,7 @@ export namespace RS1 {
 			return true;
 		}
 		get copy () {
-			return new RSI (this.toStr);
+			return new RSI (this.to$);
 		}
 	}
 
@@ -2081,7 +2092,7 @@ export namespace RS1 {
 				}
 
 			if (notFound) {
-				let str = addend.toStr;
+				let str = addend.to$;
 				str = str.slice (str.indexOf ('|'));
 				this.qstr += str.slice (str.indexOf ('|'));
 				return;	// fast merge!
@@ -2285,7 +2296,7 @@ export namespace RS1 {
 			return true;
 		}
 		get copy () {
-			return new qList (this.toStr);
+			return new qList (this.to$);
 		}
 	}
 
@@ -2395,7 +2406,7 @@ export namespace RS1 {
 			let D = this.delim, str = this.qstr + D, Kids = this._k._kids;
 			for (const L of Kids)
 				if (L)
-					str += L.toStr + D;
+					str += L.to$ + D;
 
 			return str;
 		}
@@ -2420,8 +2431,6 @@ export namespace RS1 {
 		}		
 
 		addStr (Str:string|string[]) {
-			if (this.NILchk) return NILqList;
-
 			if ((typeof Str) === 'string') {
 				let S = Str as string, D = S.slice (-1);
 
@@ -2430,7 +2439,7 @@ export namespace RS1 {
 			}
 
 			let Strs = Str as string[];
-			let L = NILqList;
+			let L = NILRSr;
 			for (const S of Strs) {
 				let D = S.slice(-1);
 				if (D === '|')
@@ -2460,6 +2469,8 @@ export namespace RS1 {
 			return false;
 		}
 	}
+
+	export const NILRSr = new RSr ();
 
 	export class RSR extends RSChild {
 		protected r : RSr|undefined = new RSr ();
@@ -2587,17 +2598,17 @@ export namespace RS1 {
 			return (L  &&  (L !== NILrList)  &&  (L.cName === 'rList')) ? L as rList : NILrList;
 		} 
 
-		get toStr () {
+		get toS () {
 			let D = this.delim, str = this.qstr + D, Kids = this._k._kids;
 			for (const L of Kids)
 				if (L)
-					str += L.toStr + D;
+					str += L.to$ + D;
 
 			return str;
 		}
 
 		get copy () {
-			return new rList (this.toStr);
+			return new rList (this.toS);
 		}
 
 		get toQList () {
@@ -3621,7 +3632,7 @@ export namespace RS1 {
 
 			for (const C of this.Lists) {
 				if (C  &&  (C.Name === Name)) {
-					console.log ('  listByName(' + Name + ')=' + C.toStr);
+					console.log ('  listByName(' + Name + ')=' + C.to$);
 					return C;
 				}
 			}
@@ -3652,7 +3663,7 @@ export namespace RS1 {
 			if (this.Lists) {
 				for (const C of this.Lists)
 					if (C)
-						console.log ('   TDE Child:' + C.Name + '=' + C.toStr);
+						console.log ('   TDE Child:' + C.Name + '=' + C.to$);
 			}
 
 			this.level = List1.indent;
@@ -3664,7 +3675,7 @@ export namespace RS1 {
 		}
 
 		get info () {
-			return super.info + ' List=' + this.TList.toStr;
+			return super.info + ' List=' + this.TList.toS;
 		}
 	}
 
@@ -3957,7 +3968,7 @@ export namespace RS1 {
 			if (this.vL !== NILList)
 				return this.vL.qstr;
 			else if (this.qL !== NILqList)
-				return this.qL.toStr;
+				return this.qL.to$;
 			else return '|';
 		}
 
@@ -5220,7 +5231,7 @@ export namespace RS1 {
 				let me = Tiles[i];
 
 				let NewStr = 'Tile#' + i.toString () + '.' + 
-					(me.TList ? me.TList.toStr : '@NOLIST@') +
+					(me.TList ? me.TList.toS : '@NOLIST@') +
 					'\t' +
 					i.toString() +
 					'.level=' +
@@ -5248,7 +5259,7 @@ export namespace RS1 {
 					for (let c = 0; c < me.Lists.length; ) {
 						let List = me.Lists[c++];
 						if (List) {
-							NewStr = '\t\t List.Name=' + List.Name + '=' + List.toStr;
+							NewStr = '\t\t List.Name=' + List.Name + '=' + List.to$;
 							Str += NewStr + '\n';
 						}
 					}
