@@ -1,5 +1,5 @@
 <script lang="ts">
-    import RSrEditor from '../../lib/RSrEditor.svelte';
+    import RSMomEditor from '../../lib/RSMomEditor.svelte';
     import rListEditor from '../../lib/rListEditor.svelte';
     import { RS1 } from '../../lib/RSsvelte.svelte';
 
@@ -28,5 +28,5 @@
 </script>
 
 <main>
-    <RSrEditor RSr={list} />
+    <RSMomEditor RSMom={list} />
 </main>

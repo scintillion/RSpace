@@ -1,19 +1,16 @@
 <script lang="ts">
     import { RS1 } from './RSsvelte.svelte';
 	import RSIEditor from '../components/tiles/EditorRSI.svelte';
-	import RSrEditor from './RSrEditor.svelte';
+	import RSMomEditor from './RSMomEditor.svelte';
 	import { mount } from 'svelte';
 
-    // export let RSK: RS1.RSK;
-    let {RSr}:{RSr: RS1.RSr} = $props();
-	// let {RSK}:{RSK: RS1.RSK} = $props();
+    let {RSMom}:{RSMom: RS1.RSMom} = $props();
 	// let {RSK}:{RSK: RS1.RSK} = $props<{RSK:RS1.RSK}>();
-	// let kidArray = $state(RSK._kids);
-    let RSK = RSr.K;
+    let RSK = RSMom.K;
     let kidArray = $state(RSK._kids);
 	let selectedKid: Types = $state(kidArray[0]) ;
 	let step = $state('Home');
-	let selectedRSr: RS1.RSr = $state(new RS1.RSr());
+	let selectedRSMom: RS1.RSMom = $state(new RS1.RSMom());
 
 	type Types = RS1.RSD | undefined;
 
@@ -23,26 +20,24 @@
 			step = 'edit';
 		}
 		if (kid) selectedKid = kid;
-		if (kid instanceof RS1.RSr) {
-			selectedRSr = kid
-			console.log('selectKid() ' + selectedRSr?.Desc)
+		if (kid instanceof RS1.RSMom) {
+			selectedRSMom = kid
+			console.log('selectKid() ' + selectedRSMom?.Desc)
 		}
 		console.log('selectKid()' + selectedKid?.Desc)
 	}
 
 	function copyVID(kid: Types) {
 		let newRSI = new RS1.RSI();
-		let newRSr = new RS1.RSr();
-		console.log(kid instanceof RS1.RSI)
-	
+		let newRSMom = new RS1.RSMom();
 		
 		if (kid instanceof RS1.RSI) {
 			newRSI = kid.copy;
 			RSK.add(newRSI);
 		}
 		else if (kid instanceof RS1.RSr) {
-			if (kid.copy.R) newRSr = kid.copy.R;
-			RSK.add(newRSr);
+			if (kid.copy.R) newRSMom = kid.copy.R;
+			RSK.add(newRSMom);
 		}
 		else {
 			throw new Error('undefined');
@@ -53,6 +48,8 @@
 
 		function edit(list: Types) {
 			console.log('Edit!')
+			console.log(list instanceof RS1.RSI)
+			console.log(list instanceof RS1.RSr)
 			
 			if (list instanceof RS1.RSI) {
 				const modalContent = document.createElement('div');
@@ -89,10 +86,10 @@
 					modalContent.innerHTML = '';
 
 					if (list instanceof RS1.RSr) {
-					const editorComponent = mount( RSrEditor,({
+					const editorComponent = mount( RSMomEditor,({
 						target: modalContent,
 						props: {
-							RSr: list,
+							RSMom: list,
 						}
 					}));
 				}
@@ -105,9 +102,9 @@
 	
 		}
 
-		function addRSI(selectedRSr: RS1.RSr) {
-			console.log('selected Rsr' + selectedRSr?.Desc)
-			if (selectedRSr) {
+		function addRSI(selectedRSMom: RS1.RSMom) {
+			console.log('selected RSMom' + selectedRSMom?.Desc)
+			if (selectedRSMom) {
 				let newRSI = new RS1.RSI();
 				edit(newRSI);
 				newRSI = new RS1.RSI();
@@ -117,7 +114,7 @@
 
 		async function handleRSISave(editedRSI: RS1.RSI) {
 			console.log('editedRSI' + editedRSI.toRaw)
-			selectedRSr.addStr(editedRSI.toRaw);
+			selectedRSMom.kidAdd(editedRSI);
 		}
 
 		function handleBack() {
@@ -177,7 +174,7 @@
 			<button id="down" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
-			<button id="add" onclick={() => addRSI(selectedRSr)}>Add</button>
+			<button id="add" onclick={() => addRSI(selectedRSMom)}>Add</button>
 			</div>
 			
 		</div>

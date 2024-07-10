@@ -12,8 +12,11 @@
 	const TypeArray = RS1.TypeNames;
 
 	function close() {
-		onSave(RSI);
 		modalContent?.remove();
+	}
+
+	function save() {
+		onSave(RSI);
 	}
 
 	const rList = $state(new RS1.rList());
@@ -52,7 +55,7 @@
 				<input type="text" name="fmtstr" />
 			</div>
 			<div class="buttons">
-				<button id="save">Save</button>
+				<button id="save" onclick={save}>Save</button>
 				<button id="del">Delete</button>
 				<button id="clear">Clear</button>
 				<button id="copy">Copy</button>
