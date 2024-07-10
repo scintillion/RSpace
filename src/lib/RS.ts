@@ -46,7 +46,7 @@ export namespace RS1 {
 		return Strs.slice (0,-1);
 	}
 
-	type ABI=ArrayBuffer|string|undefined;
+	type ABI=Array<Uint8Array>|ArrayBuffer|string|undefined;
 	type RSDT=RSD|undefined;
 //	type RSArgs=string|string[]|ArrayBuffer|RSPack|RSD|RSField|ListTypes[]|undefined;
 	type RSArgs=ABI|string[]|RSPack|RSD|RSField|ListTypes[]|undefined;
@@ -92,7 +92,11 @@ export namespace RS1 {
 					rStr = 'R' + rStr + '\x1f';
 			}
 
-			return iStr + qStr + rStr;
+			let Str = iStr + qStr + rStr;
+			if (k  &&  !k._ABI)
+				k._ABI = Str;
+
+			return Str;
 		}
 
 		toABI (RSDName='') : ABI {
@@ -104,19 +108,20 @@ export namespace RS1 {
 						Str = abi as string;
 					else return abi;
 				}
-
+				else Str = this.to$;
+			}
+			else Str = this.to$;
 			
+			let x = this.X;
+			if (!(k || x))
+				return	Str;
 
-
-
-			}	
-			
-			
+			create RSPack!!
 			
 			return undefined;
 		}
 
-		fromS (S:string|string[]) : string|string[] {
+		from$ (S:string|string[]) : string|string[] {
 			let remain:string[] = [];
 			let Strs = ((typeof S) === 'string') ? [S as string] : S as string[];
 
@@ -141,7 +146,7 @@ export namespace RS1 {
 					case 'R' :
 						let r = this.R;
 						if (r)
-							r.fromS (first);
+							r.from$ (first);
 						break;
 
 					default : remain.push (str);
@@ -167,14 +172,14 @@ export namespace RS1 {
 
 			let cName = In ? In.constructor.name : '';
 			switch (cName) {
-				case 'String' : this.fromS (In as string); break;
+				case 'String' : this.from$ (In as string); break;
 				case 'RSPack' : this.fromPack (In as RSPack); break;
 				case '' : return;
 				case 'ArrayBuffer' : this.fromAB (In as ArrayBuffer); break;
 				case 'Array' :
 					let Arr = In as Array<any>;
 					if (typeof (Arr[0]) === 'string')
-						this.fromS (Arr as string[]);
+						this.from$ (Arr as string[]);
 					else this.fromField (Arr as RSField|RSField[]);
 					break;
 				default : this.fromRSD (In as RSD);		// non specific RSD
@@ -569,7 +574,7 @@ export namespace RS1 {
 			this.level = level;
 		}
 
-		get toStr () {
+		get to$ () {
 			let str = 'lev='+this.level.toString()+' prev='+this.prev.toString()+
 				' next='+this.next.toString() + ' first=' + this.first.toString () + 
 				' last='+this.last.toString() + 
@@ -669,7 +674,7 @@ export namespace RS1 {
 			}
 		}	
 		
-		toStr (sep=':') :string {
+		to$ (sep=':') :string {
 			return this.a + sep + this.b;
 		}
 
@@ -701,7 +706,7 @@ export namespace RS1 {
 			this.a = Number (pair.a); this.b = Number (pair.b);
 		}
 
-		toStr (sep=',') {
+		to$ (sep=',') {
 			return this.a.toString () + sep + this.b.toString ();
 		}
 
@@ -751,7 +756,7 @@ export namespace RS1 {
 
 		constructor (str='') { this.fromStr(str); }
 
-		get toStr () {
+		get to$ () {
 			let str = this.name;
 			if (this.format  ||  this.desc)
 				str += ':';
@@ -831,11 +836,11 @@ export namespace RS1 {
 
 		constructor (val:string|number='') { this.set (val); }
 
-		get toStr () { return this.str; }
+		get to$ () { return this.str; }
 		get toNum () { return this.num; }
-		get toMinStr () { return (this.num >= 0) ? this.str : (-this.num).toString (); }
+		get toMin$ () { return (this.num >= 0) ? this.str : (-this.num).toString (); }
 		get toABS () { return (this.num >= 0) ? this.num : -this.num; }
-		get toABStr () { return ''.padStart (this.toABS,' '); }
+		get toAB$ () { return ''.padStart (this.toABS,' '); }
 	}
 
 	var _editTile = 'S';
@@ -1205,7 +1210,7 @@ export namespace RS1 {
 			this.setValue(this.Value._Str);
 		}
 
-		ToStr() {
+		to$() {
 			if (this.Type)
 			return (
 				'[' + this.Ch + this.Xtra +
@@ -1294,11 +1299,11 @@ export namespace RS1 {
 			} else return this.Desc;
 		}
 
-		ToStr(): string {
+		to$(): string {
 			if (!this.Desc || this.Name === this.Desc) return this.Name;
 
 			let RetStr = this.Name + ':';
-			if (this.Fmt) RetStr += this.Fmt.ToStr();
+			if (this.Fmt) RetStr += this.Fmt.to$();
 
 			return RetStr + this.Desc;
 		}
@@ -1369,7 +1374,7 @@ export namespace RS1 {
 		}
 
 		get copy () {
-			return new vID (this.ToStr (),this.List);
+			return new vID (this.to$ (),this.List);
 		}
 	} // class vID
 
@@ -1461,7 +1466,7 @@ export namespace RS1 {
 		get listName() {
 			let N = this.namedesc().a;
 			let ind = new Indent (N);
-			return N.slice (ind.toStr.length);
+			return N.slice (ind.to$.length);
 		}
 
 		get listDesc () { return this.namedesc().b; }
@@ -1663,7 +1668,7 @@ export namespace RS1 {
 		}
 
 		setVID (VID:vID) {
-			let str = VID.ToStr (), pos = str.indexOf(':');
+			let str = VID.to$ (), pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
 
@@ -2052,7 +2057,7 @@ export namespace RS1 {
 		}
 
 		setVID (VID:vID) {
-			let str = VID.ToStr (), pos = str.indexOf(':');
+			let str = VID.to$ (), pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
 
@@ -2420,7 +2425,7 @@ export namespace RS1 {
 			return (L  &&  (L.cName === 'rList')) ? L as RSr : undefined;
 		} 
 
-		get toStr () {
+		get to$ () {
 			let D = this.delim, str = this.qstr + D, Kids = this._k._kids;
 			for (const L of Kids)
 				if (L)
@@ -2430,7 +2435,7 @@ export namespace RS1 {
 		}
 
 		get copy () {
-			return new RSR (this.toStr);
+			return new RSR (this.to$);
 		}
 
 		get toQList () {
@@ -3235,7 +3240,7 @@ export namespace RS1 {
 
 		constructor (Str='') { this.fromStr (Str); }
 
-		get toStr () {
+		get to$ () {
 			let VTStr = this.villa ? (this.villa + ',' + this.tile) : this.tile;
 
 			let NStr = '';
@@ -3265,7 +3270,7 @@ export namespace RS1 {
 		}
 
 		get copy () {
-			return new RID (this.toStr);
+			return new RID (this.to$);
 		}
 	}
 
@@ -3798,7 +3803,7 @@ export namespace RS1 {
 
 		push (D : BufPack|RSData) {
 			this.add ([(D.constructor.name === 'BufPack') ?
-				(D as BufPack).fStr ('rid') : (D as RSData).RID.toStr, D]);
+				(D as BufPack).fStr ('rid') : (D as RSData).RID.to$, D]);
 		}
 		
 		get toStr () {
@@ -4345,7 +4350,7 @@ export namespace RS1 {
 				//if (EndPos < Str.length - 1) {
 				// not the last element in list!
 				if (Delete) Str = Str.slice(0, Pos) + Str.slice(EndPos);
-				else Str = Str.slice(0, Pos + 1) + VID.ToStr() + Str.slice(EndPos);
+				else Str = Str.slice(0, Pos + 1) + VID.to$() + Str.slice(EndPos);
 
 				/*
 				} else {
@@ -4357,7 +4362,7 @@ export namespace RS1 {
 				if (Delete) return; //	ABORT, should not happen!
 
 				// VID not found, we must add to the end!
-				Str += VID.ToStr() + Delim;
+				Str += VID.to$() + Delim;
 			}
 
 			this.InitList(Str);
@@ -6889,7 +6894,14 @@ export namespace RS1 {
 	export const NILField = new PackField ('NIL!',NILAB);
 
 	export class RSPack extends RSMom {
+		add (Args:Array<any>) {
 
+
+
+
+		}
+
+		addField ()
 
 
 
