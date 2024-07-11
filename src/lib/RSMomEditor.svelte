@@ -10,7 +10,7 @@
     let kidArray = $state(RSK._kids);
 	let selectedKid: Types = $state(kidArray[0]) ;
 	let step = $state('Home');
-	let selectedRSMom: RS1.RSMom = $state(new RS1.RSMom());
+	let selectedRSD: RS1.RSD = $state(new RS1.RSD());
 
 	type Types = RS1.RSD | undefined;
 
@@ -19,25 +19,26 @@
 		if (kid?.Mom) {
 			step = 'edit';
 		}
-		if (kid) selectedKid = kid;
-		if (kid instanceof RS1.RSMom) {
-			selectedRSMom = kid
-			console.log('selectKid() ' + selectedRSMom?.Desc)
+		if (kid) {
+			selectedKid = kid;
+			selectedRSD = kid
+			console.log('selectKid() ' + selectedRSD?.Desc)
+			console.log(selectedRSD.Kids.forEach((kid) => console.log(kid.Desc)))
 		}
 		console.log('selectKid()' + selectedKid?.Desc)
 	}
 
 	function copyVID(kid: Types) {
 		let newRSI = new RS1.RSI();
-		let newRSMom = new RS1.RSMom();
-		
+		let newRSr = new RS1.RSr();
+			
 		if (kid instanceof RS1.RSI) {
 			newRSI = kid.copy;
 			RSK.add(newRSI);
 		}
 		else if (kid instanceof RS1.RSr) {
-			if (kid.copy.R) newRSMom = kid.copy.R;
-			RSK.add(newRSMom);
+			if (kid.copy.R) newRSr = kid.copy.R;
+			RSK.add(newRSr);
 		}
 		else {
 			throw new Error('undefined');
@@ -102,19 +103,20 @@
 	
 		}
 
-		function addRSI(selectedRSMom: RS1.RSMom) {
-			console.log('selected RSMom' + selectedRSMom?.Desc)
-			if (selectedRSMom) {
+		function addRSI(selectedRSD: RS1.RSD) {
+			console.log('selected RSMom' + selectedRSD?.Desc)
+			if (selectedRSD) {
 				let newRSI = new RS1.RSI();
 				edit(newRSI);
 				newRSI = new RS1.RSI();
 			}
 			
 		}
-
+		
 		async function handleRSISave(editedRSI: RS1.RSI) {
 			console.log('editedRSI' + editedRSI.toRaw)
-			selectedRSMom.kidAdd(editedRSI);
+			selectedRSD.kidAdd(editedRSI);
+			console.log(selectedRSD.nKids)
 		}
 
 		function handleBack() {
@@ -174,7 +176,7 @@
 			<button id="down" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
-			<button id="add" onclick={() => addRSI(selectedRSMom)}>Add</button>
+			<button id="add" onclick={() => addRSI(selectedRSD)}>Add</button>
 			</div>
 			
 		</div>
