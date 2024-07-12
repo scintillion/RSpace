@@ -28,5 +28,5 @@
 </script>
 
 <main>
-    <RSMomEditor RSMom={list} />
+    <RSMomEditor RSD={list} />
 </main>

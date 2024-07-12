@@ -4,10 +4,10 @@
 	import RSMomEditor from './RSMomEditor.svelte';
 	import { mount } from 'svelte';
 
-    let {RSMom}:{RSMom: RS1.RSMom} = $props();
+    let {RSD}:{RSD: RS1.RSD} = $props();
 	// let {RSK}:{RSK: RS1.RSK} = $props<{RSK:RS1.RSK}>();
-    let RSK = RSMom.K;
-    let kidArray = $state(RSK._kids);
+    let RSK = RSD.K;
+    let kidArray = $state(RSK?._kids ?? []);
 	let selectedKid: Types = $state(kidArray[0]) ;
 	let step = $state('Home');
 	let selectedRSD: RS1.RSD = $state(new RS1.RSD());
@@ -23,7 +23,7 @@
 			selectedKid = kid;
 			selectedRSD = kid
 			console.log('selectKid() ' + selectedRSD?.Desc)
-			console.log(selectedRSD.Kids.forEach((kid) => console.log(kid.Desc)))
+			console.log(selectedRSD.Kids.forEach((kid) => console.log(kid.Name)))
 		}
 		console.log('selectKid()' + selectedKid?.Desc)
 	}
@@ -34,11 +34,11 @@
 			
 		if (kid instanceof RS1.RSI) {
 			newRSI = kid.copy;
-			RSK.add(newRSI);
+			RSK?.add(newRSI);
 		}
 		else if (kid instanceof RS1.RSr) {
 			if (kid.copy.R) newRSr = kid.copy.R;
-			RSK.add(newRSr);
+			RSK?.add(newRSr);
 		}
 		else {
 			throw new Error('undefined');
@@ -86,11 +86,11 @@
 				if(modalContent) {
 					modalContent.innerHTML = '';
 
-					if (list instanceof RS1.RSr) {
+					if (list) {
 					const editorComponent = mount( RSMomEditor,({
 						target: modalContent,
 						props: {
-							RSMom: list,
+							RSD: list,
 						}
 					}));
 				}
@@ -104,13 +104,19 @@
 		}
 
 		function addRSI(selectedRSD: RS1.RSD) {
-			console.log('selected RSMom' + selectedRSD?.Desc)
+			console.log('selected RSD' + selectedRSD?.Desc)
 			if (selectedRSD) {
 				let newRSI = new RS1.RSI();
 				edit(newRSI);
 				newRSI = new RS1.RSI();
 			}
 			
+		}
+
+		function addRSD(selectedRSD: RS1.RSD) {
+			let newRSD = RS1.newRSD();
+			if (newRSD) selectedRSD.kidAdd(newRSD,);
+			edit(selectedRSD);
 		}
 		
 		async function handleRSISave(editedRSI: RS1.RSI) {
@@ -134,11 +140,11 @@
 		function del() {
 			if (selectedKid) { 
 				// let storearray = kidArray; 
-				RSK.del(selectedKid);
+				RSK?.del(selectedKid);
 			}
 		}
-		
-	
+
+
 
 
 </script>
@@ -172,11 +178,12 @@
 			<button id="del" onclick={() => del()}>Delete</button>
 			<!-- <button id="clear">Clear</button> -->
 			<button id="copy" onclick={() => copyVID(selectedKid)}>Copy</button>
-			<button id="up" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,-1);}}>Up</button>
-			<button id="down" onclick={() => {if (selectedKid) RSK.bubble(selectedKid,1);}}>Down</button>
+			<button id="up" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,-1);}}>Up</button>
+			<button id="down" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
-			<button id="add" onclick={() => addRSI(selectedRSD)}>Add</button>
+			<button id="addRSI" onclick={() => addRSI(selectedRSD)}>Add RSI</button>
+			<button id="addKid" onclick={() => addRSD(selectedRSD)}>Add kid</button>
 			</div>
 			
 		</div>
