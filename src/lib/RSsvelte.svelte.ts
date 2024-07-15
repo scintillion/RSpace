@@ -46,7 +46,19 @@ export namespace RS1 {
 		return Strs.slice (0,-1);
 	}
 
-	type ABI=ArrayBuffer|string|undefined;
+	type ABI=Uint8Array|ArrayBuffer|string|undefined;
+	type BBI=Uint8Array|string|undefined;
+
+	export class BBInfo {
+		prefix='';
+		format='';
+		RSDName='';
+		bbi:BBI;
+		start=0;
+		nBytes=0;
+		k:RSK|undefined;
+	}
+
 	type RSDT=RSD|undefined;
 //	type RSArgs=string|string[]|ArrayBuffer|RSPack|RSD|RSField|ListTypes[]|undefined;
 	type RSArgs=ABI|string[]|RSPack|RSD|RSField|ListTypes[]|undefined;
@@ -67,81 +79,64 @@ export namespace RS1 {
 
 		get to$ () : string {
 			let k = this.K;
-			if (k  &&  k._ABI) {
-				if ((typeof k._ABI) === 'string')
-					return k._ABI as string;
+			if (k  &&  k._BBI) {
+				if ((typeof k._BBI) === 'string')
+					return k._BBI as string;
 			}
 			
 			let s, iStr='', qStr='', rStr='';
 
 			if (s = this.I) {
-				iStr = s.to$;
-				if (iStr)
-					iStr = 'I' + iStr + '\x1f';
+				if (iStr = s.to$)
+					iStr += 'I\x1f';
 			}
 
 			if (s = this.Q) {
-				qStr = s.to$;
-				if (qStr)
-					qStr = 'Q' + qStr + '\x1f';
+				if (qStr = s.to$)
+					qStr += 'Q\x1f';
 			}
 
 			if (s = this.R) {
-				rStr = s.to$;
-				if (rStr)
-					rStr = 'R' + rStr + '\x1f';
+				if (rStr = s.to$)
+					rStr += 'R\x1f';
 			}
 
-			return iStr + qStr + rStr;
+			let Str = iStr + qStr + rStr;
+			if (k)
+				k._BBI = Str;
+
+			return Str;
 		}
 
-		toABI (RSDName='') : ABI {
-			let k = this.K, Str;
-			if (k) {
-				let abi = k._ABI;
-				if (abi) {
-					if ((typeof abi) === 'string')
-						Str = abi as string;
-					else return abi;
-				}
+		from$ (S:string|string[]) : string|string[] {
+			let remain:string[] = [], i, q, r, last, first, Strs;
 
-			
-
-
-
-			}	
-			
-			
-			
-			return undefined;
-		}
-
-		fromS (S:string|string[]) : string|string[] {
-			let remain:string[] = [];
-			let Strs = ((typeof S) === 'string') ? [S as string] : S as string[];
+			if ((typeof S) === 'string') {
+				let str = S as string;
+				last = str.slice (-1);
+				Strs = (last === '\x1f') ? str.split ('\x1f') : [str];
+			}
+			else Strs = S as string[];
 
 			for (const str of Strs) {
 				if (!str)
 					continue;
 
-				let last = str.slice (-1), first = str.slice (0,-1);
+				last = str.slice (-1); first = str.slice (0,-1);
 				switch (last) {
 					case 'I' :
-						let i = this.I;
-						if (i)
+						if (i = this.I)
 							i.fromS (first);
 						break;
 
 					case 'Q' :
-						let q = this.Q;
-						if (q)
+						if (q = this.Q)
 							q.fromS (first);
 						break;
 
 					case 'R' :
-						let r = this.R;
-						if (r)
-							r.fromS (first);
+						if (r = this.R)
+							r.from$ (first);
 						break;
 
 					default : remain.push (str);
@@ -149,6 +144,37 @@ export namespace RS1 {
 			}
 			
 			return remain;
+		}
+
+		toBBI (RSDName='') : BBI {
+			let k = this.K, Str;
+			if (k) {
+				let bbi = k._BBI;
+				if (bbi) {
+					if ((typeof bbi) === 'string')
+						Str = bbi as string;
+					else return bbi;
+				}
+				else Str = this.to$;
+			}
+			else Str = this.to$;
+			
+			let x = this.X;
+			if (!(k || x))
+				return	Str;
+
+			let pack = new RSPack (), fldPack = (this.cName === 'RSPack');
+
+			if (Str)
+				pack.add (['!0',Str]);
+			if (x)
+				pack.add (['!9',x]);
+
+
+
+			//  create RSPack!!
+			
+			return undefined;
 		}
 
 		fromAB (AB:ArrayBuffer) : ArrayBuffer|undefined { return AB; }
@@ -167,14 +193,14 @@ export namespace RS1 {
 
 			let cName = In ? In.constructor.name : '';
 			switch (cName) {
-				case 'String' : this.fromS (In as string); break;
+				case 'String' : this.from$ (In as string); break;
 				case 'RSPack' : this.fromPack (In as RSPack); break;
 				case '' : return;
 				case 'ArrayBuffer' : this.fromAB (In as ArrayBuffer); break;
 				case 'Array' :
 					let Arr = In as Array<any>;
 					if (typeof (Arr[0]) === 'string')
-						this.fromS (Arr as string[]);
+						this.from$ (Arr as string[]);
 					else this.fromField (Arr as RSField|RSField[]);
 					break;
 				default : this.fromRSD (In as RSD);		// non specific RSD
@@ -351,6 +377,46 @@ export namespace RS1 {
 			return K ? K.nItems : 0;
 		}
 
+		toFormat (RSDName='') {
+
+
+			return '';
+		}
+
+		toPrefix (bInfo:BBInfo) {
+			let k = this.K, bbi, format, RSDName=bInfo.RSDName;
+			if (k)	{
+				if (!(bbi = k._BBI))
+					bbi = this.toBBI (RSDName);
+				if (!(format = k._preFormat))
+					format = this.toFormat (RSDName);
+				bInfo.k = k;
+			}
+			else {
+				bbi = this.toBBI (RSDName);
+				format = this.toFormat (RSDName);
+			}
+			if (!format) {
+				let cName = this.cName;
+				if (cName === RSDName)
+					cName = '';		// same as default, not required 
+				else cName = '[' + cName + ']';
+
+				format = ',' + tRSD + this.Name + ':';
+				if (k)
+					k._preFormat = format;
+			}
+
+			bInfo.format = format;
+			if (bbi) {
+				if ((typeof bbi) === 'string') {
+					bbi = str2bbi (bbi as string);
+				}
+				bInfo.bbi = bbi;
+			}
+			else return '';
+		}
+
 		// copy () : RSD { return new RSD (); }
 	}
 
@@ -381,7 +447,8 @@ export namespace RS1 {
 		_names:string[]=[];
 		_kids:RSDT[]=$state([]);
 		_tree:RSTree|undefined;
-		_ABI:ABI;
+		_BBI:BBI;
+		_preFormat:string|undefined;
 		_me : RSD;
 
 		constructor (me : RSD) {
@@ -391,7 +458,7 @@ export namespace RS1 {
 		index (kid:string|RSD)	 {
 			if (kid)
 			return ((typeof kid) !== 'string') ? this._kids.findIndex (element => $state.is(element as RSD,kid as RSD)) :
-				this._names.findIndex (element => $state.is(element as string,kid as string)) 
+			this._names.findIndex (element => $state.is(element as string,kid as string));
 
 			return -1;
 		}
@@ -476,8 +543,8 @@ export namespace RS1 {
 			return count;
 		}
 
-		get mark () { this._tree = undefined; this._ABI = undefined; return true; }
-		get dirty () { return this._ABI; }
+		get mark () { this._tree = undefined; this._BBI = undefined; return true; }
+		get dirty () { return this._BBI; }
 
 		get Tree () {
 			return this._tree = new RSTree (this._me);
@@ -569,7 +636,7 @@ export namespace RS1 {
 			this.level = level;
 		}
 
-		get toStr () {
+		get to$ () {
 			let str = 'lev='+this.level.toString()+' prev='+this.prev.toString()+
 				' next='+this.next.toString() + ' first=' + this.first.toString () + 
 				' last='+this.last.toString() + 
@@ -669,7 +736,7 @@ export namespace RS1 {
 			}
 		}	
 		
-		toStr (sep=':') :string {
+		to$ (sep=':') :string {
 			return this.a + sep + this.b;
 		}
 
@@ -701,7 +768,7 @@ export namespace RS1 {
 			this.a = Number (pair.a); this.b = Number (pair.b);
 		}
 
-		toStr (sep=',') {
+		to$ (sep=',') {
 			return this.a.toString () + sep + this.b.toString ();
 		}
 
@@ -751,7 +818,7 @@ export namespace RS1 {
 
 		constructor (str='') { this.fromStr(str); }
 
-		get toStr () {
+		get to$ () {
 			let str = this.name;
 			if (this.format  ||  this.desc)
 				str += ':';
@@ -831,11 +898,11 @@ export namespace RS1 {
 
 		constructor (val:string|number='') { this.set (val); }
 
-		get toStr () { return this.str; }
+		get to$ () { return this.str; }
 		get toNum () { return this.num; }
-		get toMinStr () { return (this.num >= 0) ? this.str : (-this.num).toString (); }
+		get toMin$ () { return (this.num >= 0) ? this.str : (-this.num).toString (); }
 		get toABS () { return (this.num >= 0) ? this.num : -this.num; }
-		get toABStr () { return ''.padStart (this.toABS,' '); }
+		get toAB$ () { return ''.padStart (this.toABS,' '); }
 	}
 
 	var _editTile = 'S';
@@ -1205,7 +1272,7 @@ export namespace RS1 {
 			this.setValue(this.Value._Str);
 		}
 
-		ToStr() {
+		to$() {
 			if (this.Type)
 			return (
 				'[' + this.Ch + this.Xtra +
@@ -1294,11 +1361,11 @@ export namespace RS1 {
 			} else return this.Desc;
 		}
 
-		ToStr(): string {
+		to$(): string {
 			if (!this.Desc || this.Name === this.Desc) return this.Name;
 
 			let RetStr = this.Name + ':';
-			if (this.Fmt) RetStr += this.Fmt.ToStr();
+			if (this.Fmt) RetStr += this.Fmt.to$();
 
 			return RetStr + this.Desc;
 		}
@@ -1369,7 +1436,7 @@ export namespace RS1 {
 		}
 
 		get copy () {
-			return new vID (this.ToStr (),this.List);
+			return new vID (this.to$ (),this.List);
 		}
 	} // class vID
 
@@ -1461,7 +1528,7 @@ export namespace RS1 {
 		get listName() {
 			let N = this.namedesc().a;
 			let ind = new Indent (N);
-			return N.slice (ind.toStr.length);
+			return N.slice (ind.to$.length);
 		}
 
 		get listDesc () { return this.namedesc().b; }
@@ -1473,8 +1540,8 @@ export namespace RS1 {
 
 			let k = this.K, str='';
 			if (k) {
-				if ((typeof k._ABI) === 'string')
-					return k._ABI as string;
+				if ((typeof k._BBI) === 'string')
+					return k._BBI as string;
 
 				str = this.qstr + D;
 				let Lists = k._kids;
@@ -1482,7 +1549,7 @@ export namespace RS1 {
 					if (L)
 						str += (L as xList).toSafe + D;
 
-				k._ABI = str;
+				k._BBI = str;
 			}
 				
 			return str;
@@ -1663,7 +1730,7 @@ export namespace RS1 {
 		}
 
 		setVID (VID:vID) {
-			let str = VID.ToStr (), pos = str.indexOf(':');
+			let str = VID.to$ (), pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
 
@@ -2052,7 +2119,7 @@ export namespace RS1 {
 		}
 
 		setVID (VID:vID) {
-			let str = VID.ToStr (), pos = str.indexOf(':');
+			let str = VID.to$ (), pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
 
@@ -2420,7 +2487,7 @@ export namespace RS1 {
 			return (L  &&  (L.cName === 'rList')) ? L as RSr : undefined;
 		} 
 
-		get toStr () {
+		get to$ () {
 			let D = this.delim, str = this.qstr + D, Kids = this._k._kids;
 			for (const L of Kids)
 				if (L)
@@ -2430,7 +2497,7 @@ export namespace RS1 {
 		}
 
 		get copy () {
-			return new RSR (this.toStr);
+			return new RSR (this.to$);
 		}
 
 		get toQList () {
@@ -3235,7 +3302,7 @@ export namespace RS1 {
 
 		constructor (Str='') { this.fromStr (Str); }
 
-		get toStr () {
+		get to$ () {
 			let VTStr = this.villa ? (this.villa + ',' + this.tile) : this.tile;
 
 			let NStr = '';
@@ -3265,7 +3332,7 @@ export namespace RS1 {
 		}
 
 		get copy () {
-			return new RID (this.toStr);
+			return new RID (this.to$);
 		}
 	}
 
@@ -3798,7 +3865,7 @@ export namespace RS1 {
 
 		push (D : BufPack|RSData) {
 			this.add ([(D.constructor.name === 'BufPack') ?
-				(D as BufPack).fStr ('rid') : (D as RSData).RID.toStr, D]);
+				(D as BufPack).fStr ('rid') : (D as RSData).RID.to$, D]);
 		}
 		
 		get toStr () {
@@ -4345,7 +4412,7 @@ export namespace RS1 {
 				//if (EndPos < Str.length - 1) {
 				// not the last element in list!
 				if (Delete) Str = Str.slice(0, Pos) + Str.slice(EndPos);
-				else Str = Str.slice(0, Pos + 1) + VID.ToStr() + Str.slice(EndPos);
+				else Str = Str.slice(0, Pos + 1) + VID.to$() + Str.slice(EndPos);
 
 				/*
 				} else {
@@ -4357,7 +4424,7 @@ export namespace RS1 {
 				if (Delete) return; //	ABORT, should not happen!
 
 				// VID not found, we must add to the end!
-				Str += VID.ToStr() + Delim;
+				Str += VID.to$() + Delim;
 			}
 
 			this.InitList(Str);
@@ -5695,12 +5762,20 @@ export namespace RS1 {
 		return AB;
 	}
 
+	export function bbi2str(bbi : Uint8Array) {
+		return new TextDecoder().decode(bbi);
+	  }
+
 	export function ab2str(AB : ArrayBuffer) {
 		return new TextDecoder().decode(AB);
 	  }
 
 	export function str2ab(Str : string) {
 		return new TextEncoder().encode(Str);
+	}
+
+	export function str2bbi(Str : string) {
+		return new Uint8Array (new TextEncoder().encode(Str));
 	}
 
 	export function num2ab (N : number) : ArrayBuffer {
@@ -6177,10 +6252,6 @@ export namespace RS1 {
 
 		}
 
-		get toPrefix () {
-
-			return '';
-		}
 	}
 
 	export class RSField extends RSI {
@@ -6189,7 +6260,7 @@ export namespace RS1 {
 		protected _con='';
 		protected _data : any = NILAB;
 		protected _array=false;
-		protected _arrDims:Uint32Array|undefined;
+		protected _arrDims:Int32Array|undefined;
 		protected _pFormat:string|undefined;
 		protected _prefix='';
 		protected _dim=0;
@@ -6255,7 +6326,7 @@ export namespace RS1 {
 			return true;
 		}
 
-		fromPrefix (pStr:string) {
+		fromPrefix (pStr:string,RSDName='') {
 			this.clear;
 //			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
 			let arrayStr, nameStr, dimStr, array=false, con='', Dims;
@@ -6283,7 +6354,7 @@ export namespace RS1 {
 						else this._con = cNameStr;
 					}
 
-					Dims = new Uint32Array (Strs.length-1);
+					Dims = new Int32Array (Strs.length-1);
 					let count = 0;
 					for (const S of Strs) {
 						if (count++)
@@ -6889,10 +6960,27 @@ export namespace RS1 {
 	export const NILField = new PackField ('NIL!',NILAB);
 
 	export class RSPack extends RSMom {
+		addField (F : RSField, replace=false) {
+			let k = this.K;
 
+			if (k) 
+				k.add (F,replace);
+		}
 
+		add (Args:Array<any>) {
+			let k = this.K, len = Args.length, i = 0;
 
+			if (!k)
+				return;
 
+			if (len & 1)
+				throw 'Must add Name:Data Pairs!';
+
+			while (i < len) {
+				k.add (new RSField (Args[i] as string,Args[i+1]));
+				i += 2;
+			}
+		}
 	}
 
 	export class BufPack {

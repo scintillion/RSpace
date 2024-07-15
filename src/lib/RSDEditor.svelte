@@ -4,14 +4,13 @@
 	import RSDEditor from './RSDEditor.svelte';
 	import { mount } from 'svelte';
 
-    let {RSMom}:{RSMom: RS1.RSMom} = $props();
+    let {RSD, currentRSD}:{RSD: RS1.RSD, currentRSD: RS1.RSD} = $props();
 	// let {RSK}:{RSK: RS1.RSK} = $props<{RSK:RS1.RSK}>();
-    let RSK = RSMom.K;
-    let kidArray = $state(RSK._kids);
+    let RSK = RSD.K;
+    let kidArray = $state(RSK?._kids);
 	let selectedKid: Types = $state() ;
 	let step = $state('Home');
 	let selectedRSD: RS1.RSD = $state(new RS1.RSD());
-	let currentRSD: RS1.RSD = $state(new RS1.RSD());
 
 	type Types = RS1.RSD | undefined;
 
@@ -52,36 +51,35 @@
 			console.log('Edit!')
 			console.log(list instanceof RS1.RSI)
 			console.log(list instanceof RS1.RSr)
-			// if (list) currentRSD = list
 			
-			// if (list instanceof RS1.RSI) {
-			// 	const modalContent = document.createElement('div');
-			// 	modalContent.style.position = 'absolute';
-			// 	modalContent.style.top = '40%';
-			// 	modalContent.style.left = '50%';
-			// 	modalContent.style.transform = 'translate(-50%, -50%)';
-			// 	modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
-			// 	modalContent.style.padding = '20px';
-			// 	modalContent.style.borderRadius = '5px';
-			// 	modalContent.style.zIndex = '1';
-			// 	document.body.appendChild(modalContent);
+			if (list instanceof RS1.RSI) {
+				const modalContent = document.createElement('div');
+				modalContent.style.position = 'absolute';
+				modalContent.style.top = '40%';
+				modalContent.style.left = '50%';
+				modalContent.style.transform = 'translate(-50%, -50%)';
+				modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
+				modalContent.style.padding = '20px';
+				modalContent.style.borderRadius = '5px';
+				modalContent.style.zIndex = '1';
+				document.body.appendChild(modalContent);
 
-			// 	if (modalContent) {
-			// 		const editorComponent = mount (RSIEditor,({
-			// 				target: modalContent,
-			// 				props: {
-			// 					RSI: list,
-			// 					modalContent: modalContent,
-			// 					onSave:() => handleRSISave(list),
-			// 				},
-			// 			}));
-			// 		// 	editorComponent.$on('close', () => {
-			// 		// 	modalContent.remove();
-			// 		// });
-			// 	}
-    		// }
+				if (modalContent) {
+					const editorComponent = mount (RSIEditor,({
+							target: modalContent,
+							props: {
+								RSI: list,
+								modalContent: modalContent,
+								onSave:() => handleRSISave(list),
+							},
+						}));
+					// 	editorComponent.$on('close', () => {
+					// 	modalContent.remove();
+					// });
+				}
+    		}
 			
-			// else  {
+			else  {
 				const modalContent = document.getElementById('editor');
 				console.log('Edit' + selectedKid?.Desc)
 								
@@ -93,12 +91,12 @@
 						target: modalContent,
 						props: {
 							RSD: list,
-							currentRSD: list
+                            currentRSD: list,
 						}
 					}));
 				}
 				}
-			// }
+			}
 
 			// else {
 			// 	throw new Error('Invalid list. Please select a list');
@@ -118,14 +116,14 @@
 
 		function addRSD(selectedRSD: RS1.RSD) {
 			let newRSD = RS1.newRSD();
-			if (newRSD) RSMom.kidAdd(newRSD,);
+			if (newRSD) currentRSD.kidAdd(newRSD,);
 			// edit(selectedRSD);
-			newRSD = new RS1.RSD();
+            newRSD = new RS1.RSD();
 		}
 		
 		async function handleRSISave(editedRSI: RS1.RSI) {
 			console.log('editedRSI' + editedRSI.toRaw)
-			selectedRSD.kidAdd(editedRSI);
+			currentRSD.kidAdd(editedRSI);
 			console.log(selectedRSD.nKids)
 		}
 
@@ -155,13 +153,13 @@
 
 {#snippet selectBox(kid)}
 	<button onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
-		<span>{kid?.Name} [{kid?.cName}] </span>
+		<span>{kid?.info} </span>
 	</button>
 {/snippet}	
 
 <main>
 	<div id="editor">
-		<div>{currentRSD.Name}</div>
+        <div>{currentRSD.Name}</div>
         <div class="selectContainer">
 			{#if kidArray}
 				{#each kidArray as kid}
@@ -187,7 +185,7 @@
 			<button id="down" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
-			<!-- <button id="addRSI" onclick={() => addRSI(selectedRSD)}>Add RSI</button> -->
+			<button id="addRSI" onclick={() => addRSI(selectedRSD)}>Add RSI</button>
 			<button id="addKid" onclick={() => addRSD(selectedRSD)}>Add kid</button>
 			</div>
 			
@@ -215,7 +213,7 @@
 		  padding: 10px;
 		  border-radius: 8px;
 		  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-		  max-height: 500px;
+		  max-height: 600px;
 		  overflow-y: auto;
 		  background-color: white;
 		  color: black;
