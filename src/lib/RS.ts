@@ -46,6 +46,7 @@ export namespace RS1 {
 		return Strs.slice (0,-1);
 	}
 
+	type UBytes=Uint8Array;
 	type ABI=Uint8Array|ArrayBuffer|string|undefined;
 	type BBI=Uint8Array|string|undefined;
 
@@ -64,8 +65,10 @@ export namespace RS1 {
 	type RSArgs=ABI|string[]|RSPack|RSD|RSField|ListTypes[]|undefined;
 
 	export class RSD {
-		get Mom ():RSD|undefined { return undefined; }
-		set Mom (m:RSD|undefined) {}
+		_mom : RSD|undefined;
+		_bbi : BBI;
+		get Mom ():RSD|undefined { return this._mom; }
+		set Mom (m:RSD|undefined) { this._mom = m; }
 
 		get notNIL () { return this !== NILRSD; }
 
@@ -288,7 +291,12 @@ export namespace RS1 {
 			if (this.Group)
 				lines += ' G=' + this.Group;
 
-			lines += ']\n   ' + this.toSafe.slice(0,75); 
+			lines += ']';
+			return lines;
+		}
+
+		get infoKids () {
+			let lines = this.info + '\n   ' + this.toSafe.slice(0,75); 
 
 			let n = 0, K = this.K;
 			if (K) {
@@ -388,8 +396,10 @@ export namespace RS1 {
 			if (k)	{
 				if (!(bbi = k._BBI))
 					bbi = this.toBBI (RSDName);
-				if (!(format = k._preFormat))
+				if (!(format = k._preFormat)) {
 					format = this.toFormat (RSDName);
+					k._preFormat = format;
+				}
 				bInfo.k = k;
 			}
 			else {
@@ -5774,8 +5784,8 @@ export namespace RS1 {
 		return new TextEncoder().encode(Str);
 	}
 
-	export function str2bbi(Str : string) {
-		return new Uint8Array (new TextEncoder().encode(Str));
+	export function str2bbi(Str : string) : Uint8Array {
+		return new TextEncoder().encode(Str);
 	}
 
 	export function num2ab (N : number) : ArrayBuffer {
