@@ -81,7 +81,7 @@
 			// 	}
     		// }
 			
-			// else  {
+			if (selectedKid)  {
 				const modalContent = document.getElementById('editor');
 				console.log('Edit' + selectedKid?.Desc)
 								
@@ -98,7 +98,7 @@
 					}));
 				}
 				}
-			// }
+			}
 
 			// else {
 			// 	throw new Error('Invalid list. Please select a list');
@@ -116,11 +116,11 @@
 			
 		}
 
-		function addRSD(selectedRSD: RS1.RSD) {
-			let newRSD = RS1.newRSD();
-			if (newRSD) RSMom.kidAdd(newRSD,);
+		function addRSr(selectedRSD: RS1.RSD) {
+			let newRSr = new RS1.RSr();
+			RSMom.kidAdd(newRSr);
 			// edit(selectedRSD);
-			newRSD = new RS1.RSD();
+			newRSr = new RS1.RSr();
 		}
 		
 		async function handleRSISave(editedRSI: RS1.RSI) {
@@ -188,7 +188,7 @@
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
 			<!-- <button id="addRSI" onclick={() => addRSI(selectedRSD)}>Add RSI</button> -->
-			<button id="addKid" onclick={() => addRSD(selectedRSD)}>Add kid</button>
+			<button id="addRSr" onclick={() => addRSr(selectedRSD)}>Add RSr</button>
 			</div>
 			
 		</div>

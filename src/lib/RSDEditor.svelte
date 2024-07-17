@@ -114,17 +114,23 @@
 			
 		}
 
-		function addRSD(selectedRSD: RS1.RSD) {
-			let newRSD = RS1.newRSD();
-			if (newRSD) currentRSD.kidAdd(newRSD,);
-			// edit(selectedRSD);
-            newRSD = new RS1.RSD();
+		// function addRSD(selectedRSD: RS1.RSD) {
+		// 	let newRSD = RS1.newRSD();
+		// 	if (newRSD) currentRSD.kidAdd(newRSD);
+		// 	// edit(selectedRSD);
+        //     newRSD = new RS1.RSD();
+		// }
+
+        function addRSr(selectedRSD: RS1.RSD) {
+			let newRSr = new RS1.RSr();
+			currentRSD.kidAdd(newRSr);
+			newRSr = new RS1.RSr();
 		}
 		
 		async function handleRSISave(editedRSI: RS1.RSI) {
 			console.log('editedRSI' + editedRSI.toRaw)
 			currentRSD.kidAdd(editedRSI);
-			console.log(selectedRSD.nKids)
+			console.log(currentRSD.nKids)
 		}
 
 		function handleBack() {
@@ -186,7 +192,7 @@
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
 			<button id="addRSI" onclick={() => addRSI(selectedRSD)}>Add RSI</button>
-			<button id="addKid" onclick={() => addRSD(selectedRSD)}>Add kid</button>
+			<button id="addRSr" onclick={() => addRSr(selectedRSD)}>Add RSr</button>
 			</div>
 			
 		</div>
