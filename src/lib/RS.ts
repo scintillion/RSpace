@@ -1,3 +1,5 @@
+import TextEditHandler from "../components/TileComponents/TextEditHandler.svelte";
+
 export namespace RS1 {
 	export const NILAB = new ArrayBuffer (0);
 	export const NILArray = new Uint8Array (NILAB);
@@ -61,14 +63,13 @@ export namespace RS1 {
 	}
 
 	type RSDT=RSD|undefined;
-//	type RSArgs=string|string[]|ArrayBuffer|RSPack|RSD|RSField|ListTypes[]|undefined;
-	type RSArgs=ABI|string[]|RSPack|RSD|RSField|ListTypes[]|undefined;
+	type RSArgs=ABI|string[]|RSPack|RSDT|RSField|ListTypes[]|RSDT;
 
 	export class RSD {
-		_mom : RSD|undefined;
-		_bbi : BBI;
-		get Mom ():RSD|undefined { return this._mom; }
-		set Mom (m:RSD|undefined) { this._mom = m; }
+		protected _mom : RSDT;
+		protected _bbi : BBI;
+		get mom () : RSDT { return this._mom; };
+		set Mom (m:RSDT) { this._mom = m; }
 
 		get notNIL () { return this !== NILRSD; }
 
@@ -76,15 +77,15 @@ export namespace RS1 {
 		get K ():RSK|undefined { return undefined; }
 		get Q ():RSI|undefined { return undefined; }
 		get R ():RSr|undefined { return undefined; }
-		get X () : RSD|undefined { return undefined; }
+		get X () : RSDT { return undefined; }
 
 		get size () { return 0; }
 
 		get to$ () : string {
-			let k = this.K;
-			if (k  &&  k._BBI) {
-				if ((typeof k._BBI) === 'string')
-					return k._BBI as string;
+			let k = this.K, bbi = this._bbi;
+			if (bbi) {
+				if ((typeof bbi) === 'string')
+					return bbi as string;
 			}
 			
 			let s, iStr='', qStr='', rStr='';
@@ -105,8 +106,7 @@ export namespace RS1 {
 			}
 
 			let Str = iStr + qStr + rStr;
-			if (k)
-				k._BBI = Str;
+			this._bbi = Str;
 
 			return Str;
 		}
@@ -150,19 +150,12 @@ export namespace RS1 {
 		}
 
 		toBBI (RSDName='') : BBI {
-			let k = this.K, Str;
-			if (k) {
-				let bbi = k._BBI;
-				if (bbi) {
-					if ((typeof bbi) === 'string')
-						Str = bbi as string;
-					else return bbi;
-				}
-				else Str = this.to$;
-			}
-			else Str = this.to$;
+			let Str, bbi;
+			if (bbi = this._bbi)
+				return bbi;
 			
-			let x = this.X;
+			Str = this.to$;
+			let k = this.K, x = this.X;
 			if (!(k || x))
 				return	Str;
 
@@ -331,14 +324,11 @@ export namespace RS1 {
 		// **** Kid functions ****
 
 		get dirty () { 
-			let k = this.K;
-			return k ? k.dirty : true;
+			return this._bbi !== undefined;
 		}
 
 		get mark () {
-			let k = this.K;
-			if (k)
-				k.mark;
+			this._bbi = undefined;
 			return true;
 		}
 		get Tree () : RSTree|undefined {
@@ -393,9 +383,14 @@ export namespace RS1 {
 
 		toPrefix (bInfo:BBInfo) {
 			let k = this.K, bbi, format, RSDName=bInfo.RSDName;
+			if (!(bbi = this._bbi))
+				bbi = this.toBBI (RSDName);
+
+
+			// Simplify toPrefix for RSD only then create toPrefix for RSField to handle
+			// special cases
+
 			if (k)	{
-				if (!(bbi = k._BBI))
-					bbi = this.toBBI (RSDName);
 				if (!(format = k._preFormat)) {
 					format = this.toFormat (RSDName);
 					k._preFormat = format;
@@ -432,7 +427,7 @@ export namespace RS1 {
 
 	export const NILRSD = new RSD ();
 
-	export function newRSD (name='RSD',x:RSArgs=undefined) {
+	export function newRSD (name:string,x:RSArgs=undefined) {
 		let R = NILRSD;
 		switch (name) {
 			case 'RSD' : return new RSD (x);
@@ -441,7 +436,6 @@ export namespace RS1 {
 			case 'RSLeaf' : return new RSLeaf (x as RSD);
 			case 'RSTree' : return new RSTree (x as RSD);
 			case 'RSQ' : return new RSQ (x);
-			case 'RSChild' : return new RSChild (x);
 			case 'RSr' : return new RSr (x as string|string[]|ListTypes[]);
 			case 'RSR' : return new RSR (x);
 			case 'Bead' : return new Bead (x);
@@ -457,7 +451,6 @@ export namespace RS1 {
 		_names:string[]=[];
 		_kids:RSDT[]=[];
 		_tree:RSTree|undefined;
-		_BBI:BBI;
 		_preFormat:string|undefined;
 		_me : RSD;
 
@@ -553,8 +546,7 @@ export namespace RS1 {
 			return count;
 		}
 
-		get mark () { this._tree = undefined; this._BBI = undefined; return true; }
-		get dirty () { return this._BBI; }
+		get mark () { this._tree = undefined; return true; }
 
 		get Tree () {
 			return this._tree = new RSTree (this._me);
@@ -1544,22 +1536,24 @@ export namespace RS1 {
 		get listDesc () { return this.namedesc().b; }
 
 		get to$ () {
-			let D = this.delim;
+			let D = this.delim, bbi;
 			if (D === '|')
 				 return this.qstr;
 
+			if (bbi = this._bbi) {
+				if ((typeof bbi) === 'string')
+					return bbi as string;
+			}
+
 			let k = this.K, str='';
 			if (k) {
-				if ((typeof k._BBI) === 'string')
-					return k._BBI as string;
-
 				str = this.qstr + D;
 				let Lists = k._kids;
 				for (const L of Lists)
 					if (L)
 						str += (L as xList).toSafe + D;
 
-				k._BBI = str;
+				this._bbi = str;
 			}
 				
 			return str;
@@ -1998,13 +1992,7 @@ export namespace RS1 {
 		}
 	}
 
-	export class RSChild extends RSI {
-		protected mom : RSD|undefined;
-		get Mom () : RSD|undefined { return this.mom; }
-		set Mom (m:RSD) { this.mom = m; }
-	}
-
-	export class RSQ extends RSChild {
+	export class RSQ extends RSI {
 		protected q : RSI|undefined = new RSI ();
 		get Q () : RSI|undefined { return this.q; }
 		set Q (q:RSI|undefined) { this.q = q; }
@@ -2567,7 +2555,7 @@ export namespace RS1 {
 
 	export const NILRSr = new RSr ();
 
-	export class RSR extends RSChild {
+	export class RSR extends RSI {
 		protected r : RSr|undefined = new RSr ();
 		get R () : RSr|undefined { return this.r;}
 		set R (r:RSr|undefined) { this.r = r; }
