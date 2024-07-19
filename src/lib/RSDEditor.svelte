@@ -10,7 +10,6 @@
     let kidArray = $state(RSK?._kids);
 	let selectedKid: Types = $state() ;
 	let step = $state('Home');
-	let selectedRSD: RS1.RSD = $state(new RS1.RSD());
 
 	type Types = RS1.RSD | undefined;
 
@@ -21,9 +20,8 @@
 		}
 		if (kid) {
 			selectedKid = kid;
-			selectedRSD = kid
-			console.log('selectKid() ' + selectedRSD?.Desc)
-			console.log(selectedRSD.Kids.forEach((kid) => console.log(kid.Name)))
+			console.log('selectKid() ' + selectedKid?.Desc)
+			console.log(selectedKid.Kids.forEach((kid) => console.log(kid.Name)))
 		}
 		console.log('selectKid()' + selectedKid?.Desc)
 	}
@@ -104,24 +102,22 @@
 	
 		}
 
-		function addRSI(selectedRSD: RS1.RSD) {
-			console.log('selected RSD' + selectedRSD?.Desc)
-			if (selectedRSD) {
-				let newRSI = new RS1.RSI();
-				edit(newRSI);
-				newRSI = new RS1.RSI();
+		function addRSI(selectedKid: Types) {
+			console.log('selected RSD' + selectedKid?.Desc)
+			let newRSI = new RS1.RSI();
+			edit(newRSI);
+			newRSI = new RS1.RSI();
 			}
-			
-		}
 
-		// function addRSD(selectedRSD: RS1.RSD) {
+
+		// function addRSD(selectedKid: RS1.RSD) {
 		// 	let newRSD = RS1.newRSD();
 		// 	if (newRSD) currentRSD.kidAdd(newRSD);
-		// 	// edit(selectedRSD);
+		// 	// edit(selectedKid);
         //     newRSD = new RS1.RSD();
 		// }
 
-        function addRSr(selectedRSD: RS1.RSD) {
+        function addRSr() {
 			let newRSr = new RS1.RSr();
 			currentRSD.kidAdd(newRSr);
 			newRSr = new RS1.RSr();
@@ -134,15 +130,17 @@
 		}
 
 		function handleBack() {
-			let parent: RS1.RSD | undefined
-			console.log('handleBack()' + selectedKid?.Desc)
-			parent = selectedKid?.Mom
-			if (!parent?.Mom) return
+			// let parent: RS1.RSD | undefined
+			// console.log('handleBack()' + selectedKid?.Desc)
+			// // parent = selectedKid?.Mom
+			// // if (!parent?.Mom) return
 			
-			selectKid(parent.Mom);
+			// // selectKid(parent.Mom);
+            // console.log('currentRSDback' + currentRSD.Name)
+            // // edit(currentRSD);
 
-			if (selectedKid?.K) RSK = selectedKid.K
-			// kidArray = RSK._kids
+			// if (selectedKid?.K) RSK = selectedKid.K
+			// // kidArray = RSK._kids
 		}
 
 		function del() {
@@ -191,8 +189,8 @@
 			<button id="down" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
 			<button id="back" onclick={() => handleBack()}>Back</button>
-			<button id="addRSI" onclick={() => addRSI(selectedRSD)}>Add RSI</button>
-			<button id="addRSr" onclick={() => addRSr(selectedRSD)}>Add RSr</button>
+			<button id="addRSI" onclick={() => addRSI(selectedKid)}>Add RSI</button>
+			<button id="addRSr" onclick={() => addRSr()}>Add RSr</button>
 			</div>
 			
 		</div>
