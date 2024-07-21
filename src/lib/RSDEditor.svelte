@@ -3,13 +3,15 @@
 	import RSIEditor from '../components/tiles/EditorRSI.svelte';
 	import RSDEditor from './RSDEditor.svelte';
 	import { mount } from 'svelte';
+    import RSMomEditor from './RSMomEditor.svelte';
 
-    let {RSD, currentRSD}:{RSD: RS1.RSD, currentRSD: RS1.RSD} = $props();
+    let {RSD, currentRSD, currentRSMom}:{RSD: RS1.RSD, currentRSD: RS1.RSD, currentRSMom: RS1.RSMom} = $props();
 	// let {RSK}:{RSK: RS1.RSK} = $props<{RSK:RS1.RSK}>();
     let RSK = RSD.K;
     let kidArray = $state(RSK?._kids);
 	let selectedKid: Types = $state() ;
 	let step = $state('Home');
+    let home = $state(false);
 
 	type Types = RS1.RSD | undefined;
 
@@ -90,6 +92,7 @@
 						props: {
 							RSD: list,
                             currentRSD: list,
+                            currentRSMom: currentRSMom,
 						}
 					}));
 				}
@@ -143,6 +146,10 @@
 			// // kidArray = RSK._kids
 		}
 
+        function handleHome() {
+            home = true;
+        }
+
 		function del() {
 			if (selectedKid) { 
 				// let storearray = kidArray; 
@@ -160,6 +167,12 @@
 		<span>{kid?.info} </span>
 	</button>
 {/snippet}	
+
+{#if home}
+    <RSMomEditor RSMom = {currentRSMom} />
+{/if}
+
+{#if !home}
 
 <main>
 	<div id="editor">
@@ -188,13 +201,16 @@
 			<button id="up" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,-1);}}>Up</button>
 			<button id="down" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
-			<button id="back" onclick={() => handleBack()}>Back</button>
+			<!-- <button id="back" onclick={() => handleBack()}>Back</button> -->
 			<button id="addRSI" onclick={() => addRSI(selectedKid)}>Add RSI</button>
 			<button id="addRSr" onclick={() => addRSr()}>Add RSr</button>
+            <button id="home" onclick={() => handleHome()}>Home</button>
 			</div>
 			
 		</div>
 </main>		
+
+{/if}
 		
 			
 

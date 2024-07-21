@@ -11,6 +11,7 @@
 	let selectedKid: Types = $state() ;
 	let step = $state('Home');
 	let currentRSD: RS1.RSD = $state(new RS1.RSD());
+	let currentRSMom = RSMom;
 
 	type Types = RS1.RSD | undefined;
 
@@ -91,7 +92,8 @@
 						target: modalContent,
 						props: {
 							RSD: list,
-							currentRSD: list
+							currentRSD: list,
+							currentRSMom: currentRSMom,
 						}
 					}));
 				}
