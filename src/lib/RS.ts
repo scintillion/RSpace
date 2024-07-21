@@ -1,8 +1,8 @@
 import TextEditHandler from "../components/TileComponents/TextEditHandler.svelte";
 
 export namespace RS1 {
+	export const StrEnd='\0x1f';
 	export const NILAB = new ArrayBuffer (0);
-	export const NILArray = new Uint8Array (NILAB);
 	const NILNums:number[]=[];
 	const NILStrs:string[]=[];
 	export const NILIDs:number[]=[];
@@ -48,9 +48,18 @@ export namespace RS1 {
 		return Strs.slice (0,-1);
 	}
 
-	type UBytes=Uint8Array;
-	type ABI=Uint8Array|ArrayBuffer|string|undefined;
-	type BBI=Uint8Array|string|undefined;
+	type UBuf=Uint8Array;
+	type ABI=UBuf|ArrayBuffer|string|undefined;
+	type BBI=UBuf|string|undefined;
+
+	export function newBuf (nBytes:number|ArrayBuffer) 
+	{
+		if (typeof nBytes === 'number')
+			return new Uint8Array (nBytes as number);
+		else return new Uint8Array (nBytes as ArrayBuffer);
+	}
+
+	export const NILArray = newBuf (NILAB);
 
 	export class BBInfo {
 		prefix='';
@@ -72,9 +81,11 @@ export namespace RS1 {
 		set Mom (m:RSDT) { this._mom = m; }
 
 		get notNIL () { return this !== NILRSD; }
+		get notZero () { return true; }
 
 		get I ():RSI|undefined { return undefined; }
 		get K ():RSK|undefined { return undefined; }
+		get P ():RSPack|undefined { return undefined; }
 		get Q ():RSI|undefined { return undefined; }
 		get R ():RSr|undefined { return undefined; }
 		get X () : RSDT { return undefined; }
@@ -117,7 +128,7 @@ export namespace RS1 {
 			if ((typeof S) === 'string') {
 				let str = S as string;
 				last = str.slice (-1);
-				Strs = (last === '\x1f') ? str.split ('\x1f') : [str];
+				Strs = (last === StrEnd) ? str.split (StrEnd) : [str];
 			}
 			else Strs = S as string[];
 
@@ -149,26 +160,62 @@ export namespace RS1 {
 			return remain;
 		}
 
-		toBBI (RSDName='') : BBI {
+		toBuf (NBPs : NBP[]) : UBuf {
+			let cName = this.cName, pLen = cName.length, len = NBPs.length,
+				pStrs = new Array<string> (len+1), i = 0, nBytes = 0;
+
+			pStrs.push (this.cName);
+			for (const b of NBPs)
+				if (b.bbi) {
+					if (typeof b.bbi === 'string')
+						b.bbi = str2bbi (b.bbi as string);
+
+					nBytes += b.bbi.length;
+					++i;
+					pLen += b.prefix.length;
+					pStrs.push (b.prefix);
+				}
+
+			
+			pLen += i;
+			let byteStr = pLen.toString ();
+			pStrs[0] = pLen.toString () + ' ' + pStrs[0];
+			pStrs[i] += ',\0x1f';
+			let prefix = pStrs.join (','), prefixBuf = str2bbi (prefix), offset = prefixBuf.length;
+
+			let Buf = newBuf (offset + nBytes);
+			Buf.set (prefixBuf);
+			for (const b of NBPs)
+				if (b.bbi) {
+					Buf.set (b.bbi as UBuf, offset);
+					offset += b.bbi.length;
+				}
+
+			return (Buf.length > (offset + 8)) ? Buf.slice (0,offset) : Buf;
+		}
+
+		get toBBI () : BBI {
 			let Str, bbi;
 			if (bbi = this._bbi)
 				return bbi;
 			
 			Str = this.to$;
-			let k = this.K, x = this.X;
-			if (!(k || x))
-				return	Str;
+			let k = this.K, x = this.X, p = this.P;
+			if (!(k || x || p)) {
+				if (Str  && Str[0] !== StrEnd)
+					Str = StrEnd + Str;
+				return this._bbi = Str;
+			}
 
-			let pack = new RSPack (), fldPack = (this.cName === 'RSPack');
+			let fldPack = (this.cName === 'RSPack');
+			let NBPs=new Array<NBP>();
 
 			if (Str)
-				pack.add (['!0',Str]);
+				NBPs.push (new NBP ('.$',Str));
 			if (x)
-				pack.add (['!9',x]);
-
-
-
-			//  create RSPack!!
+				NBPs.push (new NBP ('.x',x));
+			if (p)
+				NBPs.push (new NBP ('.p',p,'RSPack'));
 			
 			return undefined;
 		}
@@ -381,48 +428,22 @@ export namespace RS1 {
 			return '';
 		}
 
-		toPrefix (bInfo:BBInfo) {
-			let k = this.K, bbi, format, RSDName=bInfo.RSDName;
+		toPrefix (RSDName='') {
+			let k = this.K, bbi, prefix;
 			if (!(bbi = this._bbi))
-				bbi = this.toBBI (RSDName);
+				bbi = this.toBBI;		// (RSDName);
 
-
-			// Simplify toPrefix for RSD only then create toPrefix for RSField to handle
-			// special cases
-
-			if (k)	{
-				if (!(format = k._preFormat)) {
-					format = this.toFormat (RSDName);
-					k._preFormat = format;
-				}
-				bInfo.k = k;
-			}
-			else {
-				bbi = this.toBBI (RSDName);
-				format = this.toFormat (RSDName);
-			}
-			if (!format) {
-				let cName = this.cName;
-				if (cName === RSDName)
-					cName = '';		// same as default, not required 
-				else cName = '[' + cName + ']';
-
-				format = ',' + tRSD + this.Name + ':';
-				if (k)
-					k._preFormat = format;
-			}
-
-			bInfo.format = format;
 			if (bbi) {
-				if ((typeof bbi) === 'string') {
-					bbi = str2bbi (bbi as string);
-				}
-				bInfo.bbi = bbi;
+				let cName = this.cName;
+				if (cName  &&  (cName !== RSDName))
+					cName = '[' + cName + ']';
+				else cName = '';
+				
+				return tRSD + cName + this.Name + ':' + bbi.length.toString ();
 			}
-			else return '';
-		}
 
-		// copy () : RSD { return new RSD (); }
+			return '';	// should not happen, NIL BBI
+		}
 	}
 
 	export const NILRSD = new RSD ();
@@ -946,6 +967,47 @@ export namespace RS1 {
 	export var _RegRID = '';
 
 	const InitStr = 'InitReq must be called before Request Operations!';
+
+	class NBP {
+		name='';
+		prefix='';
+		bbi:BBI;
+
+		constructor (name1='',buffer:BBI|RSD|number, prefixRSDType='') {
+			if (!buffer)
+				return;
+
+			let bType:string = typeof buffer;
+			if (bType === 'object')
+				bType = buffer.constructor.name;
+
+			switch (bType) {
+				case 'string' :
+					this.bbi = str2bbi (buffer as string);
+					this.prefix = tStr + name1 + ':'+this.bbi.length.toString ();
+					break;
+
+				case 'number' :
+					this.bbi = num2bb (buffer as number);
+					this.prefix = tNum + name1 + ':'+this.bbi.length.toString ();
+					break;
+
+				case 'Uint8Array' :
+					this.bbi = buffer as BBI;
+					switch (prefixRSDType) {
+						case tStr : prefixRSDType = tStr; break;
+						case tNum : prefixRSDType = tNum; break;
+						default : this.prefix = ''; throw 'Must specify $ or #'; return;
+					}
+					break;
+
+				default :	// RSD
+					let rsd = buffer as RSD;
+					this.bbi =  rsd.toBBI;	// (prefixRSDType);
+					this.prefix = rsd.toPrefix (prefixRSDType);
+			}
+		}
+	}
 
 	/*
       vID is a class representing a named value, which also had an ID related to its
@@ -3141,7 +3203,7 @@ export namespace RS1 {
 	}		
 
 	export function ChkBuf (Buf : ArrayBuffer) {
-		const UInt8View = new Uint8Array (Buf);
+		const UInt8View = newBuf (Buf);
 
 		let Sum = 0, i = 0;
 		for (const B of UInt8View)
@@ -5760,7 +5822,7 @@ export namespace RS1 {
 		return AB;
 	}
 
-	export function bbi2str(bbi : Uint8Array) {
+	export function bbi2str(bbi : UBuf) {
 		return new TextDecoder().decode(bbi);
 	  }
 
@@ -5772,7 +5834,7 @@ export namespace RS1 {
 		return new TextEncoder().encode(Str);
 	}
 
-	export function str2bbi(Str : string) : Uint8Array {
+	export function str2bbi(Str : string) : UBuf {
 		return new TextEncoder().encode(Str);
 	}
 
@@ -5821,11 +5883,12 @@ export namespace RS1 {
 			}
 		}
 
-//		console.log ('num2ab (' + N.toString () + ') = ' + NewBuf.byteLength.toString () + ' bytes');
-//		let bytes = new Uint8Array (NewBuf);
-//		console.log ('  ByteArray ' + NewBuf.byteLength.toString () + ' bytes = ' + bytes);
-
 		return NewBuf;
+	}
+
+	export function num2bb (N:number) : UBuf {
+		let AB = num2ab (N);
+		return new Uint8Array (AB);
 	}
 
 	export function ab2num (AB : ArrayBuffer) : number {
@@ -5855,6 +5918,12 @@ export namespace RS1 {
 			default : Num = NaN;
 		}
 		return Num;
+	}
+
+	export function bb2num (buf : UBuf) : number {
+		let len = buf.length, AB = new ArrayBuffer (len), dest = new Uint8Array (AB);
+		dest.set (buf,0);
+		return ab2num (AB);
 	}
 
 	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData|undefined;
@@ -6191,8 +6260,8 @@ export namespace RS1 {
 						if (Ref._AB1.byteLength != limit)
 							return false;
 
-						let B = new Uint8Array (this._AB1);
-						let R = new Uint8Array (Ref._AB1);
+						let B = newBuf (this._AB1);
+						let R = newBuf (Ref._AB1);
 
 						for (let i = limit; --i >= 0;) {
 							if (B[i] !== R[i])
@@ -6916,8 +6985,8 @@ export namespace RS1 {
 						if (Ref._AB1.byteLength != limit)
 							return false;
 
-						let B = new Uint8Array (this._AB1);
-						let R = new Uint8Array (Ref._AB1);
+						let B = newBuf (this._AB1);
+						let R = newBuf (Ref._AB1);
 
 						for (let i = limit; --i >= 0;) {
 							if (B[i] !== R[i])
@@ -7342,7 +7411,7 @@ export namespace RS1 {
 
 			let AB = new ArrayBuffer (Bytes);
 
-			let BA = new Uint8Array (AB);
+			let BA = newBuf (AB);
 			BA.set (PAB);
 			let Pos = PAB.byteLength;
 			let Str = '  BufOut, fields=';
