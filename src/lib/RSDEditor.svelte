@@ -52,58 +52,62 @@
 			console.log(list instanceof RS1.RSI)
 			console.log(list instanceof RS1.RSr)
 			
-			if (list instanceof RS1.RSI) {
-				const modalContent = document.createElement('div');
-				modalContent.style.position = 'absolute';
-				modalContent.style.top = '40%';
-				modalContent.style.left = '50%';
-				modalContent.style.transform = 'translate(-50%, -50%)';
-				modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
-				modalContent.style.padding = '20px';
-				modalContent.style.borderRadius = '5px';
-				modalContent.style.zIndex = '1';
-				document.body.appendChild(modalContent);
+            if (list) {
 
-				if (modalContent) {
-					const editorComponent = mount (RSIEditor,({
-							target: modalContent,
-							props: {
-								RSI: list,
-								modalContent: modalContent,
-								onSave:() => handleRSISave(list),
-							},
-						}));
-					// 	editorComponent.$on('close', () => {
-					// 	modalContent.remove();
-					// });
-				}
-    		}
-			
-			else  {
-				const modalContent = document.getElementById('editor');
-				console.log('Edit' + selectedKid?.Desc)
-								
-				if(modalContent) {
-					modalContent.innerHTML = '';
+                if (list instanceof RS1.RSI) {
+                    console.log('addRSI' + list.Name)
+                    const modalContent = document.createElement('div');
+                    modalContent.style.position = 'absolute';
+                    modalContent.style.top = '40%';
+                    modalContent.style.left = '50%';
+                    modalContent.style.transform = 'translate(-50%, -50%)';
+                    modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
+                    modalContent.style.padding = '20px';
+                    modalContent.style.borderRadius = '5px';
+                    modalContent.style.zIndex = '1';
+                    document.body.appendChild(modalContent);
 
-					if (list) {
-					const editorComponent = mount( RSDEditor,({
-						target: modalContent,
-						props: {
-							RSD: list,
-                            currentRSD: list,
-                            currentRSMom: currentRSMom,
-						}
-					}));
-				}
-				}
-			}
+                    if (modalContent) {
+                        const editorComponent = mount (RSIEditor,({
+                                target: modalContent,
+                                props: {
+                                    RSI: list,
+                                    modalContent: modalContent,
+                                    onSave:() => handleRSISave(list),
+                                },
+                            }));
+                        // 	editorComponent.$on('close', () => {
+                        // 	modalContent.remove();
+                        // });
+                    }
+                }
+                
+                else  {
+                    const modalContent = document.getElementById('editor');
+                    console.log('Edit' + selectedKid?.Desc)
+                                    
+                    if(modalContent) {
+                        modalContent.innerHTML = '';
 
-			// else {
-			// 	throw new Error('Invalid list. Please select a list');
-			// }
-	
+                        if (list) {
+                        const editorComponent = mount( RSDEditor,({
+                            target: modalContent,
+                            props: {
+                                RSD: list,
+                                currentRSD: list,
+                                currentRSMom: currentRSMom,
+                            }
+                        }));
+                    }
+                    }
+                }
+
+                // else {
+                // 	throw new Error('Invalid list. Please select a list');
+                // }
+
 		}
+    }
 
 		function addRSI(selectedKid: Types) {
 			console.log('selected RSD' + selectedKid?.Desc)

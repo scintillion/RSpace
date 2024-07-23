@@ -25,7 +25,7 @@ export class RSIEditor {
 	private rList: RS1.rList;
 	private formats: RS1.qList = RS1.rLoL.FT as RS1.qList; //!!
 	
-
+	
 	/** Public Functions (External Calls) */
 
 	constructor(
@@ -33,7 +33,10 @@ export class RSIEditor {
 		// qList: RS1.qList,
         RSI: RS1.RSI,
 		rList: RS1.rList = RS1.NILrList,
-		linkedqList?: RS1.qList //!!
+		// linkedqList?: RS1.qList 
+		onSave: (editedRSI: RS1.RSI) => void,
+		newRSIFlag: boolean
+		
 	) {
 		// Constructor
 		this.container = container as HTMLDivElement;
@@ -88,10 +91,12 @@ export class RSIEditor {
 				//this.UpdateVID(this.i.name.value);
 				this.CreateVID1();	
 				this.Reload();
+				if (newRSIFlag) onSave(this.RSI);
 			} else {
 				//this.CreateVID();
 				this.CreateVID1();
 				this.Reload();
+				if (newRSIFlag) onSave(this.RSI);
 			}
 			
 		};
