@@ -37,7 +37,7 @@
 			RSK?.add(newRSI);
 		}
 		else if (kid instanceof RS1.RSr) {
-			if (kid.copy.R) newRSr = kid.copy.R;
+			newRSr = kid.copy;
 			RSK?.add(newRSr);
 		}
 		else {
@@ -184,10 +184,10 @@
         <div class="selectContainer">
 			{#if kidArray}
 				{#each kidArray as kid}
-					{#if step === 'Home'}
+					{#if step === 'Home' && kid}
 							{@render selectBox(kid)}
 					{/if}
-					{#if step === 'edit'}
+					{#if step === 'edit' && kid}
 						{#if kid}
 							{@render selectBox(kid)}
 						{/if}
