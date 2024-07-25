@@ -9,19 +9,19 @@
 		onSave: (editedRSI: RS1.RSI) => void
 	}>();
 
-	let saveFlag = false;
+	let newRSIFlag = false;
+	
+	if (RSI.Name === '') {
+		newRSIFlag = true;
+	}
+
 
 	const TypeArray = RS1.TypeNames;
 
 	function close() {
 		modalContent?.remove();
-		if (saveFlag) onSave(RSI);
 	}
 
-	function save() {
-		// onSave(RSI);
-		saveFlag = true;
-	}
 
 	const rList = $state(new RS1.rList());
 
@@ -29,7 +29,7 @@
 		const container = document.getElementById('cledit') as HTMLDivElement | null;
 
 		if (container) {
-			const edit: RSIEditor = new RSIEditor(container, RSI, rList);
+			const edit: RSIEditor = new RSIEditor(container, RSI, rList, onSave, newRSIFlag);
 			edit.Populate();
 		}
 	});
@@ -59,7 +59,7 @@
 				<input type="text" name="fmtstr" />
 			</div>
 			<div class="buttons">
-				<button id="save" onclick={save}>Save</button>
+				<button id="save">Save</button>
 				<button id="del">Delete</button>
 				<button id="clear">Clear</button>
 				<button id="copy">Copy</button>
