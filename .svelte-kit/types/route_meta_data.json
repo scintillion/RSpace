@@ -1,6 +1,6 @@
 {
 	"/": [],
-	"/RSrEditor": [],
+	"/RSMomEditor": [],
 	"/apitesting": [
 		"src/routes/apitesting/+page.js"
 	],

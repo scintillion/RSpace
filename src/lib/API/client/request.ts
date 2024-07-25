@@ -44,27 +44,27 @@ export async function InitClient () {
    let newFmt = new RS1.IFmt ('');
    newVID.Fmt = newFmt;
 
-   console.log ('Client NewVID = "' + newVID.ToStr () + '".');
+   console.log ('Client NewVID = "' + newVID.to$ + '".');
    newVID.Fmt.setType ('#');
 
    newVID.Fmt.setValue ('123');
-   console.log ('xClient NewVID = "' + newVID.ToStr () + '".');
+   console.log ('xClient NewVID = "' + newVID.to$ + '".');
 
    newVID = new RS1.vID ('Name:[R1,100=49]Desc');
-    console.log ('qClient NewVID = "' + newVID.ToStr () + '".');
+    console.log ('qClient NewVID = "' + newVID.to$ + '".');
 
     newVID.Fmt = new RS1.IFmt ('');
 
     newVID.Fmt.setType('Range');
     newVID.Fmt.setXtra ('1,100');
     newVID.Fmt.setValue ('49');
-    console.log ('zClient NewVID = "' + newVID.ToStr () + '".');
-    console.log ('zClient Fmt = "' + newVID.Fmt.ToStr () + '"');
+    console.log ('zClient NewVID = "' + newVID.to$ + '".');
+    console.log ('zClient Fmt = "' + newVID.Fmt.to$ + '"');
     console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
 
     newVID.Fmt = RS1.IFmt.create ('Range','25,75','64');
-    console.log ('aClient NewVID = "' + newVID.ToStr () + '".');
-    console.log ('aClient Fmt = "' + newVID.Fmt.ToStr () + '"');
+    console.log ('aClient NewVID = "' + newVID.to$ () + '".');
+    console.log ('aClient Fmt = "' + newVID.Fmt.to$ () + '"');
     console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
 
     let F = new RS1.PackField ('Num',123);
@@ -94,12 +94,6 @@ export async function InitClient () {
     ND = Q.splitNames;
     console.log ('ND=' + ND.b);
 
-    console.log ('Prebubble = ' + Q.toStr);
-    Q.bubble ('DEF');
-    console.log ('Postbubble = ' + Q.toStr);
-    Q.bubble ('DEF',1);
-    console.log ('Bubble again = ',Q.toStr);
-
     let XYZ = new RS1.RSI ();
     let DEF:RS1.RSD = XYZ;
 
@@ -114,9 +108,20 @@ export async function InitClient () {
 		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	];
 
+    let A = new RS1.RSr (TileStrings);
+    console.log ('A.to$=' + A.to$);
+    let B = A.copy;
+    console.log ('B.to$=' + B.to$);
+
+    console.log ('Prebubble = ' + Q.to$);
+    Q.bubble ('DEF');
+    console.log ('Postbubble = ' + Q.to$);
+    Q.bubble ('DEF',1);
+    console.log ('Bubble again = ',Q.to$);
+
     let RList = new RS1.rList (TileStrings);
     console.log ('RList =\n' + RList.info);
-    console.log ('toStr =  ' + '\nRList.toStr=\n' + RList.toStr + '!');
+    console.log ('toStr =  ' + '\nRList.toStr=\n' + RList.to$+ '!');
     if (RList.Tree)
     console.log ('RList.TREE!!\n' + RList.Tree.expand);
     let ABC:RS1.RSD = RList;
