@@ -10,7 +10,7 @@
     let kidArray = $state(RSK._kids);
 	let selectedKid: Types = $state() ;
 	let step = $state('Home');
-	let currentRSD: RS1.RSD = $state(new RS1.RSD());
+	let RSD: RS1.RSD = $state(new RS1.RSD());
 	let currentRSMom = RSMom;
 
 	type Types = RS1.RSD | undefined;
@@ -92,7 +92,6 @@
 						target: modalContent,
 						props: {
 							RSD: list,
-							currentRSD: list,
 							currentRSMom: currentRSMom,
 						}
 					}));
@@ -155,23 +154,21 @@
 
 {#snippet selectBox(kid)}
 	<button onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
-		<span>{kid?.Name} [{kid?.cName}] </span>
+		<span>{kid?.info}</span>
 	</button>
 {/snippet}	
 
 <main>
 	<div id="editor">
-		<div>{currentRSD.Name}</div>
+		<div>{RSD.cName}</div>
         <div class="selectContainer">
 			{#if kidArray}
 				{#each kidArray as kid}
 					{#if step === 'Home' && kid}
-							{@render selectBox(kid)}
+						{@render selectBox(kid)}
 					{/if}
 					{#if step === 'edit' && kid}
-						{#if kid}
-							{@render selectBox(kid)}
-						{/if}
+						{@render selectBox(kid)}
 					{/if}
 				{/each}
 			{/if}
@@ -186,7 +183,7 @@
 			<button id="up" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,-1);}}>Up</button>
 			<button id="down" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
-			<button id="back" onclick={() => handleBack()}>Back</button>
+			<!-- <button id="back" onclick={() => handleBack()}>Back</button> -->
 			<!-- <button id="addRSI" onclick={() => addRSI(selectedKid)}>Add RSI</button> -->
 			<button id="addRSr" onclick={() => addRSr()}>Add RSr</button>
 			</div>
