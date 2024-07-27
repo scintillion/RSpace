@@ -5,7 +5,7 @@
 	import { mount } from 'svelte';
     import RSMomEditor from './RSMomEditor.svelte';
 
-    let {RSD, currentRSD, currentRSMom}:{RSD: RS1.RSD, currentRSD: RS1.RSD, currentRSMom: RS1.RSMom} = $props();
+    let {RSD, currentRSMom}:{RSD: RS1.RSD, currentRSMom: RS1.RSMom} = $props();
 	// let {RSK}:{RSK: RS1.RSK} = $props<{RSK:RS1.RSK}>();
     let RSK = RSD.K;
     let kidArray = $state(RSK?._kids);
@@ -21,6 +21,7 @@
 			step = 'edit';
 		}
 		if (kid) {
+            kid.Mom = RSD;
 			selectedKid = kid;
 			console.log('selectKid() ' + selectedKid?.Desc)
 			console.log(selectedKid.Kids.forEach((kid) => console.log(kid.Name)))
@@ -37,7 +38,7 @@
 			RSK?.add(newRSI);
 		}
 		else if (kid instanceof RS1.RSr) {
-			if (kid.copy.R) newRSr = kid.copy.R;
+			newRSr = kid.copy;
 			RSK?.add(newRSr);
 		}
 		else {
@@ -94,7 +95,6 @@
                             target: modalContent,
                             props: {
                                 RSD: list,
-                                currentRSD: list,
                                 currentRSMom: currentRSMom,
                             }
                         }));
@@ -126,28 +126,29 @@
 
         function addRSr() {
 			let newRSr = new RS1.RSr();
-			currentRSD.kidAdd(newRSr);
+			RSD.kidAdd(newRSr);
 			newRSr = new RS1.RSr();
 		}
 		
 		async function handleRSISave(editedRSI: RS1.RSI) {
 			console.log('editedRSI' + editedRSI.toRaw)
-			currentRSD.kidAdd(editedRSI);
-			console.log(currentRSD.nKids)
+			RSD.kidAdd(editedRSI);
+			console.log(RSD.nKids)
 		}
 
 		function handleBack() {
-			// let parent: RS1.RSD | undefined
-			// console.log('handleBack()' + selectedKid?.Desc)
-			// // parent = selectedKid?.Mom
-			// // if (!parent?.Mom) return
+			console.log('handleBack()' + selectedKid?.Desc)
+			// parent = selectedKid?.Mom
+			// if (!parent?.Mom) return
 			
-			// // selectKid(parent.Mom);
-            // console.log('currentRSDback' + currentRSD.Name)
-            // // edit(currentRSD);
+			// selectKid(parent.Mom);
+            console.log('currentRSDback' + RSD.Name)
+            // selectKid(RSD.Mom);
+            console.log('rsd mom' + RSD.mom?.mom?.cName)
+            edit(RSD.mom);
 
-			// if (selectedKid?.K) RSK = selectedKid.K
-			// // kidArray = RSK._kids
+			if (selectedKid?.K) RSK = selectedKid.K
+			// kidArray = RSK._kids
 		}
 
         function handleHome() {
@@ -180,17 +181,15 @@
 
 <main>
 	<div id="editor">
-        <div>{currentRSD.Name}</div>
+        <div>{RSD.cName}</div>
         <div class="selectContainer">
 			{#if kidArray}
 				{#each kidArray as kid}
-					{#if step === 'Home'}
-							{@render selectBox(kid)}
+					{#if step === 'Home' && kid}
+						{@render selectBox(kid)}
 					{/if}
-					{#if step === 'edit'}
-						{#if kid}
-							{@render selectBox(kid)}
-						{/if}
+					{#if step === 'edit' && kid}
+						{@render selectBox(kid)}
 					{/if}
 				{/each}
 			{/if}
@@ -205,9 +204,11 @@
 			<button id="up" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,-1);}}>Up</button>
 			<button id="down" onclick={() => {if (selectedKid) RSK?.bubble(selectedKid,1);}}>Down</button>
 			<!-- <button id="add">Add</button> -->
-			<!-- <button id="back" onclick={() => handleBack()}>Back</button> -->
 			<button id="addRSI" onclick={() => addRSI(selectedKid)}>Add RSI</button>
 			<button id="addRSr" onclick={() => addRSr()}>Add RSr</button>
+            {#if RSD.mom != currentRSMom}
+                <button id="back" onclick={() => handleBack()}>Back</button>
+            {/if}
             <button id="home" onclick={() => handleHome()}>Home</button>
 			</div>
 			
