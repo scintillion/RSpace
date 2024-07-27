@@ -1,7 +1,7 @@
 import TextEditHandler from "../components/TileComponents/TextEditHandler.svelte";
 
 export namespace RS1 {
-	export const StrEnd='\0x1f';
+	export const StrEnd='\0x1f', StrEndCode=0x1f;
 	export const NILAB = new ArrayBuffer (0);
 	const NILNums:number[]=[];
 	const NILStrs:string[]=[];
@@ -209,7 +209,7 @@ export namespace RS1 {
 			}
 
 			let fldPack = (this.cName === 'RSPack');
-			let Fields=new Array<RSF>();
+			let Fields:Array<RSF>=[];
 
 			if (Str) {
 				let F = new RSF ();
