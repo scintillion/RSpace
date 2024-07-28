@@ -173,8 +173,12 @@ export namespace RS1 {
 		}
 
 		PBsToBuf (PBs:PB[],RSDName='') {
+			let pStrs = new Array<string> (PBs.length + 1), count = 0, cName = this.cName;
+			if (cName === RSDName)
+				cName = '';
+			// else if (RSDName = '')
+
 			for (const pb of PBs) {
-				
 
 
 			}
