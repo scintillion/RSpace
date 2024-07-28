@@ -53,6 +53,16 @@ export namespace RS1 {
 	type BBI=UBuf|string|undefined;
 	type RSFldData=string|string[]|number|number[]|RSD|RSD[];	
 
+	export class PB {	// prefix-buffer
+		prefix:string;
+		bbi:BBI;
+
+		constructor (prefix='', bb:UBuf|undefined=undefined) {
+			this.prefix = prefix;
+			this.bbi = bb;
+		}
+	}
+
 	export function newBuf (nBytes:number|ArrayBuffer) 
 	{
 		if (typeof nBytes === 'number')
@@ -160,6 +170,14 @@ export namespace RS1 {
 			}
 			
 			return remain;
+		}
+
+		PBsToBuf (PBs:PB[],RSDName='') {
+			for (const pb of PBs) {
+				
+
+
+			}
 		}
 
 		toBuf (Fields : RSF[]) : UBuf {
@@ -2254,7 +2272,7 @@ export namespace RS1 {
 
 		get clearPrefix () { this.bbi = undefined; this.prefix = ''; return true; }
 
-		getPrefix (RSDName='') {
+		toPrefix (RSDName='') {
 			if (this.prefix)
 				return this.prefix;
 
@@ -2308,9 +2326,8 @@ export namespace RS1 {
 					break;
 			}
 
-			if (this.bbi)
-				return this.prefix = this.type + arrStr + this.name + ':'+this.bbi.length.toString ();
-			else return this.prefix = '';
+			return this.prefix = this.type + arrStr + this.name + ':'+
+				(this.bbi ? this.bbi.length.toString () : '0');
 		}
 	}
 
