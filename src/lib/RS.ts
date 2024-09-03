@@ -109,7 +109,7 @@ export namespace RS1 {
 	}
 
 	type RSDT=RSD|undefined;
-	type RSArgs=ABI|string[]|RSPack|RSDT|RSField|ListTypes[]|RSDT;
+	type RSArgs=ABI|string[]|RSPack|RSDT|RSDT[]|RSField|ListTypes[]|undefined;
 
 
 	export class BBPack {
@@ -308,54 +308,49 @@ export namespace RS1 {
 		}
 		*/
 
-		protected getBBI (RSDName = '') {
+		private getBBI (RSDName = '', KidName ='') {
 			let Str, bbi;
 			if (bbi = this._bbi)
 				return bbi;
 			
 			Str = this.to$;
 			
-			/*
-			rewrite getBBI to simply use RSF Array, then send to RSDBuf for MtOutput,
-			load strings as a single field in the RSDBuf Array, no more fancy special 
-			case for strings
-			*/
-
 			let k = this.K, x = this.X, p = this.P;
 
-
-			if (!(k || x || p)) {
-				if (Str  && Str[0] !== StrEnd)
-					Str = StrEnd + Str;
-				return this._bbi = str2bbi (Str);
-			}
-
-			let cName = this.cName, fldPack = (cName === 'RSPack'),
-				KidName = fldPack ? 'RSF' : '', Buf = new RSPack ();
-			Buf.RSDName = cName;
-			Buf.KidName = KidName;
+			let cName = this.cName, fldPack = (cName === 'RSPack'), Pack = new RSPack ();
+			Pack.RSDName = cName;
+			Pack.KidName = KidName;
 
 			if (Str)
-				Buf.addData (Str,'.$');
+				Pack.addData (Str,'.$');
 
 			if (x)
-				Buf.addData (x, '.x');
+				Pack.addData (x, '.x');
 
 			if (p)
-				Buf.addData (p, '.p');
+				Pack.addData (p, '.p');
 
 			if (k) {
 				for (const Kid of k._kids) {
 					if (Kid) {
 						if (fldPack)
-							Buf.addField (Kid as RSF);
-						else Buf.addData (Kid, Kid.Name);
+							Pack.addField (Kid as RSF);
+						else Pack.addData (Kid, Kid.Name);
 					}
 				}
 			}
 
-			return bbi = this._bbi = Buf.toBuf;
+			return bbi = this._bbi = Pack.toBuf ();
 		}
+
+		fromBBI (Buf:BBI, RSDName='', KidName='') {
+			if (!Buf)
+				return;
+
+
+
+
+		} 
 
 		toPrefix (RSDName='') {
 			let k = this.K, bbi, prefix;
@@ -373,9 +368,8 @@ export namespace RS1 {
 
 			return '';	// should not happen, NIL BBI
 		}
-		
+
 		fromPack (Pack:RSPack) {}
-		fromBuf (Buf:UBuf) {} 
 		fromFields (Fields : RSF[]) {}
 		from$ (S:string|string[]) : string|string[] {
 			let remain:string[] = [], i, q, r, last, first, Strs;
@@ -428,7 +422,7 @@ export namespace RS1 {
 			switch (cName) {
 				case 'String' : this.from$ (In as string); break;
 				case 'RSPack' : this.fromPack (In as RSPack); break;
-				case 'Uint8Array' :	this.fromBuf (In as Uint8Array); break;
+				case 'Uint8Array' :	this.fromBBI (In as Uint8Array); break;
 				case '' : return;
 				case 'Array' :
 					let Arr = In as Array<any>;
@@ -649,7 +643,7 @@ export namespace RS1 {
 			case 'RSLeaf' : return new RSLeaf (x as RSD);
 			case 'RSTree' : return new RSTree (x as RSD);
 			case 'RSQ' : return new RSQ (x);
-			case 'RSr' : return new RSr (x as string|string[]|ListTypes[]);
+			case 'RSr' : return new RSr (x  as string|string[]|ListTypes[]);
 			case 'RSR' : return new RSR (x);
 			case 'Bead' : return new Bead (x);
 			case 'rList' : return new rList (x as string|string[]|ListTypes[]);
@@ -2982,8 +2976,11 @@ export namespace RS1 {
 			return DelimList[high+1];
 		}
 
-		constructor (Str:string|string[]|ListTypes[]='',name='',desc='') {
-			super ();
+		constructor (Str:RSArgs='',name='',desc='') {
+			super (Str);
+
+			if (!Str)
+				return;
 
 			if (desc === name)
 				desc = '';
@@ -2993,24 +2990,38 @@ export namespace RS1 {
 
 			this.mark;
 
-			if (!Str) {
-				console.log ('rList ' + this.qstr + ' created: ' + this.info);
-				return;
-			}
-			
-			let Strs;
-			if (typeof Str === 'string') {
-				let arr = (Array.isArray (Str));
+			let Strs:string[]=[], aType = '', array1;
+			aType = typeof Str;
 
-
-				Strs = strToStrings (Str as string);
+			if (aType === 'object') {
+				if (array1 = Array.isArray (Str)) {
+					
+					let e = Str[0], eType = typeof e;
+					if (eType === 'string')
+						aType = 'string[]';
+					else if (e instanceof xList)
+						aType = 'List[]';
+					else aType = 'RSD[]'; 
+				}
+				else aType = Str.constructor.name;
 			}
-			else if ((typeof Str[0]) === 'string')
-				Strs = Str as string[];
-			else {	// array of Lists!
-				this._k.Set (Str as RSD[],false);
-				console.log ('rList ' + this.qstr + ' created: ' + this.info);
+			else if (aType === 'undefined')
 				return;
+
+			switch (aType) {
+				case 'string' :
+					array1 = true;
+					Strs = strToStrings (Str as string);
+					break;
+				case 'string[]' :
+					array1 = true;
+					Strs = Str as string[];
+					break;
+				case 'List[]' :
+					this._k.Set (Str as RSD[],false);
+					console.log ('rList ' + this.qstr + ' created: ' + this.info);
+					return;
+				default : Strs = [];
 			}
 
 			if (!Strs.length) {
@@ -7577,6 +7588,11 @@ export namespace RS1 {
 		KidName='';
 		prefix='';
 		
+		get Fields () {
+			let k = this.K;
+			return k.List as RSF[];
+		}
+
 		addField (F : RSF, replace=false) {
 			let k = this.K;
 
@@ -7610,7 +7626,7 @@ export namespace RS1 {
 			return Field;
 		}
 
-		get toBuf () {
+		toBuf (RSDName='') {
 			let k = this.K, Kids, nBytes = 0, count = 0;
 			if (k)
 				Kids = k._kids;
@@ -7655,7 +7671,13 @@ export namespace RS1 {
 			return this._bbi = buf;
 		}
 
-		fromBuf (buf : UBuf) {
+		fromBBI (buf : BBI, RSDName='') {
+			if (!buf)
+				return;
+
+			if (!RSDName)
+				RSDName = this.RSDName;
+
 			let end = buf.indexOf (StrEndCode), k = this.K;
 			if (!k  ||  (end < 0))
 				return;
