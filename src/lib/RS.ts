@@ -73,6 +73,10 @@ export namespace RS1 {
 	export class PB {	// prefix-buffer
 		prefix:string;
 		bbi:BBI;
+		Fields:RSF[]=[];
+		RSDName='';
+		FieldRSD='';
+		DataRSD:RSD|undefined;
 
 		constructor (prefix='', bb:UBuf|undefined=undefined) {
 			this.prefix = prefix;
@@ -308,7 +312,7 @@ export namespace RS1 {
 		}
 		*/
 
-		private getBBI (RSDName = '', KidName ='') {
+		private toPB (RSDName = '', KidName ='') {
 			let Str, bbi;
 			if (bbi = this._bbi)
 				return bbi;
@@ -317,30 +321,55 @@ export namespace RS1 {
 			
 			let k = this.K, x = this.X, p = this.P;
 
-			let cName = this.cName, fldPack = (cName === 'RSPack'), Pack = new RSPack ();
-			Pack.RSDName = cName;
-			Pack.KidName = KidName;
+			let cName = this.cName, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
+			if (!RSDName)
+				RSDName = cName;
+			else if (cName === RSDName)
+				RSDName = '';
 
-			if (Str)
-				Pack.addData (Str,'.$');
+			if (Str) {
+				field = new RSF ();
 
-			if (x)
-				Pack.addData (x, '.x');
+				field.setData (Str);
+				field.setName ('.$');
+				Fields.push (field);
+			}
 
-			if (p)
-				Pack.addData (p, '.p');
+			if (x) {
+				field = new RSF ();
+
+				field.setData (x);
+				field.setName ('.x');
+				Fields.push (field);
+			}
+
+			if (p) {
+				field = new RSF ();
+
+				field.setData (p,'RSPack');
+				field.setName ('.p');
+				Fields.push (field);
+			}
 
 			if (k) {
 				for (const Kid of k._kids) {
 					if (Kid) {
 						if (fldPack)
-							Pack.addField (Kid as RSF);
-						else Pack.addData (Kid, Kid.Name);
+							Fields.push (Kid as RSF);
+						else {
+							if (!KidName)
+								KidName = Kid.Name;
+
+							field = new RSF ();
+							field.setData (Kid, KidName);
+							field.setName (Kid.Name);
+							Fields.push (field);
+						}
 					}
 				}
 			}
 
-			return bbi = this._bbi = Pack.toBuf ();
+			return toPB (Fields,RSDName,KidName);
 		}
 
 		fromBBI (Buf:BBI, RSDName='', KidName='') {
@@ -2390,7 +2419,7 @@ export namespace RS1 {
 				(this.bbi ? this.bbi.length.toString () : '0');
 		}
 
-		fromPrefix (prefix:string, bbi:BBI, offset=-1) {
+		fromPrefix (prefix:string, bbi:BBI, FieldRSD = '', offset=-1) {
 			this.clear;
 			if (!prefix)
 				return;
@@ -2414,6 +2443,9 @@ export namespace RS1 {
 						RSDName = RSDName.slice (1);
 						this.arr = isArray = true;
 					}
+
+					if (!RSDName)
+						RSDName = FieldRSD;
 
 					this.RSDName = RSDName;
 				}
@@ -2552,11 +2584,296 @@ export namespace RS1 {
 	}
 */
 
+/*
+		toBuf (RSDName='') {
+			let k = this.K, Kids, nBytes = 0, count = 0;
+			if (k)
+				Kids = k._kids;
+			else return undefined;
+
+			let first = this.RSDName + (this.KidName ? (':' + this.KidName) : '');
+			let prefixes = [first];
+
+			for (const F of Kids) {
+				if (F) {
+					prefixes.push (F.toPrefix (this.RSDName));
+					++count;
+
+					if (F._bbi)
+						nBytes += F._bbi.byteLength;
+				}
+			}
+			prefixes.push (StrEnd);
+
+			this.prefix = prefixes.join (',');
+			let prefixBuf = str2bbi (this.prefix), buf = newBuf (nBytes + prefixBuf.byteLength),
+					offset = prefixBuf.byteLength;
+			buf.set (prefixBuf,0);
+
+			prefixes = prefixes.slice (1,-1);
+			
+			let Bufs = Array<BBI> (count);
+			let i = 0;
+			for (const F of Kids) {
+				if (F) {
+					Bufs[i++] = F._bbi;
+					if (F._bbi  &&  F._bbi.byteLength) {
+						buf.set (F._bbi, offset);
+						offset += F._bbi.byteLength;
+					}
+				}
+			}
+
+			if (offset !== buf.byteLength)
+				throw "Buf length mismatch!";
+
+			return this._bbi = buf;
+		}
+
+		fromBBI (buf : BBI, RSDName='') {
+			if (!buf)
+				return;
+
+			if (!RSDName)
+				RSDName = this.RSDName;
+
+			let end = buf.indexOf (StrEndCode), k = this.K;
+			if (!k  ||  (end < 0))
+				return;
+
+			let offset = end + 1, str = bb2str (buf.slice (0,end));
+			this.prefix = str;
+			let prefixes = str.split (',');
+			let first = prefixes[0];
+			prefixes = prefixes.slice (1,-1);
+							
+			let colon = first.indexOf (':');
+			if (colon >= 0) {
+				this.RSDName = first.slice (0,colon);
+				this.KidName = first.slice (colon + 1);
+			}
+			else this.RSDName = first;
+
+			let count = prefixes.length, 
+				Fields = Array<RSF> (count), i = 0;
+
+			for (const P of prefixes) {
+				let nBytes = prefixBytes (P), bbi;
+				if (nBytes)
+					bbi = buf.slice (offset,nBytes);
+
+				let F = new RSF ();
+				F.fromPrefix (P,bbi);
+				Fields[i++] = F;
+			}
+
+			this._bbi = buf;
+
+			k.setKids (Fields);
+		}
+
+		fromFields (Fields:RSF[], RSDName='', KidName='') {
+			let k = this.K;
+			if (k)
+				k.setKids (Fields);
+
+			this.RSDName = RSDName;
+			this.KidName = KidName;
+			return this.toBuf;
+		}
+	}
+*/
+
+
+
 	export class RSQ extends RSI {
 		protected q : RSI|undefined = new RSI ();
 		get Q () : RSI|undefined { return this.q; }
 		set Q (q:RSI|undefined) { this.q = q; }
 	}
+
+	export function toPB (Fields : RSF[], RSDName='', FieldRSD='') {
+		let nBytes = 0, count = 0, first = RSDName + (FieldRSD ? (':' + FieldRSD) : '');
+		let prefixes = [first];
+	
+		for (const F of Fields) {
+			if (F) {
+				prefixes.push (F.toPrefix (RSDName));
+				++count;
+	
+				if (F.bbi)
+					nBytes += F.bbi.byteLength;
+			}
+		}
+		prefixes.push (StrEnd);
+	
+		let prefix = prefixes.join (',');
+		let prefixBuf = str2bbi (prefix), buf = RS1.newBuf (nBytes + prefixBuf.byteLength),
+				offset = prefixBuf.byteLength;
+		buf.set (prefixBuf,0);
+	
+		prefixes = prefixes.slice (1,-1);
+		
+		let Bufs = Array<BBI> (count);
+		let i = 0;
+		for (const F of Fields) {
+			if (F) {
+				let bbi = F.bbi;
+				Bufs[i++] = bbi;
+				if (bbi  &&  bbi.byteLength) {
+					buf.set (bbi, offset);
+					offset += bbi.byteLength;
+				}
+			}
+		}
+	
+		if (offset !== buf.byteLength)
+			throw "Buf length mismatch!";
+	
+		let pb = new PB (prefix, buf);
+		pb.Fields = Fields;
+		pb.RSDName = RSDName;
+		pb.FieldRSD = FieldRSD;
+		return new PB (prefix, buf);
+	}
+	
+	function fromBuf (Buf : UBuf, RSDName='',FieldRSD='') {
+		let end = Buf.indexOf (StrEndCode);
+		if (end < 0)
+			return [];
+
+		let offset = end + 1, str = bb2str (Buf.slice (0,end));
+		let prefix = str;
+		let prefixes = prefix.split (',');
+		let first = prefixes[0];
+		prefixes = prefixes.slice (1,-1);
+						
+		let colon = first.indexOf (':');
+		if (colon >= 0) {
+			if (!RSDName)
+				RSDName = first.slice (0,colon);
+			if (!FieldRSD)
+				FieldRSD = first.slice (colon + 1);
+		}
+		else if (!RSDName)
+			RSDName = first;
+
+		let count = prefixes.length, 
+			Fields = Array<RSF> (count), i = 0;
+
+		for (const P of prefixes) {
+			let nBytes = prefixBytes (P), bbi;
+			if (nBytes)
+				bbi = Buf.slice (offset,nBytes);
+
+			let F = new RSF ();
+			F.fromPrefix (P,bbi,FieldRSD);
+			Fields[i++] = F;
+		}
+
+		let pb = new PB (prefix, Buf);
+		pb.Fields = Fields;
+		pb.RSDName = RSDName;
+		pb.FieldRSD = FieldRSD;
+		return pb;
+	}
+	
+
+/*
+		fromBBI (buf : BBI, RSDName='') {
+			if (!buf)
+				return;
+
+			if (!RSDName)
+				RSDName = this.RSDName;
+
+			let end = buf.indexOf (StrEndCode), k = this.K;
+			if (!k  ||  (end < 0))
+				return;
+
+			let offset = end + 1, str = bb2str (buf.slice (0,end));
+			this.prefix = str;
+			let prefixes = str.split (',');
+			let first = prefixes[0];
+			prefixes = prefixes.slice (1,-1);
+							
+			let colon = first.indexOf (':');
+			if (colon >= 0) {
+				this.RSDName = first.slice (0,colon);
+				this.KidName = first.slice (colon + 1);
+			}
+			else this.RSDName = first;
+
+			let count = prefixes.length, 
+				Fields = Array<RSF> (count), i = 0;
+
+			for (const P of prefixes) {
+				let nBytes = prefixBytes (P), bbi;
+				if (nBytes)
+					bbi = buf.slice (offset,nBytes);
+
+				let F = new RSF ();
+				F.fromPrefix (P,bbi);
+				Fields[i++] = F;
+			}
+
+			this._bbi = buf;
+
+			k.setKids (Fields);
+		}
+
+
+
+
+	toBuf (RSDName='') {
+			let k = this.K, Kids, nBytes = 0, count = 0;
+			if (k)
+				Kids = k._kids;
+			else return undefined;
+
+			let first = this.RSDName + (this.KidName ? (':' + this.KidName) : '');
+			let prefixes = [first];
+
+			for (const F of Kids) {
+				if (F) {
+					prefixes.push (F.toPrefix (this.RSDName));
+					++count;
+
+					if (F._bbi)
+						nBytes += F._bbi.byteLength;
+				}
+			}
+			prefixes.push (StrEnd);
+
+			this.prefix = prefixes.join (',');
+			let prefixBuf = str2bbi (this.prefix), buf = newBuf (nBytes + prefixBuf.byteLength),
+					offset = prefixBuf.byteLength;
+			buf.set (prefixBuf,0);
+
+			prefixes = prefixes.slice (1,-1);
+			
+			let Bufs = Array<BBI> (count);
+			let i = 0;
+			for (const F of Kids) {
+				if (F) {
+					Bufs[i++] = F._bbi;
+					if (F._bbi  &&  F._bbi.byteLength) {
+						buf.set (F._bbi, offset);
+						offset += F._bbi.byteLength;
+					}
+				}
+			}
+
+			if (offset !== buf.byteLength)
+				throw "Buf length mismatch!";
+
+			return this._bbi = buf;
+		}
+
+
+
+*/
+	
 
 	export class qList extends xList {
 		fromStr (Str:string|string[]='|') {
