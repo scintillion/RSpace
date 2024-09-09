@@ -71,16 +71,103 @@ export namespace RS1 {
 	type RSFldData=string|string[]|number|number[]|RSPack|RSD|RSD[];	
 
 	export class PB {	// prefix-buffer
-		prefix:string;
+		prefix='';
 		bbi:BBI;
 		Fields:RSF[]=[];
 		RSDName='';
 		FieldRSD='';
 		DataRSD:RSD|undefined;
 
-		constructor (prefix='', bb:UBuf|undefined=undefined) {
+		fieldsToPB (Fields : RSF[]) {
+			let RSDName = this.RSDName, FieldRSD = this.FieldRSD;
+			let nBytes = 0, count = 0, first = RSDName + (FieldRSD ? (':' + FieldRSD) : '');
+			let prefixes = [first];
+		
+			for (const F of Fields) {
+				if (F) {
+					prefixes.push (F.toPrefix (RSDName));
+					++count;
+		
+					if (F.bbi)
+						nBytes += F.bbi.byteLength;
+				}
+			}
+			prefixes.push (StrEnd);
+		
+			let prefix = prefixes.join (',');
+			let prefixBuf = str2bbi (prefix), buf = RS1.newBuf (nBytes + prefixBuf.byteLength),
+					offset = prefixBuf.byteLength;
+			buf.set (prefixBuf,0);
+		
+			prefixes = prefixes.slice (1,-1);
+			
+			let Bufs = Array<BBI> (count);
+			let i = 0;
+			for (const F of Fields) {
+				if (F) {
+					let bbi = F.bbi;
+					Bufs[i++] = bbi;
+					if (bbi  &&  bbi.byteLength) {
+						buf.set (bbi, offset);
+						offset += bbi.byteLength;
+					}
+				}
+			}
+		
+			if (offset !== buf.byteLength)
+				throw "Buf length mismatch!";
+		
+			this.Fields = Fields;
 			this.prefix = prefix;
-			this.bbi = bb;
+			this.bbi = buf;
+		}
+		
+		bufToPB (Buf : UBuf) {
+			let RSDName = this.RSDName, FieldRSD = this.FieldRSD, end = Buf.indexOf (StrEndCode);
+			if (end < 0)
+				return [];
+	
+			let offset = end + 1, str = bb2str (Buf.slice (0,end));
+			let prefix = str;
+			let prefixes = prefix.split (',');
+			let first = prefixes[0];
+			prefixes = prefixes.slice (1,-1);
+							
+			let colon = first.indexOf (':');
+			if (colon >= 0) {
+				if (!RSDName)
+					RSDName = first.slice (0,colon);
+				if (!FieldRSD)
+					FieldRSD = first.slice (colon + 1);
+			}
+			else if (!RSDName)
+				RSDName = first;
+	
+			let count = prefixes.length, 
+				Fields = Array<RSF> (count), i = 0;
+	
+			for (const P of prefixes) {
+				let nBytes = prefixBytes (P), bbi;
+				if (nBytes)
+					bbi = Buf.slice (offset,nBytes);
+	
+				let F = new RSF ();
+				F.fromPrefix (P,bbi,FieldRSD);
+				Fields[i++] = F;
+			}
+	
+			this.Fields = Fields;
+			this.bbi = Buf;
+			this.prefix = prefix;
+		}
+
+		constructor (In : UBuf | RSF[], RSDName='', FieldRSD='') {
+			this.RSDName = RSDName;
+			this.FieldRSD = FieldRSD;
+
+			if (In.constructor.name === 'Uint8Array')
+				this.bufToPB (In as UBuf)
+			else this.fieldsToPB (In as RSF[]);
 		}
 	}
 
@@ -233,11 +320,22 @@ export namespace RS1 {
 		get notZero () { return true; }
 
 		get I ():RSI|undefined { return undefined; }
+		set I (i : RSI) {}
+
 		get K ():RSK|undefined { return undefined; }
+		
 		get P ():RSPack|undefined { return undefined; }
+		set P (p : RSPack) {} 
+
 		get Q ():RSI|undefined { return undefined; }
+		set Q (q : RSI) { }
+
 		get R ():RSr|undefined { return undefined; }
+		set R (r : RSr) {}
+
 		get X () : RSDT { return undefined; }
+		set X (x : RSDT) {}
+
 		get Data () : any { return undefined; }
 
 		get size () { return 0; }
@@ -314,12 +412,10 @@ export namespace RS1 {
 
 		private toPB (RSDName = '', KidName ='') {
 			let Str, bbi;
-			if (bbi = this._bbi)
-				return bbi;
 			
 			Str = this.to$;
 			
-			let k = this.K, x = this.X, p = this.P;
+			let k = this.K, x = this.X, p = this.P, q = this.Q, r = this.R;
 
 			let cName = this.cName, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
 			if (!RSDName)
@@ -351,6 +447,22 @@ export namespace RS1 {
 				Fields.push (field);
 			}
 
+			if (q) {
+				field = new RSF ();
+
+				field.setData (q,'RSI');
+				field.setName ('.q');
+				Fields.push (field);
+			}
+
+			if (r) {
+				field = new RSF ();
+
+				field.setData (r,'RSR');
+				field.setName ('.r');
+				Fields.push (field);
+			}
+
 			if (k) {
 				for (const Kid of k._kids) {
 					if (Kid) {
@@ -369,33 +481,42 @@ export namespace RS1 {
 				}
 			}
 
-			return toPB (Fields,RSDName,KidName);
+			return new PB (Fields, RSDName, KidName);
 		}
 
-		fromBBI (Buf:BBI, RSDName='', KidName='') {
-			if (!Buf)
-				return;
+		fromBuf (Buf : UBuf, RSDName='', KidName='') {
+			let pb = new PB (Buf, RSDName, KidName), k = this.K;
 
+			for (const F of pb.Fields) {
+				let name = F.Name;
 
-
-
-		} 
+				switch (name) {
+					case '.$' : this.from$ (F.Data as string); break;
+					case '.x' : this.X = F.Data; break;
+					case '.p' : this.fromPack (F.Data as RSPack); break;
+					case '.q' : this.Q = F.Data as RSI; break;
+					case '.r' : this.R = F.Data as RSr; break;
+					default :	// child
+						if (k)
+							k.add (F.Data as RSD, false);
+				}
+			}
+		}
 
 		toPrefix (RSDName='') {
 			let k = this.K, bbi, prefix;
-			if (!(bbi = this._bbi))
-				bbi = this.getBBI (RSDName);		// (RSDName);
-
-			if (bbi) {
-				let cName = this.cName;
-				if (cName  &&  (cName !== RSDName))
-					cName = '[' + cName + ']';
-				else cName = '';
-				
-				return tRSD + cName + this.Name + ':' + bbi.length.toString ();
+			if (!(bbi = this._bbi)) {
+				let pb = this.toPB (RSDName);
+				if (!pb  ||  !(bbi = pb.bbi))
+					return '';
 			}
 
-			return '';	// should not happen, NIL BBI
+			let cName = this.cName;
+			if (cName  &&  (cName !== RSDName))
+				cName = '[' + cName + ']';
+			else cName = '';
+			
+			return tRSD + cName + this.Name + ':' + bbi.length.toString ();
 		}
 
 		fromPack (Pack:RSPack) {}
@@ -440,7 +561,7 @@ export namespace RS1 {
 
 		get clear () { return true; }
 
-		construct (In:RSArgs, clear = true) {
+		constructRSD (In:RSArgs, clear = true) {
 			if (clear)
 				this.clear;
 
@@ -451,7 +572,7 @@ export namespace RS1 {
 			switch (cName) {
 				case 'String' : this.from$ (In as string); break;
 				case 'RSPack' : this.fromPack (In as RSPack); break;
-				case 'Uint8Array' :	this.fromBBI (In as Uint8Array); break;
+				case 'Uint8Array' :	this.fromBuf (In as UBuf); break;
 				case '' : return;
 				case 'Array' :
 					let Arr = In as Array<any>;
@@ -470,7 +591,7 @@ export namespace RS1 {
 
 		constructor (In:RSArgs=undefined) {
 			if (In) 
-				this.construct (In);
+				this.constructRSD (In);
 		}
 
 		get NILchk () { return false; }
@@ -1882,6 +2003,7 @@ export namespace RS1 {
 
 	export class RSI extends xList {	// RSI is the NEW qList!!
 		get I () : RSI|undefined { return this; }
+		set I (newI : RSI) { this.qstr = newI.qstr; }
 
 		from$ (Str:string|string[]='|') {
 			if ((typeof Str) === 'string') {
@@ -2689,10 +2811,11 @@ export namespace RS1 {
 	export class RSQ extends RSI {
 		protected q : RSI|undefined = new RSI ();
 		get Q () : RSI|undefined { return this.q; }
-		set Q (q:RSI|undefined) { this.q = q; }
+		set Q (q:RSI) { this.q = q; }
 	}
 
-	export function toPB (Fields : RSF[], RSDName='', FieldRSD='') {
+/*
+	export function fieldsToPB (Fields : RSF[], RSDName='', FieldRSD='') {
 		let nBytes = 0, count = 0, first = RSDName + (FieldRSD ? (':' + FieldRSD) : '');
 		let prefixes = [first];
 	
@@ -2737,7 +2860,7 @@ export namespace RS1 {
 		return new PB (prefix, buf);
 	}
 	
-	function fromBuf (Buf : UBuf, RSDName='',FieldRSD='') {
+	function bufToPB (Buf : UBuf, RSDName='',FieldRSD='') {
 		let end = Buf.indexOf (StrEndCode);
 		if (end < 0)
 			return [];
@@ -2777,7 +2900,7 @@ export namespace RS1 {
 		pb.FieldRSD = FieldRSD;
 		return pb;
 	}
-	
+*/	
 
 /*
 		fromBBI (buf : BBI, RSDName='') {
@@ -3468,7 +3591,7 @@ export namespace RS1 {
 	export class RSR extends RSI {
 		protected r : RSr|undefined = new RSr ();
 		get R () : RSr|undefined { return this.r;}
-		set R (r:RSr|undefined) { this.r = r; }
+		set R (r:RSr) { this.r = r; }
 	}
 
 	export class Bead extends RSR {
@@ -3477,8 +3600,16 @@ export namespace RS1 {
 
 		protected q : RSI|undefined = new RSI ();
 		get Q () : RSI|undefined { return this.q;}
-		set Q (q:RSI|undefined) { this.q = q; }
-	
+		set Q (q:RSI) { this.q = q; }
+
+		protected p : RSPack|undefined = new RSPack ();
+		get P () : RSPack|undefined { return this.p;}
+		set P (p:RSPack) { this.p = p; }
+
+		protected x : RSD|undefined;
+		get X () : RSD|undefined { return this.x;}
+		set X (p:RSPack) { this.p = p; }
+
 		private get toStrPrefix () {
 			// let q = this.q.toS, r = this.r.toS;
 			// return '$' + q.length.toString () + ',' + r.length.toString () + '$' + q + r;
