@@ -374,42 +374,6 @@ export namespace RS1 {
 			}
 		}
 
-		/*
-
-		toBuf (Fields : RSF[]) : UBuf {
-			let cName = this.cName, pLen = cName.length, len = Fields.length,
-				pStrs = new Array<string> (len+1), i = 0, nBytes = 0;
-
-			pStrs.push (this.cName);
-			for (const b of Fields)
-				if (b.bbi) {
-					if (typeof b.bbi === 'string')
-						b.bbi = str2bbi (b.bbi as string);
-
-					nBytes += b.bbi.length;
-					++i;
-					pLen += b.prefix.length;
-					pStrs.push (b.prefix);
-				}
-
-			
-			pLen += i;
-			pStrs[0] += pLen.toString () + pStrs[0];
-			pStrs[i] += ',\0x1f';
-			let prefix = pStrs.join (','), prefixBuf = str2bbi (prefix), offset = prefixBuf.length;
-
-			let Buf = newBuf (offset + nBytes);
-			Buf.set (prefixBuf);
-			for (const b of Fields)
-				if (b.bbi) {
-					Buf.set (b.bbi as UBuf, offset);
-					offset += b.bbi.length;
-				}
-
-			return (Buf.length > (offset + 8)) ? Buf.slice (0,offset) : Buf;
-		}
-		*/
-
 		private toPB (RSDName = '', KidName ='') {
 			let Str, bbi;
 			
@@ -447,6 +411,7 @@ export namespace RS1 {
 				Fields.push (field);
 			}
 
+		/*
 			if (q) {
 				field = new RSF ();
 
@@ -462,6 +427,7 @@ export namespace RS1 {
 				field.setName ('.r');
 				Fields.push (field);
 			}
+		*/
 
 			if (k) {
 				for (const Kid of k._kids) {
@@ -494,8 +460,8 @@ export namespace RS1 {
 					case '.$' : this.from$ (F.Data as string); break;
 					case '.x' : this.X = F.Data; break;
 					case '.p' : this.fromPack (F.Data as RSPack); break;
-					case '.q' : this.Q = F.Data as RSI; break;
-					case '.r' : this.R = F.Data as RSr; break;
+					// case '.q' : this.Q = F.Data as RSI; break;
+					// case '.r' : this.R = F.Data as RSr; break;
 					default :	// child
 						if (k)
 							k.add (F.Data as RSD, false);
@@ -763,6 +729,11 @@ export namespace RS1 {
 
 
 			return '';
+		}
+
+		get copy () : RSDT {
+			let pb = this.toPB ();
+			return newRSD (this.constructor.name, pb.bbi);
 		}
 	}
 
