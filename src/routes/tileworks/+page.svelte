@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Plotter } from '$lib/Plotter';
-	import { RS1 } from '$lib/RS';
+	import { RS1 } from '$lib/RSsvelte.svelte';
 	import { RTile } from '../../components/tiles/RTile'
 	import Editor from '../../components/tiles/Editor.svelte';
 	import QEditor from '../../components/tiles/QEditor.svelte';
+	import { mount } from 'svelte';
    
 	// const TileStrings: string[] = [
 	// 	'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
@@ -46,7 +47,7 @@
 	const Str: string = '>'
 	let step = 'selectTile'
 	let ListType = 'attributes'
-	let currentEditor: QEditor | null = null;
+	// let currentEditor: QEditor | null = null;
 	let showPlot = false
 
     let Tiles = List.tiles;
@@ -102,18 +103,32 @@ step = 'selectTile'
 			// let sPack = sList?.SavePack();
 			// let aPack = aList?.SavePack();
 			const EditContainer = document.querySelector('.editContainer');
+
+			const modalContent = document.createElement('div');
+        modalContent.style.position = 'absolute';
+        modalContent.style.top = '40%';
+        modalContent.style.left = '50%';
+        modalContent.style.transform = 'translate(-50%, -50%)';
+        modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
+        modalContent.style.padding = '20px';
+        modalContent.style.borderRadius = '5px';
+        modalContent.style.zIndex = '1';
+        document.body.appendChild(modalContent);
+
 			
-			if (currentEditor) {
-				currentEditor.$destroy();
-				currentEditor = null;
-			}
+			// if (currentEditor) {
+			// 	currentEditor.$destroy();
+			// 	currentEditor = null;
+			// }
 			
 			if (EditContainer) {
 				if (ListType === 'styles') {
-					currentEditor = new QEditor({
+					const currentEditor = new QEditor({
 						target: EditContainer,
 						props: {
 							qList: sList,
+							modalContent: modalContent ,
+							modalBackground: modalContent
 						},
 					});
 					currentEditor.$on('close', () => {
@@ -128,16 +143,18 @@ step = 'selectTile'
 		
 					// })
 				} else if (ListType === 'attributes') {
-					currentEditor = new QEditor({
+					const currentEditor = mount( QEditor,{
 						target: EditContainer,
 						props: {
 							qList: aList,
+							modalContent: modalContent,
+							modalBackground: modalContent
 						},
 					});
-					currentEditor.$on('close', () => {
-						EditContainer.remove();
-						step = 'selectTile';
-					});
+					// currentEditor.$on('close', () => {
+					// 	EditContainer.remove();
+					// 	step = 'selectTile';
+					// });
 					// currentEditor.$on('save', (event) => {
 					// 	let ReceivedPack = event.detail.value;
 					// 	if(ReceivedPack.str('data')) {

@@ -1,11 +1,14 @@
 import { LitElement, html } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
-import { RS1 } from '$lib/RS';
+import { RS1 } from '$lib/RSsvelte.svelte';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
-  @property() TList: RS1.TileList = new RS1.TileList('');
-
+  TList: RS1.TileList;
+  constructor() {
+    super();
+    this.TList = new RS1.TileList('');
+  }
   
   static TTDE = new RS1.TDE('T\ta|name:T|inner:|\ts|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t')
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
