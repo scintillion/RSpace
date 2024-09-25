@@ -22,11 +22,14 @@
 		'T\ta|name:Full|\ts|display:flex|\t',
 		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|\t',
 		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
-		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|background-image:url("")|\t',
-		'   RndBtn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-		'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
+		'  T\ta|name:Left|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|background-image:url("")|\t',
+		'   RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
+		'  T\ta|name:Middle|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
+		'   Btn\ta|name:Button|image:true|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
 		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|display:flex|width:20vw|height:90vh|background-image:url("")|\t'
-	];
+	]; 
+
+	// const TileStrings: string[] = ['T\ta||\ts||\t'];
 
 // 	const TileStrings: string[] = [
 //   		'T\ta|name:Full|inner:Use arrow keys to move tile|\ts|display:block|height:100vh|width:100vw|font-size:40px|\t',

@@ -1,6 +1,8 @@
 import { LitElement, html } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+
 
 @customElement('r-tile')
 export class RTile extends LitElement {
@@ -9,8 +11,8 @@ export class RTile extends LitElement {
     super();
     this.TList = new RS1.TileList('');
   }
-  
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|\ts|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t')
+ 
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|\ts|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t')
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
@@ -69,11 +71,59 @@ export class RTile extends LitElement {
     })
   }
 
+  static handleUpload(event: Event, tile: RS1.TDE, Instance: RTile) {
+    const files = (event.currentTarget as HTMLInputElement).files;
+    const parent = tile.parent;
+    const parentTile = Instance.TList.tiles[parent];
+
+    const VID = parentTile.sList?.getVID('background-image');
+    if ( files !== null && files.length > 0) {
+      try {
+        const file = files[0];
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+        if (VID) {
+          VID.Desc = `url("${e.target?.result}")`;
+          parentTile.sList?.setVID(VID);
+          Instance.requestUpdate();
+        }
+      }
+      } catch (error) {
+        console.error('Error uploading file:', error);
+      }
+    }
+  }
+
 
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
+    const innerContentHTML = unsafeHTML(innerContent)
+    const alertContent = tile.aList?.descByName('alert');
+    const redirectLink = tile.aList?.descByName('redirect');
+    const isImage = tile.aList?.descByName('image');
+   
+    const clickHandler = () => {
+      if (alertContent) {
+        alert(alertContent);
+      }
+
+      if (redirectLink) {
+        window.location.href = redirectLink;
+      }
+  }
+
+    const imageUpload = () => {
+      if (isImage === "true") {  
+        childrenHtml = html`
+        <label for="file-upload">Upload</label>
+        <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => RTile.handleUpload(event, tile, this)}>`
+      }}
+  
     const styleStr = tile.sList?.toVIDList(";");
     let childrenHtml = html``;
+
+    imageUpload();
 
     if (tile.first) {
       let child = this.TList.tiles[tile.first]
@@ -83,7 +133,7 @@ export class RTile extends LitElement {
       }
     }
 
-    return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContent}${childrenHtml}</div>`;
+    return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}"  @click="${clickHandler}">${innerContentHTML}${childrenHtml}</div>`;
   }
 
  
