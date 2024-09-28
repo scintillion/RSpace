@@ -7,6 +7,7 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 @customElement('r-tile')
 export class RTile extends LitElement {
   TList: RS1.TileList;
+  textEditContent: string = '';
   constructor() {
     super();
     this.TList = new RS1.TileList('');
@@ -23,6 +24,14 @@ export class RTile extends LitElement {
   static RoundButtonTDE = new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t');
   static RoundButtonDefArray: RS1.TDE[] = [RTile.ButtonDef, RTile.RoundButtonTDE];
   static RoundButtonDef = RTile.TileMerge(RTile.RoundButtonDefArray);
+
+  static TextButtonTDE = new RS1.TDE('TxtBtn\ta|name:TextButton|textBtn:true|\ts|\t');
+  static TextButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.TextButtonTDE];
+  static TextButtonDef = RTile.TileMerge(RTile.TextButtonDefArray);
+
+  static ImageButtonTDE = new RS1.TDE('ImgBtn\ta|name:ImageButton|image:true|\ts|\t');
+  static ImageButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.ImageButtonTDE];
+  static ImageButtonDef = RTile.TileMerge(RTile.ImageButtonDefArray);
 
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
     const style = A.sList?.copy;
@@ -67,6 +76,14 @@ export class RTile extends LitElement {
         case 'RndBtn':
           RTile.Merge(RTile.RoundButtonDef, tile);
           break;
+
+          case 'TxtBtn':
+            RTile.Merge(RTile.TextButtonDef, tile);
+            break;  
+
+          case 'ImgBtn':
+            RTile.Merge(RTile.ImageButtonDef, tile);
+            break;
       }
     })
   }
@@ -102,6 +119,8 @@ export class RTile extends LitElement {
     const alertContent = tile.aList?.descByName('alert');
     const redirectLink = tile.aList?.descByName('redirect');
     const isImage = tile.aList?.descByName('image');
+    const isText = tile.aList?.descByName('text');
+    const isTextBtn = tile.aList?.descByName('textBtn');
    
     const clickHandler = () => {
       if (alertContent) {
@@ -111,7 +130,20 @@ export class RTile extends LitElement {
       if (redirectLink) {
         window.location.href = redirectLink;
       }
-  }
+
+      if (isTextBtn === "true") {
+        const parent = tile.parent;
+        const parentTile = this.TList.tiles[parent];
+        const VID = parentTile.aList?.getVID('inner');
+
+        if (VID) {
+          VID.Desc = this.textEditContent;
+          parentTile.aList?.setVID(VID);
+          this.requestUpdate();
+        }
+      }
+
+      }
 
     const imageUpload = () => {
       if (isImage === "true") {  
@@ -119,11 +151,22 @@ export class RTile extends LitElement {
         <label for="file-upload">Upload</label>
         <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => RTile.handleUpload(event, tile, this)}>`
       }}
+
+    const textEdit = () => {
+      if (isText === "true") {
+        childrenHtml = html`
+        <textarea
+         .value="${this.textEditContent}"
+         id="text-edit" 
+         @input="${(e: Event) => this.textEditContent = (e.target as HTMLTextAreaElement).value }"
+         style="" />`
+      }}
   
     const styleStr = tile.sList?.toVIDList(";");
     let childrenHtml = html``;
 
     imageUpload();
+    textEdit();
 
     if (tile.first) {
       let child = this.TList.tiles[tile.first]
