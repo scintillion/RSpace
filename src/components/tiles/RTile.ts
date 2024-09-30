@@ -97,6 +97,10 @@ export class RTile extends LitElement {
     if ( files !== null && files.length > 0) {
       try {
         const file = files[0];
+        if (!file.type.startsWith('image/')) {
+          alert('Only image files are allowed');
+          return;
+        }
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (e) => {
@@ -121,6 +125,7 @@ export class RTile extends LitElement {
     const isImage = tile.aList?.descByName('image');
     const isText = tile.aList?.descByName('text');
     const isTextBtn = tile.aList?.descByName('textBtn');
+    let childrenHtml = html``;
    
     const clickHandler = () => {
       if (alertContent) {
@@ -145,14 +150,12 @@ export class RTile extends LitElement {
 
       }
 
-    const imageUpload = () => {
       if (isImage === "true") {  
         childrenHtml = html`
         <label for="file-upload">Upload</label>
         <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => RTile.handleUpload(event, tile, this)}>`
-      }}
+      }
 
-    const textEdit = () => {
       if (isText === "true") {
         childrenHtml = html`
         <textarea
@@ -160,13 +163,9 @@ export class RTile extends LitElement {
          id="text-edit" 
          @input="${(e: Event) => this.textEditContent = (e.target as HTMLTextAreaElement).value }"
          style="" />`
-      }}
+      }
   
     const styleStr = tile.sList?.toVIDList(";");
-    let childrenHtml = html``;
-
-    imageUpload();
-    textEdit();
 
     if (tile.first) {
       let child = this.TList.tiles[tile.first]

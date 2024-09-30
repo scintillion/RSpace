@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { QEditor } from '$lib/qListEditor';
 	import { RS1 } from '$lib/RSsvelte.svelte';
+	import { createEventDispatcher } from 'svelte';
 	
 	let CLString = $state('');
 	
@@ -11,10 +12,12 @@
 	}>();
 
 	const TypeArray = RS1.TypeNames;
+	const dispatch = createEventDispatcher();
 
 	function close() {
-		modalContent?.remove();
-		modalBackground?.remove();
+		// modalContent?.remove();
+		// modalBackground?.remove();
+		dispatch('close');
 	}
 
 	const rList = $state(new RS1.rList());

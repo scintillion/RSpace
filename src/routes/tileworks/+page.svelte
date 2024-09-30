@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { mount, unmount } from 'svelte';
 	import { Plotter } from '$lib/Plotter';
 	import { RS1 } from '$lib/RSsvelte.svelte';
 	import { RTile } from '../../components/tiles/RTile'
 	import Editor from '../../components/tiles/Editor.svelte';
 	import QEditor from '../../components/tiles/QEditor.svelte';
-	import { mount } from 'svelte';
    
 	// const TileStrings: string[] = [
 	// 	'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
@@ -51,7 +50,7 @@
 	const Str: string = '>'
 	let step = 'selectTile'
 	let ListType = 'attributes'
-	// let currentEditor: QEditor | null = null;
+	let currentEditor: any = null;
 	let showPlot = false
 
     let Tiles = List.tiles;
@@ -102,43 +101,40 @@ step = 'selectTile'
 
 
 	function Edit(tile: RS1.TDE) {
-			let sList = tile.sList;
-			let aList = tile.aList;
-			// let sPack = sList?.SavePack();
-			// let aPack = aList?.SavePack();
-			const EditContainer = document.querySelector('.editContainer');
-
-			const modalContent = document.createElement('div');
-        modalContent.style.position = 'absolute';
-        modalContent.style.top = '40%';
-        modalContent.style.left = '50%';
-        modalContent.style.transform = 'translate(-50%, -50%)';
-        modalContent.style.backgroundColor = 'rgba(249, 240, 246)';
-        modalContent.style.padding = '20px';
-        modalContent.style.borderRadius = '5px';
-        modalContent.style.zIndex = '1';
-        document.body.appendChild(modalContent);
-
+		let sList = tile.sList;
+		let aList = tile.aList;
+		// let sPack = sList?.SavePack();
+		// let aPack = aList?.SavePack();
+		const EditContainer = document.querySelector('.editContainer');
 			
-			// if (currentEditor) {
-			// 	currentEditor.$destroy();
-			// 	currentEditor = null;
-			// }
+			if (currentEditor) {
+				unmount(currentEditor);
+				// currentEditor.$destroy();
+				currentEditor = null;
+			}
 			
 			if (EditContainer) {
+				const modalContent = document.createElement('div');
+				document.body.appendChild(modalContent);
 				if (ListType === 'styles') {
-					const currentEditor = new QEditor({
+					  currentEditor = mount(QEditor,{
 						target: EditContainer,
 						props: {
 							qList: sList,
 							modalContent: modalContent ,
 							modalBackground: modalContent
 						},
+						events: {
+							close: () => {
+								EditContainer.remove();
+								step = 'selectTile';
+							}
+						}
 					});
-					currentEditor.$on('close', () => {
-						EditContainer.remove();
-						step = 'selectTile';
-					});
+					// currentEditor.$on('close', () => {
+					// 	EditContainer.remove();
+					// 	step = 'selectTile';
+					// });
 					// currentEditor.$on('save', (event) => {
 					// 	let ReceivedPack = event.detail.value;
 					// 	if(ReceivedPack.str('data')) {
@@ -147,13 +143,19 @@ step = 'selectTile'
 		
 					// })
 				} else if (ListType === 'attributes') {
-					const currentEditor = mount( QEditor,{
+					currentEditor = mount( QEditor,{
 						target: EditContainer,
 						props: {
 							qList: aList,
 							modalContent: modalContent,
 							modalBackground: modalContent
 						},
+						events: {
+							close: () => {
+								EditContainer.remove();
+								step = 'selectTile';
+							}
+						}
 					});
 					// currentEditor.$on('close', () => {
 					// 	EditContainer.remove();
