@@ -2,16 +2,14 @@ import { LitElement, html } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-
+import Panzoom from 'panzoom';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
-  TList: RS1.TileList;
-  textEditContent: string = '';
-  constructor() {
-    super();
-    this.TList = new RS1.TileList('');
-  }
+  TList: RS1.TileList  = new RS1.TileList('');
+  private textEditContent: string = '';
+  private fileUploaded: boolean = false;
+  private currentTile: RS1.TDE | undefined;
  
   static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|\ts|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t')
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
@@ -88,10 +86,11 @@ export class RTile extends LitElement {
     })
   }
 
-  static handleUpload(event: Event, tile: RS1.TDE, Instance: RTile) {
+  handleUpload(event: Event, tile: RS1.TDE) {
     const files = (event.currentTarget as HTMLInputElement).files;
+    this.currentTile = tile;
     const parent = tile.parent;
-    const parentTile = Instance.TList.tiles[parent];
+    const parentTile = this.TList.tiles[parent];
 
     const VID = parentTile.sList?.getVID('background-image');
     if ( files !== null && files.length > 0) {
@@ -107,12 +106,24 @@ export class RTile extends LitElement {
         if (VID) {
           VID.Desc = `url("${e.target?.result}")`;
           parentTile.sList?.setVID(VID);
-          Instance.requestUpdate();
+
+          this.requestUpdate();
+         
         }
       }
       } catch (error) {
         console.error('Error uploading file:', error);
       }
+      this.fileUploaded = true;
+    }
+  }
+
+  handlePan(tile: RS1.TDE) {
+    const id = `tile${this.TList.tiles.indexOf(tile)}`
+    const element = this.shadowRoot?.getElementById(id);
+    console.log('handlepan id' + id)
+    if (element) {
+      const panzoom = Panzoom(element);
     }
   }
 
@@ -125,6 +136,7 @@ export class RTile extends LitElement {
     const isImage = tile.aList?.descByName('image');
     const isText = tile.aList?.descByName('text');
     const isTextBtn = tile.aList?.descByName('textBtn');
+    const isPan = tile.aList?.descByName('pan');
     let childrenHtml = html``;
    
     const clickHandler = () => {
@@ -148,12 +160,16 @@ export class RTile extends LitElement {
         }
       }
 
+      if (isPan) {
+        this.handlePan(tile);
       }
+
+    }
 
       if (isImage === "true") {  
         childrenHtml = html`
         <label for="file-upload">Upload</label>
-        <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => RTile.handleUpload(event, tile, this)}>`
+        <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
       }
 
       if (isText === "true") {
@@ -174,16 +190,20 @@ export class RTile extends LitElement {
         child = this.TList.tiles[child.next];
       }
     }
-
+    
     return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}"  @click="${clickHandler}">${innerContentHTML}${childrenHtml}</div>`;
   }
 
- 
-
   render() {
     this.NewInstance(this.TList);
-
     const topLevelTiles = this.TList.tiles.filter(tile => !tile.parent);
     return html`${topLevelTiles.map(tile => this.renderDivs(tile))}`;
   }
+
+  updated(changedProperties: any) {
+    if (this.fileUploaded && this.currentTile) {
+        this.handlePan(this.TList.tiles[this.currentTile.parent]);
+    }
+  }
+  
 }
