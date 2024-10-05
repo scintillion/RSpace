@@ -16,32 +16,38 @@
 	// 	'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	// ];
 
-	const TileStrings: string[] = [
+	// let TileStrings: string[] = ([
+	// 	'TS4:TileStrings Desc4',
+	// 	'T\ta|name:Full|\ts|display:flex|\t',
+	// 	' T\ta|name:Top|pan:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|\t',
+	// 	' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
+	// 	'  T\ta|name:Left|pan:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|background-image:url("")|\t',
+	// 	'   RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
+	// 	'  T\ta|name:Middle|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
+	// 	'   ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
+	// 	'  T\ta|name:Right|inner:<h2>Enter text</h2> <i>use html tags for formatting</i>|text:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|\t',
+	// 	'   TxtBtn\ta|name:Button|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
+	// ]);
+
+	let TileStrings: string[] = [
 		'TS4:TileStrings Desc4',
 		'T\ta|name:Full|\ts|display:flex|\t',
 		' T\ta|name:Top|pan:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|\t',
 		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
-		'  T\ta|name:Left|pan:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|background-image:url("")|\t',
-		'   RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-		'  T\ta|name:Middle|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
-		'   ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
-		'  T\ta|name:Right|inner:<h2>Enter text</h2> <i>use html tags for formatting</i>|text:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|\t',
-		'   TxtBtn\ta|name:Button|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	]; 
+		'  T\ta|name:Base|\ts|\t',
+		'   T\ta|name:Left|pan:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|\t',
+		'    RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
+		'  T\ta|name:Base|\ts|\t',
+		'   T\ta|name:Middle|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|pan:true|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
+		'    ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
+		'  T\ta|name:Base|\ts|\t',
+		'   T\ta|name:Right|inner:<h2>Enter text</h2> <i>use html tags for formatting</i>|text:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|\t',
+		'    TxtBtn\ta|name:Button|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
+	];
 
-	// const TileStrings: string[] = ['T\ta||\ts||\t'];
+	let List: RS1.TileList = new RS1.TileList(TileStrings); // remove temporarily
 
-// 	const TileStrings: string[] = [
-//   		'T\ta|name:Full|inner:Use arrow keys to move tile|\ts|display:block|height:100vh|width:100vw|font-size:40px|\t',
-//  		' T\ta|name:Top|\ts|background:white|height:70px|width:70px|position:relative|top:50%|left:50%|\t',
-// ];
-
-	const List: RS1.TileList = new RS1.TileList(TileStrings); // remove temporarily
-
-	// onMount(() => {
-	// 	let tiles = document.querySelector('.tilesabc');
-	// });
-	const TileArray:any = []
+	let TileArray:any = []
 	let selectedTile: RS1.TDE = new RS1.TDE('')
 	let VIDArray: RS1.vID[] | undefined = []
 	let VIDStyle: RS1.vID[] | undefined = []
@@ -96,8 +102,22 @@ async function handleUpload(event: Event, tile: RS1.TDE) {
     }
   }
 step = 'selectTile'
-  
+
 }
+
+	function AddTile(tile:RS1.TDE) {
+		const Tab = " ";
+		const NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:New Tile|inner:|\ts|display:flex|height:10vh|width:10vw|background:yellow|border-radius:8px|\t`;
+		TileStrings.splice(List.tiles.indexOf(selectedTile) + 1, 0, NewTileString);
+		TileArray = [];
+		List = new RS1.TileList(TileStrings);
+		
+		List.tiles.forEach(tile => {
+			TileArray.push(tile)
+		})
+		
+		step = 'selectTile';
+	}
 
 
 	function Edit(tile: RS1.TDE) {
@@ -205,6 +225,7 @@ step = 'selectTile'
 			<label for="file-upload">Add Image</label>
 			<input id="file-upload" type="file" on:change={(event) => handleUpload(event,selectedTile)} style="display: none;" />
 		  </button>
+		<button on:click={() => AddTile(selectedTile)}>Add Tile</button> 
 		
 		<div class='editContainer' />
 		
