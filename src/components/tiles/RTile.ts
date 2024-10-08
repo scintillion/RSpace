@@ -11,7 +11,7 @@ export class RTile extends LitElement {
   private fileUploaded: boolean = false;
   private currentTile: RS1.TDE | undefined;
  
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|\ts|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t')
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|\ts|position:|top:|left:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
@@ -22,6 +22,10 @@ export class RTile extends LitElement {
   static RoundButtonTDE = new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t');
   static RoundButtonDefArray: RS1.TDE[] = [RTile.ButtonDef, RTile.RoundButtonTDE];
   static RoundButtonDef = RTile.TileMerge(RTile.RoundButtonDefArray);
+
+  static TextEditTDE = new RS1.TDE('Txt\ta|name:TextEdit|text:true|\ts|\t');
+  static TextEditDefArray: RS1.TDE[] = [RTile.TDef, RTile.TextEditTDE];
+  static TextEditDef = RTile.TileMerge(RTile.TextEditDefArray);
 
   static TextButtonTDE = new RS1.TDE('TxtBtn\ta|name:TextButton|textBtn:true|\ts|\t');
   static TextButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.TextButtonTDE];
@@ -75,11 +79,15 @@ export class RTile extends LitElement {
           RTile.Merge(RTile.RoundButtonDef, tile);
           break;
 
-          case 'TxtBtn':
+        case 'Txt':
+            RTile.Merge(RTile.TextEditDef, tile);
+            break;  
+
+        case 'TxtBtn':
             RTile.Merge(RTile.TextButtonDef, tile);
             break;  
 
-          case 'ImgBtn':
+        case 'ImgBtn':
             RTile.Merge(RTile.ImageButtonDef, tile);
             break;
       }
@@ -123,10 +131,34 @@ export class RTile extends LitElement {
     const element = this.shadowRoot?.getElementById(id);
     console.log('handlepan id' + id)
     if (element) {
-      const panzoom = Panzoom(element);
+      const panzoom = Panzoom(element, {
+        // bounds: true,
+        // boundsPadding: 0.5,
+        minZoom: 0.1,
+        maxZoom: 2,
+      });
+      
+      panzoom.on('panend', (e:any) => {
+        const xVid = tile.sList?.getVID('left');
+        const yVID = tile.sList?.getVID('top');
+        const positionVID = tile.sList?.getVID('position');
+        if (xVid && yVID && positionVID) {
+          const rect = element.getBoundingClientRect();
+
+          xVid.Desc = `${rect.left}px`;
+          yVID.Desc = `${rect.top}px`;
+          positionVID.Desc = 'absolute';
+      
+          tile.sList?.setVID(xVid);
+          tile.sList?.setVID(yVID);
+          tile.sList?.setVID(positionVID);
+        }
+        console.log('panend')
+        // panzoom.off
+        this.requestUpdate();
+      })
     }
   }
-
 
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';

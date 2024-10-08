@@ -34,16 +34,21 @@
 		'T\ta|name:Full|\ts|display:flex|\t',
 		' T\ta|name:Top|pan:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|\t',
 		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
-		'  T\ta|name:Base|\ts|\t',
+		'  T\ta|name:Base|\ts|width:20vw|height:90vh\t',
 		'   T\ta|name:Left|pan:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|\t',
 		'    RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-		'  T\ta|name:Base|\ts|\t',
-		'   T\ta|name:Middle|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|pan:true|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
+		'  T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
+		'   T\ta|name:Middle|pan:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
 		'    ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
-		'  T\ta|name:Base|\ts|\t',
-		'   T\ta|name:Right|inner:<h2>Enter text</h2> <i>use html tags for formatting</i>|text:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|\t',
+		'  T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
+		'   Txt\ta|name:Right|pan:true|inner:<h2>Enter text</h2> <i>use html tags for formatting</i>|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|\t',
 		'    TxtBtn\ta|name:Button|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
 	];
+
+	// let TileStrings: string[] = [
+	// 	'TS4:TileStrings Desc4',
+	// 	'T\ta|name:Full|\ts|display:flex|height:100vh|width:100vw|\t',
+	// ];
 
 	let List: RS1.TileList = new RS1.TileList(TileStrings); // remove temporarily
 
@@ -105,9 +110,35 @@ step = 'selectTile'
 
 }
 
-	function AddTile(tile:RS1.TDE) {
+	function AddTile(tile:RS1.TDE, type: string) {
 		const Tab = " ";
-		const NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:New Tile|inner:|\ts|display:flex|height:10vh|width:10vw|background:yellow|border-radius:8px|\t`;
+		let NewTileString: string = '';
+		switch (type) {
+			case 'Tile':
+				NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:Tile|inner:|pan:true|\ts|height:10vh|width:10vw|background:yellow|\t`;
+				break;
+			
+			case 'Button':
+				NewTileString = `${Tab.repeat(selectedTile.level+1)}Btn\ta|name:Button|inner:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t`;
+				break;
+
+			case 'RoundButton':
+				NewTileString = `${Tab.repeat(selectedTile.level+1)}RndBtn\ta|name:Button|inner:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t`;
+				break;
+
+			case 'TextEdit':
+				NewTileString = `${Tab.repeat(selectedTile.level+1)}Txt\ta|name:TextEdit|\ts|display:flex|width:10vh|height:10vw|background:#|\t`;
+				break;
+
+			case 'TextButton':
+				NewTileString = `${Tab.repeat(selectedTile.level+1)}TxtBtn\ta|name:TextButton|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t`;
+				break;
+
+			case 'ImageButton':
+				NewTileString = `${Tab.repeat(selectedTile.level+1)}ImgBtn\ta|name:ImageButton|\ts|display:flex|height:30px|width:70px|background:#1e1e1e|color:white|border-radius:8px|\t`;
+				break;
+
+		}
 		TileStrings.splice(List.tiles.indexOf(selectedTile) + 1, 0, NewTileString);
 		TileArray = [];
 		List = new RS1.TileList(TileStrings);
@@ -225,7 +256,12 @@ step = 'selectTile'
 			<label for="file-upload">Add Image</label>
 			<input id="file-upload" type="file" on:change={(event) => handleUpload(event,selectedTile)} style="display: none;" />
 		  </button>
-		<button on:click={() => AddTile(selectedTile)}>Add Tile</button> 
+		<button on:click={() => AddTile(selectedTile,'Tile')}>Add Tile</button>
+		<button on:click={() => AddTile(selectedTile,'Button')}>Add Button</button> 
+		<button on:click={() => AddTile(selectedTile,'RoundButton')}>Add Round Button</button> 
+		<button on:click={() => AddTile(selectedTile,'ImageButton')}>Add Image Button</button>
+		<button on:click={() => AddTile(selectedTile,'TextEdit')}>Add Text Edit</button> 
+		<button on:click={() => AddTile(selectedTile,'TextButton')}>Add Text Save</button>  
 		
 		<div class='editContainer' />
 		
