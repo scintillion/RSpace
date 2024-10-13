@@ -2,7 +2,7 @@ import { LitElement, html } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import Panzoom from 'panzoom';
+import interact from 'interactjs';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
@@ -11,7 +11,7 @@ export class RTile extends LitElement {
   private fileUploaded: boolean = false;
   private currentTile: RS1.TDE | undefined;
  
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|\ts|position:|top:|left:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
@@ -126,40 +126,100 @@ export class RTile extends LitElement {
     }
   }
 
-  handlePan(tile: RS1.TDE) {
-    const id = `tile${this.TList.tiles.indexOf(tile)}`
+  handleInteractions(tile: RS1.TDE) {
+    const id = `tile${this.TList.tiles.indexOf(tile)}`;
     const element = this.shadowRoot?.getElementById(id);
-    console.log('handlepan id' + id)
-    if (element) {
-      const panzoom = Panzoom(element, {
-        // bounds: true,
-        // boundsPadding: 0.5,
-        minZoom: 0.1,
-        maxZoom: 2,
-      });
-      
-      panzoom.on('panend', (e:any) => {
-        const xVid = tile.sList?.getVID('left');
-        const yVID = tile.sList?.getVID('top');
-        const positionVID = tile.sList?.getVID('position');
-        if (xVid && yVID && positionVID) {
-          const rect = element.getBoundingClientRect();
+    console.log('interaction id ' + id);
 
-          xVid.Desc = `${rect.left}px`;
-          yVID.Desc = `${rect.top}px`;
-          positionVID.Desc = 'absolute';
-      
-          tile.sList?.setVID(xVid);
-          tile.sList?.setVID(yVID);
-          tile.sList?.setVID(positionVID);
-        }
-        console.log('panend')
-        // panzoom.off
-        this.requestUpdate();
-      })
+    if (element) {
+      let x = 0;
+      let y = 0;
+      let width = element.offsetWidth;
+      let height = element.offsetHeight;
+
+      interact(element)
+        .draggable({
+          inertia: true,
+          modifiers: [
+            interact.modifiers.restrictRect({
+              // restriction: 'parent',
+              endOnly: true
+            })
+          ],
+          // autoScroll: true,
+          listeners: {
+            start: (event) => {
+              const transform = window.getComputedStyle(element).getPropertyValue('transform');
+              const matrix = new DOMMatrix(transform);
+              x = matrix.m41;
+              y = matrix.m42;
+            },
+            move: (event) => {
+              x += event.dx;
+              y += event.dy;
+              element.style.transform = `translate(${x}px, ${y}px)`;
+            },
+            end: (event) => {
+              this.updateTilePosition(tile, element);
+            }
+          }
+        })
+
+        .resizable({
+          edges: { left: true, right: true, bottom: true, top: true },
+          listeners: {
+            move: (event) => {
+              x += event.deltaRect.left;
+              y += event.deltaRect.top;
+              width = event.rect.width;
+              height = event.rect.height;
+
+              Object.assign(element.style, {
+                width: `${width}px`,
+                height: `${height}px`,
+                transform: `translate(${x}px, ${y}px)`
+              });
+            },
+            end: (event) => {
+              this.updateTilePosition(tile, element);
+              this.updateTileSize(tile, width, height);
+            }
+          }
+        });
     }
   }
 
+  updateTilePosition(tile: RS1.TDE, element: HTMLElement) {
+    const xVid = tile.sList?.getVID('left');
+    const yVID = tile.sList?.getVID('top');
+    const positionVID = tile.sList?.getVID('position');
+
+    if (xVid && yVID && positionVID) {
+      const rect = element.getBoundingClientRect();
+      xVid.Desc = `${rect.left}px`;
+      yVID.Desc = `${rect.top}px`;
+      positionVID.Desc = 'absolute';
+
+      tile.sList?.setVID(xVid);
+      tile.sList?.setVID(yVID);
+      tile.sList?.setVID(positionVID);
+    }
+    this.requestUpdate();
+  }
+
+  updateTileSize(tile: RS1.TDE, width: number, height: number) {
+    const widthVID = tile.sList?.getVID('width');
+    const heightVID = tile.sList?.getVID('height');
+
+    if (widthVID && heightVID) {
+      widthVID.Desc = `${width}px`;
+      heightVID.Desc = `${height}px`;
+
+      tile.sList?.setVID(widthVID);
+      tile.sList?.setVID(heightVID);
+    }
+  }
+  
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const innerContentHTML = unsafeHTML(innerContent)
@@ -193,7 +253,8 @@ export class RTile extends LitElement {
       }
 
       if (isPan) {
-        this.handlePan(tile);
+        // this.handlePan(tile);
+        this.handleInteractions(tile);
       }
 
     }
@@ -232,10 +293,10 @@ export class RTile extends LitElement {
     return html`${topLevelTiles.map(tile => this.renderDivs(tile))}`;
   }
 
-  updated(changedProperties: any) {
-    if (this.fileUploaded && this.currentTile) {
-        this.handlePan(this.TList.tiles[this.currentTile.parent]);
-    }
-  }
+  // updated(changedProperties: any) {
+  //   if (this.fileUploaded && this.currentTile) {
+  //       this.handlePan(this.TList.tiles[this.currentTile.parent]);
+  //   }
+  // }
   
 }
