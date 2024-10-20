@@ -11,7 +11,7 @@ export class RTile extends LitElement {
   private fileUploaded: boolean = false;
   private currentTile: RS1.TDE | undefined;
  
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|isPan:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
@@ -31,7 +31,11 @@ export class RTile extends LitElement {
   static TextButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.TextButtonTDE];
   static TextButtonDef = RTile.TileMerge(RTile.TextButtonDefArray);
 
-  static ImageButtonTDE = new RS1.TDE('ImgBtn\ta|name:ImageButton|image:true|\ts|\t');
+  static ImageTileTDE = new RS1.TDE('ImgTile\ta|name:ImageTile|image:true|\ts|\t');
+  static ImageTileDefArray: RS1.TDE[] = [RTile.TDef, RTile.ImageTileTDE];
+  static ImageTileDef = RTile.TileMerge(RTile.ImageTileDefArray);
+
+  static ImageButtonTDE = new RS1.TDE('ImgBtn\ta|name:ImageButton|image:true|isPan:false|\ts|\t');
   static ImageButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.ImageButtonTDE];
   static ImageButtonDef = RTile.TileMerge(RTile.ImageButtonDefArray);
 
@@ -126,7 +130,7 @@ export class RTile extends LitElement {
     }
   }
 
-  handleInteractions(tile: RS1.TDE) {
+  handleInteractions(tile: RS1.TDE, isRestricted: boolean) {
     const id = `tile${this.TList.tiles.indexOf(tile)}`;
     const element = this.shadowRoot?.getElementById(id);
     console.log('interaction id ' + id);
@@ -140,9 +144,13 @@ export class RTile extends LitElement {
       interact(element)
         .draggable({
           inertia: true,
-          modifiers: [
+          modifiers: isRestricted ?[
             interact.modifiers.restrictRect({
-              // restriction: 'parent',
+              restriction: 'parent',
+              endOnly: true
+            })
+          ] : [
+            interact.modifiers.restrictRect({
               endOnly: true
             })
           ],
@@ -160,7 +168,7 @@ export class RTile extends LitElement {
               element.style.transform = `translate(${x}px, ${y}px)`;
             },
             end: (event) => {
-              this.updateTilePosition(tile, element);
+              this.updateTilePosition(tile, element, x, y);
             }
           }
         })
@@ -169,11 +177,15 @@ export class RTile extends LitElement {
           edges: { left: true, right: true, bottom: true, top: true },
           listeners: {
             move: (event) => {
-              x += event.deltaRect.left;
-              y += event.deltaRect.top;
+              const currentTransform = new DOMMatrix(element.style.transform);
+              const currentX = currentTransform.m41;
+              const currentY = currentTransform.m42;
+        
+              x = currentX + event.deltaRect.left;
+              y = currentY + event.deltaRect.top;
               width = event.rect.width;
               height = event.rect.height;
-
+        
               Object.assign(element.style, {
                 width: `${width}px`,
                 height: `${height}px`,
@@ -181,27 +193,22 @@ export class RTile extends LitElement {
               });
             },
             end: (event) => {
-              this.updateTilePosition(tile, element);
+              this.updateTilePosition(tile, element,x,y);
               this.updateTileSize(tile, width, height);
             }
-          }
-        });
+          }});
     }
   }
 
-  updateTilePosition(tile: RS1.TDE, element: HTMLElement) {
-    const xVid = tile.sList?.getVID('left');
-    const yVID = tile.sList?.getVID('top');
+  updateTilePosition(tile: RS1.TDE, element: HTMLElement,x:number,y:number) {
+    const translateVID = tile.sList?.getVID('transform');
     const positionVID = tile.sList?.getVID('position');
-
-    if (xVid && yVID && positionVID) {
-      const rect = element.getBoundingClientRect();
-      xVid.Desc = `${rect.left}px`;
-      yVID.Desc = `${rect.top}px`;
+  
+    if (translateVID && positionVID) {
+      translateVID.Desc = `translate(${x}px, ${y}px)`;
       positionVID.Desc = 'absolute';
-
-      tile.sList?.setVID(xVid);
-      tile.sList?.setVID(yVID);
+  
+      tile.sList?.setVID(translateVID);
       tile.sList?.setVID(positionVID);
     }
     this.requestUpdate();
@@ -226,6 +233,7 @@ export class RTile extends LitElement {
     const alertContent = tile.aList?.descByName('alert');
     const redirectLink = tile.aList?.descByName('redirect');
     const isImage = tile.aList?.descByName('image');
+    const isImageTile = tile.aList?.descByName('imageTile');
     const isText = tile.aList?.descByName('text');
     const isTextBtn = tile.aList?.descByName('textBtn');
     const isPan = tile.aList?.descByName('pan');
@@ -254,7 +262,7 @@ export class RTile extends LitElement {
 
       if (isPan) {
         // this.handlePan(tile);
-        this.handleInteractions(tile);
+        this.handleInteractions(tile,false);
       }
 
     }
@@ -265,6 +273,10 @@ export class RTile extends LitElement {
         <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
       }
 
+      if (isImageTile) {
+        this.handleInteractions(tile,true);
+      }
+
       if (isText === "true") {
         childrenHtml = html`
         <textarea
@@ -272,7 +284,7 @@ export class RTile extends LitElement {
          id="text-edit" 
          @input="${(e: Event) => this.textEditContent = (e.target as HTMLTextAreaElement).value }"
          style="" />`
-      }
+    }
   
     const styleStr = tile.sList?.toVIDList(";");
 
