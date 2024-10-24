@@ -36,9 +36,10 @@
 		'  T\ta|name:Top|pan:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
 		// '  T\ta|name:Base|\ts|width:20vw|height:90vh\t',
-		'  T\ta|name:viewfinder-container|pan:false|\ts|width:20vw|height:90vh|display:flex|overflow:hidden|position:relative|\t',
-		'   T\ta|name:viewfinder|pan:false|\ts|width:20vw|height:90vh|display:flex|position:absolute|overflow:hidden|\t',
-		'    ImgTile\ta|name:image-container|pan:false|imageTile:true|\ts|width:100%|height:100%|background-image:url("")|background-size:cover|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
+		'  T\ta|name:viewfinder-container|pan:true|\ts|width:20vw|height:90vh|display:flex|overflow:hidden|position:relative|background:blue|transform:translate(0px, 0px)|\t',
+		//'   T\ta|name:viewfinder|pan:false|\ts|width:20vw|height:90vh|display:flex|position:absolute|overflow:hidden|background:red|\t',
+		'   Btn\ta|name:EditButton|inner:Edit|toggle:true|\ts|width:70px|height:30px|display:flex|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
+		'   T\ta|name:image-container|pan:false|image:true|\ts|width:100%|height:100%|background-image:url("")|background-size:cover|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
 		// '    RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
 		'  T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
 		'   T\ta|name:Middle|pan:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
@@ -66,6 +67,7 @@
 	let ListType = 'attributes'
 	let currentEditor: any = null;
 	let showPlot = false
+	let fileUploaded = false
 
     let Tiles = List.tiles;
 	console.log ('List of Tiles in TileWorks:');
@@ -108,6 +110,7 @@ async function handleUpload(event: Event, tile: RS1.TDE) {
     } catch (error) {
       console.error('Error uploading file:', error);
     }
+	fileUploaded = true
   }
 step = 'selectTile'
 
