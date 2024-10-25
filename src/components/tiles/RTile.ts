@@ -9,9 +9,10 @@ export class RTile extends LitElement {
   TList: RS1.TileList  = new RS1.TileList('');
   private textEditContent: string = '';
   private fileUploaded: boolean = false;
+  private editMode: boolean = false;
   private currentTile: RS1.TDE | undefined;
  
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|isPan:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|pan:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
@@ -31,11 +32,7 @@ export class RTile extends LitElement {
   static TextButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.TextButtonTDE];
   static TextButtonDef = RTile.TileMerge(RTile.TextButtonDefArray);
 
-  static ImageTileTDE = new RS1.TDE('ImgTile\ta|name:ImageTile|image:true|\ts|\t');
-  static ImageTileDefArray: RS1.TDE[] = [RTile.TDef, RTile.ImageTileTDE];
-  static ImageTileDef = RTile.TileMerge(RTile.ImageTileDefArray);
-
-  static ImageButtonTDE = new RS1.TDE('ImgBtn\ta|name:ImageButton|image:true|isPan:false|\ts|\t');
+  static ImageButtonTDE = new RS1.TDE('ImgBtn\ta|name:ImageButton|pan:false|upload:true|\ts|\t');
   static ImageButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.ImageButtonTDE];
   static ImageButtonDef = RTile.TileMerge(RTile.ImageButtonDefArray);
 
@@ -127,10 +124,12 @@ export class RTile extends LitElement {
         console.error('Error uploading file:', error);
       }
       this.fileUploaded = true;
+      this.editMode = true;
+      this.requestUpdate();
     }
   }
 
-  handleInteractions(tile: RS1.TDE, isRestricted: boolean) {
+  handleInteractions(tile: RS1.TDE) {
     const id = `tile${this.TList.tiles.indexOf(tile)}`;
     const element = this.shadowRoot?.getElementById(id);
     console.log('interaction id ' + id);
@@ -144,13 +143,9 @@ export class RTile extends LitElement {
       interact(element)
         .draggable({
           inertia: true,
-          modifiers: isRestricted ?[
+          modifiers: [
             interact.modifiers.restrictRect({
-              restriction: 'parent',
-              endOnly: true
-            })
-          ] : [
-            interact.modifiers.restrictRect({
+              // restriction: 'parent',
               endOnly: true
             })
           ],
@@ -232,11 +227,12 @@ export class RTile extends LitElement {
     const innerContentHTML = unsafeHTML(innerContent)
     const alertContent = tile.aList?.descByName('alert');
     const redirectLink = tile.aList?.descByName('redirect');
+    const isImageBtn = tile.aList?.descByName('upload');
     const isImage = tile.aList?.descByName('image');
-    const isImageTile = tile.aList?.descByName('imageTile');
     const isText = tile.aList?.descByName('text');
     const isTextBtn = tile.aList?.descByName('textBtn');
     const isPan = tile.aList?.descByName('pan');
+    const handleInteractionToggle = tile.aList?.descByName('toggle');
     let childrenHtml = html``;
    
     const clickHandler = () => {
@@ -260,23 +256,42 @@ export class RTile extends LitElement {
         }
       }
 
-      if (isPan) {
-        // this.handlePan(tile);
-        this.handleInteractions(tile,false);
+      if (isPan === "true") {
+        this.handleInteractions(tile);
+      }
+      
+      if (handleInteractionToggle) {
+        this.editMode = !this.editMode;
+        console.log(this.editMode)
       }
 
     }
 
-      if (isImage === "true") {  
+      if (isImageBtn === "true") {  
         childrenHtml = html`
         <label for="file-upload">Upload</label>
         <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
       }
 
-      if (isImageTile) {
-        this.handleInteractions(tile,true);
+      if (isImage === "true") {
+        const panVID = tile.aList?.getVID('pan');
+        
+        if (panVID) {
+          if (this.editMode === true) {
+            panVID.Desc = 'true';
+            tile.aList?.setVID(panVID);
+            this.requestUpdate();
+          } 
+          else {
+            panVID.Desc = 'false';
+            tile.aList?.setVID(panVID);
+            this.requestUpdate();
+          }
+          console.log('Updated pan:', tile.Desc, tile.aList?.getVID('pan'));
+        }
       }
-
+      
+    
       if (isText === "true") {
         childrenHtml = html`
         <textarea
