@@ -6,12 +6,20 @@ import interact from 'interactjs';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
-  TList: RS1.TileList  = new RS1.TileList('');
-  private textEditContent: string = '';
-  private fileUploaded: boolean = false;
-  private editMode: boolean = false;
-  private currentTile: RS1.TDE | undefined;
- 
+  declare TList: RS1.TileList;
+  declare _textEditContent: string;
+  declare _fileUploaded: boolean;
+  declare _editMode: boolean;
+  declare _currentTile?: RS1.TDE | undefined;
+  
+  static properties = {
+    _fileUploaded: { type: Boolean },
+    _editMode: { type: Boolean },
+    _textEditContent: { type: String },
+    _currentTile: { type: Object },
+    TList: { type: Object }
+  };
+
   static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|pan:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
@@ -36,6 +44,14 @@ export class RTile extends LitElement {
   static ImageButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.ImageButtonTDE];
   static ImageButtonDef = RTile.TileMerge(RTile.ImageButtonDefArray);
 
+  constructor() {
+    super();
+    this._fileUploaded = false;
+    this._editMode = false;
+    this._textEditContent = '';
+    this.TList = new RS1.TileList('');
+  }
+
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
     const style = A.sList?.copy;
     const attr = A.aList?.copy;
@@ -47,7 +63,7 @@ export class RTile extends LitElement {
   }
 
   static TileMerge(TDEArray: RS1.TDE[]): RS1.TDE {
-    
+
     if(TDEArray.length == 0) {
       throw new Error('TDEArray is empty');
     }
@@ -64,9 +80,9 @@ export class RTile extends LitElement {
   }
 
   NewInstance = (TileList: RS1.TileList) => {
-    
+
     TileList.tiles.forEach(tile => {
-      
+
       switch(tile.TList?.listName.replace(/^\s+/, '')) {
         case 'T':
           RTile.Merge(RTile.TDef, tile);
@@ -81,23 +97,23 @@ export class RTile extends LitElement {
           break;
 
         case 'Txt':
-            RTile.Merge(RTile.TextEditDef, tile);
-            break;  
+          RTile.Merge(RTile.TextEditDef, tile);
+          break;  
 
         case 'TxtBtn':
-            RTile.Merge(RTile.TextButtonDef, tile);
-            break;  
+          RTile.Merge(RTile.TextButtonDef, tile);
+          break;  
 
         case 'ImgBtn':
-            RTile.Merge(RTile.ImageButtonDef, tile);
-            break;
+          RTile.Merge(RTile.ImageButtonDef, tile);
+          break;
       }
     })
   }
 
   handleUpload(event: Event, tile: RS1.TDE) {
     const files = (event.currentTarget as HTMLInputElement).files;
-    this.currentTile = tile;
+    this._currentTile = tile;
     const parent = tile.parent;
     const parentTile = this.TList.tiles[parent];
 
@@ -112,20 +128,19 @@ export class RTile extends LitElement {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (e) => {
-        if (VID) {
-          VID.Desc = `url("${e.target?.result}")`;
-          parentTile.sList?.setVID(VID);
+          if (VID) {
+            VID.Desc = `url("${e.target?.result}")`;
+            parentTile.sList?.setVID(VID);
+           
+            this.requestUpdate();
 
-          this.requestUpdate();
-         
+          }
         }
-      }
       } catch (error) {
         console.error('Error uploading file:', error);
       }
-      this.fileUploaded = true;
-      this.editMode = true;
-      this.requestUpdate();
+      this._fileUploaded = true;
+      this._editMode = true;
     }
   }
 
@@ -206,7 +221,6 @@ export class RTile extends LitElement {
       tile.sList?.setVID(translateVID);
       tile.sList?.setVID(positionVID);
     }
-    this.requestUpdate();
   }
 
   updateTileSize(tile: RS1.TDE, width: number, height: number) {
@@ -221,7 +235,7 @@ export class RTile extends LitElement {
       tile.sList?.setVID(heightVID);
     }
   }
-  
+
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const innerContentHTML = unsafeHTML(innerContent)
@@ -234,7 +248,16 @@ export class RTile extends LitElement {
     const isPan = tile.aList?.descByName('pan');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
     let childrenHtml = html``;
-   
+
+    if (isImage === "true") {
+      const panVID = tile.aList?.getVID('pan');
+      if (panVID) {
+        panVID.Desc = this._editMode ? 'true' : 'false';
+        tile.aList?.setVID(panVID);
+      }
+      console.log('Updated pan:', tile.Desc, tile.aList?.getVID('pan'));
+    }
+
     const clickHandler = () => {
       if (alertContent) {
         alert(alertContent);
@@ -250,7 +273,7 @@ export class RTile extends LitElement {
         const VID = parentTile.aList?.getVID('inner');
 
         if (VID) {
-          VID.Desc = this.textEditContent;
+          VID.Desc = this._textEditContent;
           parentTile.aList?.setVID(VID);
           this.requestUpdate();
         }
@@ -261,46 +284,35 @@ export class RTile extends LitElement {
       }
       
       if (handleInteractionToggle) {
-        this.editMode = !this.editMode;
-        console.log(this.editMode)
+        this._editMode = !this._editMode;
+        const innerVID = tile.aList?.getVID('inner');
+        if (innerVID) {
+          innerVID.Desc = this._editMode ? 'Done' : 'Edit';
+          tile.aList?.setVID(innerVID);
+        }
+        console.log(this._editMode)
       }
 
     }
 
-      if (isImageBtn === "true") {  
-        childrenHtml = html`
+    if (isImageBtn === "true") {
+      childrenHtml = html`
         <label for="file-upload">Upload</label>
         <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
-      }
-
-      if (isImage === "true") {
-        const panVID = tile.aList?.getVID('pan');
-        
-        if (panVID) {
-          if (this.editMode === true) {
-            panVID.Desc = 'true';
-            tile.aList?.setVID(panVID);
-            this.requestUpdate();
-          } 
-          else {
-            panVID.Desc = 'false';
-            tile.aList?.setVID(panVID);
-            this.requestUpdate();
-          }
-          console.log('Updated pan:', tile.Desc, tile.aList?.getVID('pan'));
-        }
-      }
-      
-    
-      if (isText === "true") {
-        childrenHtml = html`
-        <textarea
-         .value="${this.textEditContent}"
-         id="text-edit" 
-         @input="${(e: Event) => this.textEditContent = (e.target as HTMLTextAreaElement).value }"
-         style="" />`
     }
-  
+
+    if (isText === "true") {
+      childrenHtml = html`
+        <textarea
+          .value="${this._textEditContent}"
+          id="text-edit"
+          @input="${(e: Event) => {
+            this._textEditContent = (e.target as HTMLTextAreaElement).value;
+            this.requestUpdate();
+          }}"
+          style="" />`
+    }
+
     const styleStr = tile.sList?.toVIDList(";");
 
     if (tile.first) {
@@ -320,10 +332,10 @@ export class RTile extends LitElement {
     return html`${topLevelTiles.map(tile => this.renderDivs(tile))}`;
   }
 
-  // updated(changedProperties: any) {
+ // updated(changedProperties: any) {
   //   if (this.fileUploaded && this.currentTile) {
   //       this.handlePan(this.TList.tiles[this.currentTile.parent]);
   //   }
   // }
-  
+
 }
