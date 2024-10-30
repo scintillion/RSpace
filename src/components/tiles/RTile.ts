@@ -11,7 +11,7 @@ export class RTile extends LitElement {
   declare _fileUploaded: boolean;
   declare _editMode: boolean;
   declare _currentTile?: RS1.TDE | undefined;
-  
+
   static properties = {
     _fileUploaded: { type: Boolean },
     _editMode: { type: Boolean },
@@ -254,10 +254,30 @@ export class RTile extends LitElement {
       if (panVID) {
         panVID.Desc = this._editMode ? 'true' : 'false';
         tile.aList?.setVID(panVID);
+        const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
+        if (element) {
+          interact(element).unset(); 
+        }
       }
-      console.log('Updated pan:', tile.Desc, tile.aList?.getVID('pan'));
+      console.log('Updated pan:', tile.aList?.getVID('pan').Desc);
     }
 
+    if (handleInteractionToggle) {
+      const innerVID = tile.aList?.getVID('inner');
+      if (innerVID) {
+        innerVID.Desc = this._editMode ? 'Done' : 'Edit';
+        tile.aList?.setVID(innerVID);
+      }
+      if (this._fileUploaded) {
+        const displayVID = tile.sList?.getVID('display');
+        console.log('file uploaded!')
+        if (displayVID) {
+          displayVID.Desc = 'flex'
+          tile.sList?.setVID(displayVID);
+        }
+      }
+    }
+ 
     const clickHandler = () => {
       if (alertContent) {
         alert(alertContent);
@@ -279,16 +299,18 @@ export class RTile extends LitElement {
         }
       }
 
+      if (handleInteractionToggle) {
+        this._editMode = !this._editMode;
+      }
+
       if (isPan === "true") {
         this.handleInteractions(tile);
       }
-      
-      if (handleInteractionToggle) {
-        this._editMode = !this._editMode;
-        const innerVID = tile.aList?.getVID('inner');
-        if (innerVID) {
-          innerVID.Desc = this._editMode ? 'Done' : 'Edit';
-          tile.aList?.setVID(innerVID);
+
+      if (isPan === "false") {
+        const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
+        if (element) {
+          interact(element).unset(); 
         }
         console.log(this._editMode)
       }

@@ -40,7 +40,7 @@
 		'    RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
 		'  T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
 		'   T\ta|name:Middle|pan:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|transform:translate(0px, 0px)|\t',
-		'    Btn\ta|name:EditButton|inner:Edit|toggle:true|\ts|width:70px|height:30px|display:flex|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
+		'    Btn\ta|name:EditButton|inner:Edit|toggle:true|\ts|width:70px|height:30px|display:none|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
 		'    T\ta|name:image-container|pan:false|image:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|display:flex|width:100%|height:100%|background-image:url("")|background-size:cover|background:cyan|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
 		'     ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
 		'  T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
