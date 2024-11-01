@@ -53,8 +53,8 @@ export class RTile extends LitElement {
   }
 
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
-    const style = A.sList?.copy;
-    const attr = A.aList?.copy;
+    const style = A.sList?.copy() as RS1.qList;
+    const attr = A.aList?.copy() as RS1.qList;
     style?.merge(B.sList);
     attr?.merge(B.aList);
     B.sList = style;

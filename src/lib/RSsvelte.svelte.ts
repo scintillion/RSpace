@@ -374,42 +374,6 @@ export namespace RS1 {
 			}
 		}
 
-		/*
-
-		toBuf (Fields : RSF[]) : UBuf {
-			let cName = this.cName, pLen = cName.length, len = Fields.length,
-				pStrs = new Array<string> (len+1), i = 0, nBytes = 0;
-
-			pStrs.push (this.cName);
-			for (const b of Fields)
-				if (b.bbi) {
-					if (typeof b.bbi === 'string')
-						b.bbi = str2bbi (b.bbi as string);
-
-					nBytes += b.bbi.length;
-					++i;
-					pLen += b.prefix.length;
-					pStrs.push (b.prefix);
-				}
-
-			
-			pLen += i;
-			pStrs[0] += pLen.toString () + pStrs[0];
-			pStrs[i] += ',\0x1f';
-			let prefix = pStrs.join (','), prefixBuf = str2bbi (prefix), offset = prefixBuf.length;
-
-			let Buf = newBuf (offset + nBytes);
-			Buf.set (prefixBuf);
-			for (const b of Fields)
-				if (b.bbi) {
-					Buf.set (b.bbi as UBuf, offset);
-					offset += b.bbi.length;
-				}
-
-			return (Buf.length > (offset + 8)) ? Buf.slice (0,offset) : Buf;
-		}
-		*/
-
 		private toPB (RSDName = '', KidName ='') {
 			let Str, bbi;
 			
@@ -447,6 +411,7 @@ export namespace RS1 {
 				Fields.push (field);
 			}
 
+		/*
 			if (q) {
 				field = new RSF ();
 
@@ -462,12 +427,13 @@ export namespace RS1 {
 				field.setName ('.r');
 				Fields.push (field);
 			}
+		*/
 
 			if (k) {
 				for (const Kid of k._kids) {
 					if (Kid) {
 						if (fldPack)
-							Fields.push (Kid as RSF);
+							Fields.push ((Kid as unknown) as RSF);
 						else {
 							if (!KidName)
 								KidName = Kid.Name;
@@ -494,8 +460,8 @@ export namespace RS1 {
 					case '.$' : this.from$ (F.Data as string); break;
 					case '.x' : this.X = F.Data; break;
 					case '.p' : this.fromPack (F.Data as RSPack); break;
-					case '.q' : this.Q = F.Data as RSI; break;
-					case '.r' : this.R = F.Data as RSr; break;
+					// case '.q' : this.Q = F.Data as RSI; break;
+					// case '.r' : this.R = F.Data as RSr; break;
 					default :	// child
 						if (k)
 							k.add (F.Data as RSD, false);
@@ -589,7 +555,7 @@ export namespace RS1 {
 			}
 		}
 
-		constructor (In:RSArgs=undefined) {
+		constructor (In:RSArgs=undefined, name1='', type1='') {
 			if (In) 
 				this.constructRSD (In);
 		}
@@ -764,11 +730,19 @@ export namespace RS1 {
 
 			return '';
 		}
+
+		copy (NewName = '') : RSD {
+			let pb = this.toPB ();
+			let newRS = newRSD (this.constructor.name, pb.bbi);
+			if (NewName)
+				newRS.Name = NewName;
+			return newRS;
+		}
 	}
 
 	export const NILRSD = new RSD ();
 
-	export function newRSD (name:string,x:RSArgs=undefined) {
+	export function newRSD (name:string,x:RSArgs=undefined) : RSD {
 		let R = NILRSD;
 
 		if (!name) {
@@ -796,11 +770,12 @@ export namespace RS1 {
 			case 'RSr' : return new RSr (x  as string|string[]|ListTypes[]);
 			case 'RSR' : return new RSR (x);
 			case 'Bead' : return new Bead (x);
-			case 'rList' : return new rList (x as string|string[]|ListTypes[]);
-			case 'rLOL' : return new rLOL (x as string|string[]|ListTypes[]);
+			// case 'rList' : return new rList (x as string|string[]|ListTypes[]);
+			// case 'rLOL' : return new rLOL (x as string|string[]|ListTypes[]);
 			case 'TDE' : return new TDE (x as string|rList);
 			// case 'PackField' : return new PackField (x,);
 			// case 'RSField' : return new RSField ();
+			default : return new RSD (x);
 		}
 	}
 
@@ -859,8 +834,8 @@ export namespace RS1 {
 
 		index (kid:string|RSD)	 {
 			if (kid)
-				return ((typeof kid) !== 'string') ? this._kids.findIndex (element => $state.is(element as RSD,kid as RSD)) :
-				this._names.findIndex (element => $state.is(element as string,kid as string)) 
+				return ((typeof kid) !== 'string') ? this._kids.indexOf (kid as RSD) :
+						 this._names.indexOf (kid as string);
 
 			return -1;
 		}
@@ -2037,9 +2012,9 @@ export namespace RS1 {
 		setStr (Str:string) { this.from$ (Str); }
 
 		constructor (Str:RSArgs='|') {
-			super ();
+			super (Str);
 	
-			this.from$ (Str as string|string[]);
+			// this.from$ (Str as string|string[]);
 		}
 
 		get descStr () {
@@ -2389,7 +2364,7 @@ export namespace RS1 {
 			this.qstr = this.qstr.slice (0,start) + flipstr + this.qstr.slice (end);
 			return true;
 		}
-		get copy () {
+		copy (NewName='') {
 			return new RSI (this.to$);
 		}
 	}
@@ -2608,7 +2583,7 @@ export namespace RS1 {
 						this.type = tRSDs;
 
 						let Dims = dimStr ? dimStr.split (' ') : [''], offset = 0,
-							RSDs = Array<RSDT> (Dims.length - 1), count = 0, off = 0;
+							RSDs = Array<RSD> (Dims.length - 1), count = 0, off = 0;
 
 						for (const D of Dims) 
 							if (D) {
@@ -3378,7 +3353,7 @@ export namespace RS1 {
 			this.qstr = this.qstr.slice (0,start) + flipstr + this.qstr.slice (end);
 			return true;
 		}
-		get copy () {
+		copy (NewName='') : RSD {
 			return new qList (this.to$);
 		}
 	}
@@ -3396,13 +3371,13 @@ export namespace RS1 {
 					return 1;
 
 			 return this.qstr ? 1 : 0;
-		}
+		} 
 
 		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
 
 		get clear () {
 			this.qstr = '';
-			this._k.clear;
+			// this._k.clear;
 			return this.mark;
 		}
 
@@ -3583,7 +3558,7 @@ export namespace RS1 {
 			return false;
 		}
 
-		get copy () { return new RSr (this.to$); }
+		copy (NewName='') { return new RSr (this.to$); }
 	}
 
 	export const NILRSr = new RSr ();
@@ -3731,7 +3706,7 @@ export namespace RS1 {
 			return str;
 		}
 
-		get copy () {
+		copy (NewName='') {
 			return new rList (this.toS);
 		}
 
@@ -4765,7 +4740,7 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  L !== NILqList) ? L as qList : NILqList;
+			return (L  &&  L !== NILqList  &&  !L.K) ? L as qList : NILqList;
 		}
 
 		constructor(Str: string|rList) {
