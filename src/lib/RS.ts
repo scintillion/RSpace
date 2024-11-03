@@ -1,4 +1,4 @@
-import { loadConfigFromFile } from "vite";
+// import { loadConfigFromFile } from "vite";
 import TextEditHandler from "../components/TileComponents/TextEditHandler.svelte";
 
 export namespace RS1 {
@@ -527,7 +527,7 @@ export namespace RS1 {
 
 		get clear () { return true; }
 
-		constructRSD (In:RSArgs, clear = true) {
+		constructRSD (In:RSArgs, clear = false) {
 			if (clear)
 				this.clear;
 
@@ -2014,7 +2014,7 @@ export namespace RS1 {
 		constructor (Str:RSArgs='|') {
 			super (Str);
 	
-			// this.from$ (Str as string|string[]);
+			this.from$ (Str as string|string[]);
 		}
 
 		get descStr () {
