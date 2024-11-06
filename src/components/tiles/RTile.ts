@@ -3,6 +3,7 @@ import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import interact from 'interactjs';
+import panzoom from 'panzoom';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
@@ -11,12 +12,16 @@ export class RTile extends LitElement {
   declare _fileUploaded: boolean;
   declare _editMode: boolean;
   declare _currentTile?: RS1.TDE | undefined;
+  declare _currentZoom: number | undefined;
+  declare _panToggle: boolean;
 
   static properties = {
     _fileUploaded: { type: Boolean },
     _editMode: { type: Boolean },
     _textEditContent: { type: String },
     _currentTile: { type: Object },
+    _currentZoom: { type: Number },
+    _panToggle: { type: Boolean },
     TList: { type: Object }
   };
 
@@ -49,6 +54,8 @@ export class RTile extends LitElement {
     this._fileUploaded = false;
     this._editMode = false;
     this._textEditContent = '';
+    this._currentZoom = undefined;
+    this._panToggle = false;
     this.TList = new RS1.TileList('');
   }
 
@@ -148,6 +155,7 @@ export class RTile extends LitElement {
     const id = `tile${this.TList.tiles.indexOf(tile)}`;
     const element = this.shadowRoot?.getElementById(id);
     console.log('interaction id ' + id);
+    this._currentTile = tile;
 
     if (element) {
       let x = 0;
@@ -236,6 +244,35 @@ export class RTile extends LitElement {
     }
   }
 
+  handleBackgroundPan() {
+    const element = this.shadowRoot?.getElementById('tile2');
+    if (element) {
+      console.log('current zoom' + this._currentZoom);
+      const Panzoom = panzoom(element,
+        {
+        // autocenter: true, 
+        // bounds: true,
+        initialZoom: this._currentZoom,
+        beforeMouseDown: (e: any) => {
+            if (this._currentTile && this._panToggle) {
+              if (this.TList.tiles.indexOf(this._currentTile) !== 2) {
+              e.preventDefault();
+              return false
+            }
+          }
+          return true;
+        },
+      }
+      );
+    
+      Panzoom.on('zoomend', (e) =>{
+        this._currentZoom = Panzoom.getTransform().scale;
+        console.log('updated zoom' + this._currentZoom);
+      })
+     
+    }
+  }
+
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const innerContentHTML = unsafeHTML(innerContent)
@@ -248,6 +285,8 @@ export class RTile extends LitElement {
     const isPan = tile.aList?.descByName('pan');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
     let childrenHtml = html``;
+  
+    this.handleBackgroundPan();
 
     if (isImage === "true") {
       const panVID = tile.aList?.getVID('pan');
@@ -314,7 +353,7 @@ export class RTile extends LitElement {
         }
         console.log(this._editMode)
       }
-
+    
     }
 
     if (isImageBtn === "true") {

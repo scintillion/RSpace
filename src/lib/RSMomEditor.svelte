@@ -12,6 +12,7 @@
 	let step = $state('Home');
 	let RSD: RS1.RSD = $state(new RS1.RSD());
 	let currentRSMom = RSMom;
+	let newlyaddedKid: HTMLButtonElement;
 
 	type Types = RS1.RSD | undefined;
 
@@ -120,6 +121,7 @@
 			RSMom.kidAdd(newRSr);
 			// edit(selectedKid);
 			newRSr = new RS1.RSr();
+			newlyaddedKid.focus();
 		}
 		
 		async function handleRSISave(editedRSI: RS1.RSI) {
@@ -153,7 +155,7 @@
 </script>
 
 {#snippet selectBox(kid:Types)}
-	<button onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
+	<button onclick={() => selectKid(kid)} class:selected={kid === selectedKid} bind:this={newlyaddedKid} >
 		<span>{kid?.info}</span>
 	</button>
 {/snippet}	
@@ -162,16 +164,18 @@
 	<div id="editor">
 		<div>{RSD.cName}</div>
         <div class="selectContainer">
-			{#if kidArray}
-				{#each kidArray as kid}
-					{#if step === 'Home' && kid}
-						{@render selectBox(kid)}
-					{/if}
-					{#if step === 'edit' && kid}
-						{@render selectBox(kid)}
-					{/if}
-				{/each}
-			{/if}
+			<div class="content-wrapper">
+				{#if kidArray}
+					{#each kidArray as kid}
+						{#if step === 'Home' && kid}
+							{@render selectBox(kid)}
+						{/if}
+						{#if step === 'edit' && kid}
+							{@render selectBox(kid)}
+						{/if}
+					{/each}
+				{/if}
+			</div>
         </div>
 		
 		<div class="Buttons">
@@ -207,20 +211,25 @@
 		padding: 10px;
   
 		.selectContainer {
-		  width: 100%;
-		  height: auto;
-		  padding: 10px;
-		  border-radius: 8px;
-		  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-		  max-height: 500px;
+        width: 100%;
+		height: 300px;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		overflow-y: auto;
+        background-color: white;
+        color: black;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+		.content-wrapper {
+          width: 100%;
 		  overflow-y: auto;
-		  background-color: white;
-		  color: black;
-		  display: flex;
-		  flex-direction: column;
-		  gap: 4px;
-  
-		  button {
+        }
+
+		.content-wrapper button {
 			cursor: pointer;
 			padding: 2px;
 			border-radius: 4px;
@@ -234,13 +243,12 @@
 			font-size: inherit;
 			color: inherit;
 			display: block;
-  
-			&:hover,
-			&.selected {
-			  background-color: #3297FD;
-			  color: white;
-			}
-		  }
+		}
+
+		.content-wrapper button:hover,
+		.content-wrapper button.selected {
+			background-color: #3297FD;
+			color: white;
 		}
   
 		.Buttons {

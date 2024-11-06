@@ -2014,7 +2014,7 @@ export namespace RS1 {
 		constructor (Str:RSArgs='|') {
 			super (Str);
 	
-			// this.from$ (Str as string|string[]);
+			this.from$ (Str as string|string[]);
 		}
 
 		get descStr () {
