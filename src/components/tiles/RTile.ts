@@ -1,4 +1,4 @@
-import { LitElement, html } from 'lit';
+import { LitElement, html, type PropertyValueMap } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
@@ -19,7 +19,7 @@ export class RTile extends LitElement {
     _fileUploaded: { type: Boolean },
     _editMode: { type: Boolean },
     _textEditContent: { type: String },
-    _currentTile: { type: Object },
+    // _currentTile: { type: Object },
     _currentZoom: { type: Number },
     _panToggle: { type: Boolean },
     TList: { type: Object }
@@ -273,6 +273,80 @@ export class RTile extends LitElement {
     }
   }
 
+  setupClickHandler() {
+    this.shadowRoot?.addEventListener('click', (e: Event) => {
+      const target = e.target as HTMLElement;
+      
+      if (!target) return;
+      
+      const tileIndex = parseInt(target.id.replace('tile', ''));
+      const tile = this.TList.tiles[tileIndex];
+      
+      if (!tile) return;
+    
+      this.handleClick(tile);
+    })
+   
+
+  }
+  handleClick(tile: RS1.TDE) {
+    const alertContent = tile.aList?.descByName('alert');
+    const redirectLink = tile.aList?.descByName('redirect');
+    const isTextBtn = tile.aList?.descByName('textBtn');
+    const isPan = tile.aList?.descByName('pan');
+    const handleInteractionToggle = tile.aList?.descByName('toggle');
+    const isImage = tile.aList?.descByName('image');
+
+    if (alertContent) {
+      alert(alertContent);
+    }
+
+    if (redirectLink) {
+      window.location.href = redirectLink;
+    }
+
+    if (isTextBtn === "true") {
+      const parent = tile.parent;
+      const parentTile = this.TList.tiles[parent];
+      const VID = parentTile.aList?.getVID('inner');
+
+      if (VID) {
+        VID.Desc = this._textEditContent;
+        parentTile.aList?.setVID(VID);
+        this.requestUpdate();
+      }
+    }
+
+    if (handleInteractionToggle) {
+      this._editMode = !this._editMode;
+    }
+
+    if (isPan === "true") {
+      this.handleInteractions(tile);
+    }
+
+    if (isPan === "false") {
+      const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
+      if (element) {
+        interact(element).unset(); 
+      }
+      console.log('edit mode:', this._editMode)
+    }
+      if (handleInteractionToggle) {
+      const innerVID = tile.aList?.getVID('inner');
+      if (innerVID) {
+        innerVID.Desc = this._editMode ? 'Done' : 'Edit';
+        tile.aList?.setVID(innerVID);
+      }
+    }
+
+    if (isImage === "true") {
+      const parent = tile.parent;
+      const parentTile = this.TList.tiles[parent];
+      this.handleInteractions(parentTile);
+    }
+  }
+
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const innerContentHTML = unsafeHTML(innerContent)
@@ -286,16 +360,19 @@ export class RTile extends LitElement {
     const handleInteractionToggle = tile.aList?.descByName('toggle');
     let childrenHtml = html``;
   
-    this.handleBackgroundPan();
+    // this.handleBackgroundPan();
 
     if (isImage === "true") {
       const panVID = tile.aList?.getVID('pan');
-      if (panVID) {
+      if (panVID && this._fileUploaded) {
         panVID.Desc = this._editMode ? 'true' : 'false';
         tile.aList?.setVID(panVID);
         const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
         if (element) {
-          interact(element).unset(); 
+          interact(element).unset();
+          const parent = tile.parent;
+          const parentTile = this.TList.tiles[parent];
+          this.handleInteractions(parentTile);
         }
       }
       console.log('Updated pan:', tile.aList?.getVID('pan').Desc);
@@ -308,6 +385,7 @@ export class RTile extends LitElement {
         tile.aList?.setVID(innerVID);
       }
       if (this._fileUploaded) {
+        this._currentTile = tile
         const displayVID = tile.sList?.getVID('display');
         console.log('file uploaded!')
         if (displayVID) {
@@ -317,44 +395,6 @@ export class RTile extends LitElement {
       }
     }
  
-    const clickHandler = () => {
-      if (alertContent) {
-        alert(alertContent);
-      }
-
-      if (redirectLink) {
-        window.location.href = redirectLink;
-      }
-
-      if (isTextBtn === "true") {
-        const parent = tile.parent;
-        const parentTile = this.TList.tiles[parent];
-        const VID = parentTile.aList?.getVID('inner');
-
-        if (VID) {
-          VID.Desc = this._textEditContent;
-          parentTile.aList?.setVID(VID);
-          this.requestUpdate();
-        }
-      }
-
-      if (handleInteractionToggle) {
-        this._editMode = !this._editMode;
-      }
-
-      if (isPan === "true") {
-        this.handleInteractions(tile);
-      }
-
-      if (isPan === "false") {
-        const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
-        if (element) {
-          interact(element).unset(); 
-        }
-        console.log(this._editMode)
-      }
-    
-    }
 
     if (isImageBtn === "true") {
       childrenHtml = html`
@@ -384,7 +424,7 @@ export class RTile extends LitElement {
       }
     }
     
-    return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}"  @click="${clickHandler}">${innerContentHTML}${childrenHtml}</div>`;
+    return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContentHTML}${childrenHtml}</div>`;
   }
 
   render() {
@@ -393,10 +433,15 @@ export class RTile extends LitElement {
     return html`${topLevelTiles.map(tile => this.renderDivs(tile))}`;
   }
 
- // updated(changedProperties: any) {
-  //   if (this.fileUploaded && this.currentTile) {
-  //       this.handlePan(this.TList.tiles[this.currentTile.parent]);
-  //   }
-  // }
+  firstUpdated(changedProperties: PropertyValueMap<any>): void {
+    super.firstUpdated(changedProperties);
+    this.handleBackgroundPan();
+    this.setupClickHandler();
+  }
+
+  shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
+    console.log('Changed properties:', [...changedProperties.keys()]); 
+    return super.shouldUpdate(changedProperties);
+  }
 
 }
