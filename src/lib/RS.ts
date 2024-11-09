@@ -374,6 +374,12 @@ export namespace RS1 {
 			}
 		}
 
+		fromPB (pb : PB, RSDName='', KidName='') {
+
+
+			asdf
+		}
+
 		private toPB (RSDName = '', KidName ='') {
 			let Str, bbi;
 			
@@ -558,6 +564,10 @@ export namespace RS1 {
 		constructor (In:RSArgs=undefined, name1='', type1='') {
 			if (In) 
 				this.constructRSD (In);
+			if (name1)
+				this.Name = name1;
+			if (type1)
+				this.Type = type1;
 		}
 
 		get NILchk () { return false; }
