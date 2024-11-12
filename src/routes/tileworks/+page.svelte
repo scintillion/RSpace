@@ -76,33 +76,32 @@
 	// 	' T\ta|name:Full|pan:true|\ts|display:flex|height:100vh|width:100vw|background:blue|\t',
 	// ];
 
-	let List: RS1.TileList = new RS1.TileList(TileStrings); // remove temporarily
+	let List: RS1.TileList = $state(new RS1.TileList(TileStrings)); // remove temporarily
 
-	let TileArray:any = []
-	let selectedTile: RS1.TDE = new RS1.TDE('')
+	let TileArray:any = $state([])
+	let selectedTile: RS1.TDE = $state(new RS1.TDE(''))
 	let VIDArray: RS1.vID[] | undefined = []
 	let VIDStyle: RS1.vID[] | undefined = []
 	let VIDAttribute: RS1.vID[] | undefined = []
 	let VIDsArray = []
 	const Str: string = '>'
-	let step = 'selectTile'
+	let step = $state('selectTile')
 	let ListType = 'attributes'
 	let currentEditor: any = null;
-	let showPlot = false
-	let isPanToggle = false
+	let showPlot = $state(false)
+	let isPanToggle = $state(false)
 	let fileUploaded = false
-	let newlyaddedTile: HTMLButtonElement;
+	let newlyaddedTile: HTMLButtonElement | undefined = $state();
 
+
+	function populateTileArray() {
     let Tiles = List.tiles;
-	console.log ('List of Tiles in TileWorks:');
-	for (const T of Tiles) {
-		if (T)
-			console.log (T.info);
-	}
-
 	List.tiles.forEach(tile => {
 		TileArray.push(tile)
 		})
+	}
+	
+	populateTileArray();
 
 	function selectTile(tile: RS1.TDE) {
 		selectedTile = tile
@@ -178,7 +177,7 @@ step = 'selectTile'
 		})
 		
 		step = 'selectTile';
-		newlyaddedTile.focus();
+		if (newlyaddedTile) newlyaddedTile.focus();
 	}
 
 
@@ -272,33 +271,33 @@ step = 'selectTile'
 			<div class='selectContainer'>
 	    		{#each TileArray as tile}
 					<div class="content-wrapper">
-		 				<button on:click={() => selectTile(tile)} class:selected={tile === selectedTile} bind:this={newlyaddedTile} >
+		 				<button onclick={() => selectTile(tile)} class:selected={tile === selectedTile} bind:this={newlyaddedTile} >
 	      					<span>{Str.repeat(tile.level)}{tile.aList?.descByName('name')} [{tile.TList?.listName.replace(/^\s+/, '')}]</span>
 		 				</button>
 		 			</div>
 	    		{/each}
 			</div>
 	  		<!-- <button>Add Tile</button> -->
-	  		<button on:click={() => showPlot = !showPlot}>Plot</button>
+	  		<button onclick={() => showPlot = !showPlot}>Plot</button>
 		{/if}
 	  	{#if step === 'editTile'}
 	  		<div class="options">
-				<button on:click={() => {ListType = 'attributes'; Edit(selectedTile)}}>Attributes</button>
-				<button on:click={() => {ListType = 'styles'; Edit(selectedTile)}}>Styles</button>
+				<button onclick={() => {ListType = 'attributes'; Edit(selectedTile)}}>Attributes</button>
+				<button onclick={() => {ListType = 'styles'; Edit(selectedTile)}}>Styles</button>
 				<button>
 					<label for="file-upload">Add Image</label>
-					<input id="file-upload" type="file" on:change={(event) => handleUpload(event,selectedTile)} style="display: none;" />
+					<input id="file-upload" type="file" onchange={(event) => handleUpload(event,selectedTile)} style="display: none;" />
 				</button>
-				<button on:click={() => AddTile(selectedTile,'Tile')}>Add Tile</button>
-				<button on:click={() => AddTile(selectedTile,'Button')}>Add Button</button> 
-				<button on:click={() => AddTile(selectedTile,'RoundButton')}>Add Round Button</button> 
-				<button on:click={() => AddTile(selectedTile,'ImageButton')}>Add Image Button</button>
-				<button on:click={() => AddTile(selectedTile,'TextEdit')}>Add Text Edit</button> 
-				<button on:click={() => AddTile(selectedTile,'TextButton')}>Add Text Save</button>  
+				<button onclick={() => AddTile(selectedTile,'Tile')}>Add Tile</button>
+				<button onclick={() => AddTile(selectedTile,'Button')}>Add Button</button> 
+				<button onclick={() => AddTile(selectedTile,'RoundButton')}>Add Round Button</button> 
+				<button onclick={() => AddTile(selectedTile,'ImageButton')}>Add Image Button</button>
+				<button onclick={() => AddTile(selectedTile,'TextEdit')}>Add Text Edit</button> 
+				<button onclick={() => AddTile(selectedTile,'TextButton')}>Add Text Save</button>  
 		
 				<div class='editContainer'></div>
 		
-				<!-- <button on:click={() => step = 'selectTile'}>Back</button>
+				<!-- <button onclick={() => step = 'selectTile'}>Back</button>
 				<button>Add Tile</button>  -->
 	  		</div>
 	  {/if}
@@ -308,9 +307,8 @@ step = 'selectTile'
 {/if}
 
 {#if showPlot}
-	<button on:click={() => showPlot = !showPlot}>Editor</button>
-	<button on:click={() => isPanToggle = !isPanToggle}>{isPanToggle ? 'OK' : 'Pan/Zoom'}</button>
-	<p>scroll/double-tap<br>to zoom</p>
+	<button onclick={() => showPlot = !showPlot}>Editor</button>
+	<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'OK' : 'Pan'}</button>
 	<r-tile TList={List} _panToggle={isPanToggle}></r-tile>
 {/if}
 
@@ -389,9 +387,6 @@ step = 'selectTile'
 		cursor: pointer;
 		color: white;
 		transition:   0.3s linear;
-	}
-	p {
-		margin-top: 10px;
 	}
 
 </style>

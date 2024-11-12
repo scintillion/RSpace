@@ -18,8 +18,8 @@ export class RTile extends LitElement {
   static properties = {
     _fileUploaded: { type: Boolean },
     _editMode: { type: Boolean },
-    _textEditContent: { type: String },
-    // _currentTile: { type: Object },
+    // _textEditContent: { type: String },
+    // // _currentTile: { type: Object },
     _currentZoom: { type: Number },
     _panToggle: { type: Boolean },
     TList: { type: Object }
@@ -245,6 +245,8 @@ export class RTile extends LitElement {
   }
 
   handleBackgroundPan() {
+    if (!this._currentTile) this._currentTile = this.TList.tiles[1];
+    
     const element = this.shadowRoot?.getElementById('tile2');
     if (element) {
       console.log('current zoom' + this._currentZoom);
@@ -319,11 +321,19 @@ export class RTile extends LitElement {
 
     if (handleInteractionToggle) {
       this._editMode = !this._editMode;
+      const innerVID = tile.aList?.getVID('inner');
+      if (innerVID) {
+        innerVID.Desc = this._editMode ? 'Done' : 'Edit';
+        tile.aList?.setVID(innerVID);
+      }
+      
     }
 
-    if (isPan === "true") {
+    if (!this._panToggle) {
+      if (isPan === "true") {
       this.handleInteractions(tile);
-    }
+      }
+    } 
 
     if (isPan === "false") {
       const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
@@ -331,13 +341,6 @@ export class RTile extends LitElement {
         interact(element).unset(); 
       }
       console.log('edit mode:', this._editMode)
-    }
-      if (handleInteractionToggle) {
-      const innerVID = tile.aList?.getVID('inner');
-      if (innerVID) {
-        innerVID.Desc = this._editMode ? 'Done' : 'Edit';
-        tile.aList?.setVID(innerVID);
-      }
     }
 
     if (isImage === "true") {
@@ -350,17 +353,11 @@ export class RTile extends LitElement {
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const innerContentHTML = unsafeHTML(innerContent)
-    const alertContent = tile.aList?.descByName('alert');
-    const redirectLink = tile.aList?.descByName('redirect');
     const isImageBtn = tile.aList?.descByName('upload');
     const isImage = tile.aList?.descByName('image');
     const isText = tile.aList?.descByName('text');
-    const isTextBtn = tile.aList?.descByName('textBtn');
-    const isPan = tile.aList?.descByName('pan');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
     let childrenHtml = html``;
-  
-    // this.handleBackgroundPan();
 
     if (isImage === "true") {
       const panVID = tile.aList?.getVID('pan');
@@ -409,7 +406,6 @@ export class RTile extends LitElement {
           id="text-edit"
           @input="${(e: Event) => {
             this._textEditContent = (e.target as HTMLTextAreaElement).value;
-            this.requestUpdate();
           }}"
           style="" />`
     }
@@ -437,6 +433,17 @@ export class RTile extends LitElement {
     super.firstUpdated(changedProperties);
     this.handleBackgroundPan();
     this.setupClickHandler();
+  }
+
+  updated(changedProperties: PropertyValueMap<any>): void {
+    super.updated(changedProperties);
+    // this.setupClickHandler();
+    if (this._currentTile && this._panToggle) {
+      const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this._currentTile)}`);
+      if (element) {
+        interact(element).unset(); 
+      }
+    }
   }
 
   shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
