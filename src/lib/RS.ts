@@ -2,7 +2,7 @@
 import TextEditHandler from "../components/TileComponents/TextEditHandler.svelte";
 
 export namespace RS1 {
-	export const StrEnd='\0x1f', StrEndCode=0x1f;
+	export const StrEnd='\x1f', StrEndCode=0x1f;
 	export const NILAB = new ArrayBuffer (0);
 	const NILNums:number[]=[];
 	const NILStrs:string[]=[];
@@ -375,9 +375,21 @@ export namespace RS1 {
 		}
 
 		fromPB (pb : PB, RSDName='', KidName='') {
+			let k = this.K;
+			if (k)
+				k.clear;
 
+			for (const field of pb.Fields) {
+				let name = field.Name;
 
-			asdf
+				switch (name) {
+					case '.$' : this.from$ (field.Data as string); break;
+					case '.x' : this.X = field.Data as RSD; break;
+					case '.p' : this.P = field.Data as RSPack; break;
+					default : if (k  &&  name  &&  name[0] != '.')
+						k.add (field.Data as RSD,false);
+				}
+			}
 		}
 
 		private toPB (RSDName = '', KidName ='') {
@@ -494,7 +506,13 @@ export namespace RS1 {
 		fromPack (Pack:RSPack) {}
 		fromFields (Fields : RSF[]) {}
 		from$ (S:string|string[]) : string|string[] {
-			let remain:string[] = [], i, q, r, last, first, Strs;
+			let remain:string[] = [], i=this.I, q=this.Q, r=this.R, last, first, Strs;
+			if (i)
+				i.clear;
+			if (q)
+				q.clear;
+			if (r)
+				r.clear;
 
 			if ((typeof S) === 'string') {
 				let str = S as string;
@@ -509,18 +527,12 @@ export namespace RS1 {
 
 				last = str.slice (-1); first = str.slice (0,-1);
 				switch (last) {
-					case 'I' :
-						if (i = this.I)
-							i.from$ (first);
-						break;
+					case 'I' : if (i) i.from$ (first); break;
 
-					case 'Q' :
-						if (q = this.Q)
-							q.from$ (first);
-						break;
+					case 'Q' : if (q)	q.from$ (first); break;
 
 					case 'R' :
-						if (r = this.R)
+						if (r)
 							r.from$ (first);
 						break;
 
