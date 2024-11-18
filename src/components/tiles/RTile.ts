@@ -12,7 +12,6 @@ export class RTile extends LitElement {
   declare _fileUploaded: boolean;
   declare _editMode: boolean;
   declare _currentTile?: RS1.TDE | undefined;
-  declare _currentZoom: number | undefined;
   declare _panToggle: boolean;
 
   static properties = {
@@ -20,7 +19,6 @@ export class RTile extends LitElement {
     _editMode: { type: Boolean },
     // _textEditContent: { type: String },
     // // _currentTile: { type: Object },
-    _currentZoom: { type: Number },
     _panToggle: { type: Boolean },
     TList: { type: Object }
   };
@@ -54,7 +52,6 @@ export class RTile extends LitElement {
     this._fileUploaded = false;
     this._editMode = false;
     this._textEditContent = '';
-    this._currentZoom = undefined;
     this._panToggle = false;
     this.TList = new RS1.TileList('');
   }
@@ -249,12 +246,11 @@ export class RTile extends LitElement {
     
     const element = this.shadowRoot?.getElementById('tile2');
     if (element) {
-      console.log('current zoom' + this._currentZoom);
       const Panzoom = panzoom(element,
         {
         // autocenter: true, 
         // bounds: true,
-        initialZoom: this._currentZoom,
+        // initialZoom: this._currentZoom,
         beforeMouseDown: (e: any) => {
             if (this._currentTile && this._panToggle) {
               if (this.TList.tiles.indexOf(this._currentTile) !== 2) {
@@ -266,11 +262,6 @@ export class RTile extends LitElement {
         },
       }
       );
-    
-      Panzoom.on('zoomend', (e) =>{
-        this._currentZoom = Panzoom.getTransform().scale;
-        console.log('updated zoom' + this._currentZoom);
-      })
      
     }
   }
@@ -280,9 +271,17 @@ export class RTile extends LitElement {
       const target = e.target as HTMLElement;
       
       if (!target) return;
+
+      if (this._currentTile) {
+        const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this._currentTile)}`);
+          if (element) {
+            interact(element).unset();
+          }
+        }
       
       const tileIndex = parseInt(target.id.replace('tile', ''));
       const tile = this.TList.tiles[tileIndex];
+      this._currentTile = tile;
       
       if (!tile) return;
     
@@ -343,12 +342,12 @@ export class RTile extends LitElement {
       console.log('edit mode:', this._editMode)
     }
 
-    if (isImage === "true") {
+    if (isImage === "true" && !this._panToggle) {
       const parent = tile.parent;
       const parentTile = this.TList.tiles[parent];
       this.handleInteractions(parentTile);
     }
-  }
+}
 
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
@@ -373,22 +372,22 @@ export class RTile extends LitElement {
         }
       }
       console.log('Updated pan:', tile.aList?.getVID('pan').Desc);
-    }
+  }
 
-    if (handleInteractionToggle) {
-      const innerVID = tile.aList?.getVID('inner');
-      if (innerVID) {
-        innerVID.Desc = this._editMode ? 'Done' : 'Edit';
-        tile.aList?.setVID(innerVID);
-      }
-      if (this._fileUploaded) {
-        this._currentTile = tile
-        const displayVID = tile.sList?.getVID('display');
-        console.log('file uploaded!')
-        if (displayVID) {
-          displayVID.Desc = 'flex'
-          tile.sList?.setVID(displayVID);
-        }
+        if (handleInteractionToggle) {
+          const innerVID = tile.aList?.getVID('inner');
+          if (innerVID) {
+            innerVID.Desc = this._editMode ? 'Done' : 'Edit';
+            tile.aList?.setVID(innerVID);
+          }
+          if (this._fileUploaded) {
+    this._currentTile = tile
+    const displayVID = tile.sList?.getVID('display');
+    console.log('file uploaded!')
+    if (displayVID) {
+    displayVID.Desc = 'flex'
+    tile.sList?.setVID(displayVID);
+    }
       }
     }
  
@@ -442,9 +441,9 @@ export class RTile extends LitElement {
       const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this._currentTile)}`);
       if (element) {
         interact(element).unset(); 
-      }
-    }
+          }
   }
+}
 
   shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
     console.log('Changed properties:', [...changedProperties.keys()]); 
