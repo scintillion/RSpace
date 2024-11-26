@@ -50,30 +50,35 @@
 	// 	'    TxtBtn\ta|name:Button|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
 	// ];
 
+
 	let TileStrings: string[] = [
 		'TS4:TileStrings Desc4',
-		'T\ta|name:Full|\ts|display:flex|\t',
+		'T\ta|name:Full|\ts|display:flex|flex-direction:column|gap:5px|\t',
 		' T\ta|name:Full|\ts|display:flex|\t',
 		'  T\ta|name:Base|\ts|width:100vw|height:10vh|\t',
-		'   T\ta|name:Top|pan:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|transform:translate(0px, 0px)|\t',
+		'   T\ta|name:Top|drag:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
 		'   T\ta|name:Base|\ts|width:20vw|height:90vh\t',
-		'    T\ta|name:Left|pan:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
+		'    T\ta|name:Left|drag:true|click:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'     RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
 		'   T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
-		'    T\ta|name:Middle|pan:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|transform:translate(0px, 0px)|\t',
+		'    T\ta|name:Middle|drag:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|transform:translate(0px, 0px)|\t',
 		'     Btn\ta|name:EditButton|inner:Edit|toggle:true|\ts|width:70px|height:30px|display:none|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
-		'     T\ta|name:image-container|pan:false|image:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|display:flex|width:100%|height:100%|background-image:url("")|background-size:cover|background:cyan|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
+		'     T\ta|name:image-container|drag:false|image:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|display:flex|width:100%|height:100%|background-image:url("")|background-size:cover|background:cyan|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
 		'      ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
 		'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-		'    Txt\ta|name:Right|pan:true|inner:<h2>Enter text</h2> <i>use html tags for formatting</i>|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
-		'     TxtBtn\ta|name:Button|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
+		'    Txt\ta|name:Right|drag:true|inner:click to add text|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
+		// '     T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|\t',
+		// '      Btn\ta|name:TextBold|inner:B|textBold:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|\t',
+		// '      Btn\ta|name:TextBold|inner:I|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|\t',
+		// '      Btn\ta|name:TextBold|inner:U|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
+		'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
 	];
 
 	// let TileStrings: string[] = [
 	// 	'TS4:TileStrings Desc4',
 	// 	'T\ta|name:Full|\ts|display:flex|height:100vh|width:100vw|\t',
-	// 	' T\ta|name:Full|pan:true|\ts|display:flex|height:100vh|width:100vw|background:blue|\t',
+	// 	' T\ta|name:Full|drag:true|\ts|display:flex|height:100vh|width:100vw|background:blue|\t',
 	// ];
 
 	let List: RS1.TileList = $state(new RS1.TileList(TileStrings)); // remove temporarily
@@ -92,6 +97,10 @@
 	let isPanToggle = $state(false)
 	let fileUploaded = false
 	let newlyaddedTile: HTMLButtonElement | undefined = $state();
+	let photos = $state([]);
+    let currentPhotoIndex = $state(0);
+    let isShuffling = $state(true);
+     
 
 
 	function populateTileArray() {
@@ -138,13 +147,12 @@ async function handleUpload(event: Event, tile: RS1.TDE) {
 step = 'selectTile'
 
 }
-
 	function AddTile(tile:RS1.TDE, type: string) {
 		const Tab = " ";
 		let NewTileString: string = '';
 		switch (type) {
 			case 'Tile':
-				NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:Tile|inner:|pan:true|\ts|height:10vh|width:10vw|background:yellow|\t`;
+				NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:Tile|inner:|drag:true|\ts|height:10vh|width:10vw|background:yellow|\t`;
 				break;
 			
 			case 'Button':
