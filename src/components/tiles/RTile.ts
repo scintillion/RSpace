@@ -38,7 +38,7 @@ export class RTile extends LitElement {
   static RoundButtonDefArray: RS1.TDE[] = [RTile.ButtonDef, RTile.RoundButtonTDE];
   static RoundButtonDef = RTile.TileMerge(RTile.RoundButtonDefArray);
 
-  static TextEditTDE = new RS1.TDE('Txt\ta|name:TextEdit|text:true|\ts|\t');
+  static TextEditTDE = new RS1.TDE('Txt\ta|name:TextEdit|text:true|textPreview:true|\ts|\t');
   static TextEditDefArray: RS1.TDE[] = [RTile.TDef, RTile.TextEditTDE];
   static TextEditDef = RTile.TileMerge(RTile.TextEditDefArray);
 
@@ -320,24 +320,26 @@ export class RTile extends LitElement {
       window.location.href = redirectLink;
     }
 
-    if (isTextBtn === "true") {
-      const innerVID = tile.aList?.getVID('inner');
-      const displayVID = tile.aList?.getVID('display');
+    if (isTextBtn === "true") { 
 
       const parent = tile.parent;
       const parentTile = this.TList.tiles[parent];
-      const VID = parentTile.aList?.getVID('inner');
+      const parentInnerVID = parentTile.aList?.getVID('inner');
+      const textPreviewVID = parentTile.aList?.getVID('textPreview');
+      const isTextPreview = parentTile.aList?.descByName('textPreview');
 
-      if (VID) {
-        VID.Desc = this._textEditContent;
-        parentTile.aList?.setVID(VID);
+      if (parentInnerVID) {
+        parentInnerVID.Desc = this._textEditContent;
+        parentTile.aList?.setVID(parentInnerVID);
       }
 
-      if (innerVID) {
-        innerVID.Desc = this._isTextPreview ? 'Edit' : 'Save';
-        tile.aList?.setVID(innerVID);
-        this._isTextPreview = !this._isTextPreview;
+      if (textPreviewVID) {
+        textPreviewVID.Desc = 'true';
+        parentTile.aList?.setVID(textPreviewVID);
       }
+
+      this._isTextPreview = true;
+     
     }
 
     if( isTextBold === "true") {
@@ -377,13 +379,16 @@ export class RTile extends LitElement {
 
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
-    const innerContentHTML = unsafeHTML(innerContent)
+    const innerContentHTML = unsafeHTML(innerContent);
+    const parentTile = this.TList.tiles[tile.parent];
     const isImageBtn = tile.aList?.descByName('upload');
     const isImage = tile.aList?.descByName('image');
     const isText = tile.aList?.descByName('text');
     const isTextBtn = tile.aList?.descByName('textBtn');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
     const displayVID = tile.sList?.getVID('display');
+    const istextPreview = tile.aList?.descByName('textPreview');
+    const textPreviewVID = tile.aList?.getVID('textPreview');
     let childrenHtml = html``;
 
     if (isImage === "true") {
@@ -402,25 +407,44 @@ export class RTile extends LitElement {
     }
 
     if (handleInteractionToggle) {
-      const innerVID = tile.aList?.getVID('inner');
-      if (innerVID) {
-        innerVID.Desc = this._editMode ? 'Done' : 'Edit';
-        tile.aList?.setVID(innerVID);
+      const innerVIDToggle = tile.aList?.getVID('inner');
+      const displayVID = tile.sList?.getVID('display');
+      if (innerVIDToggle) {
+        innerVIDToggle.Desc = this._editMode ? 'Done' : 'Edit';
+        tile.aList?.setVID(innerVIDToggle);
       }
       if (this._fileUploaded) {
         this._currentTile = tile
         console.log('file uploaded!')
         if (displayVID) {
-        displayVID.Desc = 'flex'
-        tile.sList?.setVID(displayVID);
+          displayVID.Desc = this._panToggle ? 'none' : 'flex';
+          tile.sList?.setVID(displayVID);
         }
       }
     }
 
-    if (isTextBtn === "true") {
+    if (isImageBtn === "true") {
+      const displayVID = tile.sList?.getVID('display');
       if (displayVID) {
-        displayVID.Desc = this._isTextPreview ? 'none' : 'flex'
+        displayVID.Desc = this._panToggle ? 'none' : 'flex'
         tile.sList?.setVID(displayVID);
+      }
+    }
+
+    if (isTextBtn === "true") {
+      const isTextPreview = parentTile.aList?.descByName('textPreview');
+      if (isTextPreview === "true" && this._isTextPreview) {
+        if (displayVID) {
+          displayVID.Desc = 'none'
+          tile.sList?.setVID(displayVID);
+          
+        }
+      }
+      else if (isTextPreview === "false" && !this._isTextPreview) {
+        if (displayVID) {
+          displayVID.Desc = 'flex'
+          tile.sList?.setVID(displayVID);
+        }
       }
     }
  
@@ -445,39 +469,43 @@ export class RTile extends LitElement {
     // return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContentHTML}${childrenHtml}</div>`;
 
     if (isText === "true") {
+      
+      if (!this._panToggle) {
+        if (istextPreview === "false") {
 
-      if (!this._isTextPreview) {
-    
-        return html`
-        <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
-          <textarea
-          .value="${this._textEditContent}"
-          id="text-edit"
-          contenteditable="true" 
-          placeholder="Enter text here"
-          @input="${(e: Event) => {
-            console.log('inputx' + innerContent) 
-            this._textEditContent = (e.target as HTMLTextAreaElement).value;
-          }}"
-          style="background: white; border: none;">
-          </textarea> 
-          ${childrenHtml}
-        </div>`;
+          return html`
+          <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
+            <textarea
+            .value="${innerContent}"
+            id="text-edit"
+            contenteditable="true" 
+            placeholder="Enter text here"
+            @input="${(e: Event) => {
+              console.log('inputx' + innerContent) 
+              this._textEditContent = (e.target as HTMLTextAreaElement).value;
+            }}"
+            style="background: white; border: none;">
+            </textarea> 
+            ${childrenHtml}
+          </div>`;
+        }
+        else if (istextPreview === "true") {
+          return html`
+          <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
+            <div
+            id="text-edit"
+            contenteditable="false" 
+            @click="${() =>  { textPreviewVID.Desc = "false";
+            tile.aList?.setVID(textPreviewVID);
+            this._isTextPreview = false;}}"
+            style="background: transparent; border: none; color: white;">
+            ${innerContentHTML}
+            </div>
+            ${childrenHtml}
+          </div>`;
+        }
     }
-      else {
-        return html`
-        <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
-          <div
-          id="text-edit"
-          contenteditable="false" 
-          @click="${() => this._isTextPreview = false}"
-          style="background: transparent; border: none; color: white;">
-          ${innerContentHTML}
-          </div>
-          ${childrenHtml}
-        </div>`;
-      }
-    }
+  }
     return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
     ${innerContentHTML}
     ${childrenHtml}
