@@ -305,6 +305,7 @@ export class RTile extends LitElement {
     const isTextBold = tile.aList?.descByName('textBold');
     const isTextItalic = tile.aList?.descByName('textItalic');
     const isTextUnderline = tile.aList?.descByName('textUnderline');
+    const isLink = tile.aList?.descByName('link');
     const textEditor = document.getElementById('text-edit');
 
     function applyFormatting(command:string) {
@@ -374,6 +375,17 @@ export class RTile extends LitElement {
       const parent = tile.parent;
       const parentTile = this.TList.tiles[parent];
       this.handleInteractions(parentTile);
+    }
+
+    if (isLink) {
+      const link = tile.aList?.descByName('link');
+      this.dispatchEvent(
+        new CustomEvent('tileLink', {
+          detail: { name: `${link}` },
+          bubbles: true,
+          composed: true
+        })
+      );
     }
 }
 

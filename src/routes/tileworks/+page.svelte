@@ -51,12 +51,13 @@
 	// ];
 
 
-	let TileStrings: string[] = [
+	let TileStrings1: string[] = [
 		'TS4:TileStrings Desc4',
 		'T\ta|name:Full|\ts|display:flex|flex-direction:column|gap:5px|\t',
 		' T\ta|name:Full|\ts|display:flex|\t',
-		'  T\ta|name:Base|\ts|width:100vw|height:10vh|\t',
-		'   T\ta|name:Top|drag:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|transform:translate(0px, 0px)|\t',
+		'  T\ta|name:Base|\ts|width:100vw|height:10vh|display:flex|flex-direction:row|\t',
+		'   T\ta|name:Top|drag:true|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
+		'   T\ta|name:Top|drag:true|\ts|background:magenta|height:10vh|width:90vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
 		'   T\ta|name:Base|\ts|width:20vw|height:90vh\t',
 		'    Txt\ta|name:Left|drag:true|text:true|textPreview:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
@@ -78,13 +79,24 @@
 		'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
 	];
 
+	let TileStrings2: string[] = [
+		'TS4:TileStrings Desc4',
+		'T\ta|name:new|\ts|display:flex|height:100vh|width:100vw|\t',
+		' T\ta|name:new tile|drag:true|\ts|display:flex|height:100vh|width:100vw|background:blue|display:flex|flex-direction:row|align-items:top|justify-content:left|\t',
+		'  T\ta|name:tile|drag:true|link:Tile1|inner:link to villa1|\ts|display:flex|height:10vh|width:10vw|background:orange|\t',
+	]
+
 	// let TileStrings: string[] = [
 	// 	'TS4:TileStrings Desc4',
 	// 	'T\ta|name:Full|\ts|display:flex|height:100vh|width:100vw|\t',
 	// 	' T\ta|name:Full|drag:true|\ts|display:flex|height:100vh|width:100vw|background:blue|\t',
 	// ];
+	let TileMap: any  = {'Tile1' :TileStrings1,
+		'Tile2':TileStrings2
+	}
 
-	let List: RS1.TileList = $state(new RS1.TileList(TileStrings)); // remove temporarily
+	let TileStrings: string[] = [];
+	let List: RS1.TileList = $state(new RS1.TileList([])); // remove temporarily
 
 	let TileArray:any = $state([])
 	let selectedTile: RS1.TDE = $state(new RS1.TDE(''))
@@ -104,7 +116,16 @@
     let currentPhotoIndex = $state(0);
     let isShuffling = $state(true);
      
+	function createTileList(TileStrings: string[]) {
+		List = new RS1.TileList(TileStrings);
+		populateTileArray();
+	}
 
+	function getTileStrings(name:string) {
+		return TileMap[name];
+	}
+
+	createTileList(TileStrings1);
 
 	function populateTileArray() {
     let Tiles = List.tiles;
@@ -112,9 +133,14 @@
 		TileArray.push(tile)
 		})
 	}
-	
-	populateTileArray();
 
+	function tileLink(e: CustomEvent) {	
+		let CurrentTileString = getTileStrings(e.detail.name);
+		List = new RS1.TileList(CurrentTileString);
+		TileArray = [];
+	}
+
+	
 	function selectTile(tile: RS1.TDE) {
 		selectedTile = tile
 		step = 'editTile'
@@ -150,123 +176,100 @@ async function handleUpload(event: Event, tile: RS1.TDE) {
 step = 'selectTile'
 
 }
-	function AddTile(tile:RS1.TDE, type: string) {
-		const Tab = " ";
-		let NewTileString: string = '';
-		switch (type) {
-			case 'Tile':
-				NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:Tile|inner:|drag:true|\ts|height:10vh|width:10vw|background:yellow|\t`;
-				break;
-			
-			case 'Button':
-				NewTileString = `${Tab.repeat(selectedTile.level+1)}Btn\ta|name:Button|inner:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t`;
-				break;
-
-			case 'RoundButton':
-				NewTileString = `${Tab.repeat(selectedTile.level+1)}RndBtn\ta|name:Button|inner:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t`;
-				break;
-
-			case 'TextEdit':
-				NewTileString = `${Tab.repeat(selectedTile.level+1)}Txt\ta|name:TextEdit|\ts|display:flex|width:10vh|height:10vw|background:#|\t`;
-				break;
-
-			case 'TextButton':
-				NewTileString = `${Tab.repeat(selectedTile.level+1)}TxtBtn\ta|name:TextButton|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t`;
-				break;
-
-			case 'ImageButton':
-				NewTileString = `${Tab.repeat(selectedTile.level+1)}ImgBtn\ta|name:ImageButton|\ts|display:flex|height:30px|width:70px|background:#1e1e1e|color:white|border-radius:8px|\t`;
-				break;
-
-		}
-		TileStrings.splice(List.tiles.indexOf(selectedTile) + 1, 0, NewTileString);
-		TileArray = [];
-		List = new RS1.TileList(TileStrings);
+function AddTile(tile:RS1.TDE, type: string) {
+	const Tab = " ";
+	let NewTileString: string = '';
+	switch (type) {
+		case 'Tile':
+			NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:Tile|inner:|drag:true|\ts|height:10vh|width:10vw|background:yellow|\t`;
+			break;
 		
-		List.tiles.forEach(tile => {
-			TileArray.push(tile)
-		})
-		
-		step = 'selectTile';
-		if (newlyaddedTile) newlyaddedTile.focus();
+		case 'Button':
+			NewTileString = `${Tab.repeat(selectedTile.level+1)}Btn\ta|name:Button|inner:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t`;
+			break;
+
+		case 'RoundButton':
+			NewTileString = `${Tab.repeat(selectedTile.level+1)}RndBtn\ta|name:Button|inner:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t`;
+			break;
+
+		case 'TextEdit':
+			NewTileString = `${Tab.repeat(selectedTile.level+1)}Txt\ta|name:TextEdit|\ts|display:flex|width:10vh|height:10vw|background:#|\t`;
+			break;
+
+		case 'TextButton':
+			NewTileString = `${Tab.repeat(selectedTile.level+1)}TxtBtn\ta|name:TextButton|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t`;
+			break;
+
+		case 'ImageButton':
+			NewTileString = `${Tab.repeat(selectedTile.level+1)}ImgBtn\ta|name:ImageButton|\ts|display:flex|height:30px|width:70px|background:#1e1e1e|color:white|border-radius:8px|\t`;
+			break;
+
 	}
+	TileStrings.splice(List.tiles.indexOf(selectedTile) + 1, 0, NewTileString);
+	TileArray = [];
+	List = new RS1.TileList(TileStrings);
+	
+	List.tiles.forEach(tile => {
+		TileArray.push(tile)
+	})
+	
+	step = 'selectTile';
+	if (newlyaddedTile) newlyaddedTile.focus();
+}
 
 
-	function Edit(tile: RS1.TDE) {
-		let sList = tile.sList;
-		let aList = tile.aList;
-		// let sPack = sList?.SavePack();
-		// let aPack = aList?.SavePack();
-		const EditContainer = document.querySelector('.editContainer');
-			
-			if (currentEditor) {
-				unmount(currentEditor);
-				// currentEditor.$destroy();
-				currentEditor = null;
-			}
-			
-			if (EditContainer) {
-				const modalContent = document.createElement('div');
-				document.body.appendChild(modalContent);
-				if (ListType === 'styles') {
-					  currentEditor = mount(QEditor,{
-						target: EditContainer,
-						props: {
-							qList: sList,
-							modalContent: modalContent ,
-							modalBackground: modalContent
-						},
-						events: {
-							close: () => {
-								EditContainer.remove();
-								step = 'selectTile';
-							}
-						}
-					});
-					// currentEditor.$on('close', () => {
-					// 	EditContainer.remove();
-					// 	step = 'selectTile';
-					// });
-					// currentEditor.$on('save', (event) => {
-					// 	let ReceivedPack = event.detail.value;
-					// 	if(ReceivedPack.str('data')) {
-					// 		tile.sList = new RS1.qList(ReceivedPack.str('data'));
-					// 	}
+function Edit(tile: RS1.TDE) {
+	let sList = tile.sList;
+	let aList = tile.aList;
+	// let sPack = sList?.SavePack();
+	// let aPack = aList?.SavePack();
+	const EditContainer = document.querySelector('.editContainer');
 		
-					// })
-				} else if (ListType === 'attributes') {
-					currentEditor = mount( QEditor,{
-						target: EditContainer,
-						props: {
-							qList: aList,
-							modalContent: modalContent,
-							modalBackground: modalContent
-						},
-						events: {
-							close: () => {
-								EditContainer.remove();
-								step = 'selectTile';
-							}
-						}
-					});
-					// currentEditor.$on('close', () => {
-					// 	EditContainer.remove();
-					// 	step = 'selectTile';
-					// });
-					// currentEditor.$on('save', (event) => {
-					// 	let ReceivedPack = event.detail.value;
-					// 	if(ReceivedPack.str('data')) {
-					// 		tile.aList = new RS1.qList(ReceivedPack.str('data'));
-					// 	}
-						
+		if (currentEditor) {
+			unmount(currentEditor);
+			// currentEditor.$destroy();
+			currentEditor = null;
+		}
 		
-					// })
-				}
+		if (EditContainer) {
+			const modalContent = document.createElement('div');
+			document.body.appendChild(modalContent);
+			if (ListType === 'styles') {
+					currentEditor = mount(QEditor,{
+					target: EditContainer,
+					props: {
+						qList: sList,
+						modalContent: modalContent ,
+						modalBackground: modalContent
+					},
+					events: {
+						close: () => {
+							EditContainer.remove();
+							step = 'selectTile';
+						}
+					}
+				});
+			} else if (ListType === 'attributes') {
+				currentEditor = mount( QEditor,{
+					target: EditContainer,
+					props: {
+						qList: aList,
+						modalContent: modalContent,
+						modalBackground: modalContent
+					},
+					events: {
+						close: () => {
+							EditContainer.remove();
+							step = 'selectTile';
+						}
+					}
+				});
 			}
 		}
-		// $: if (step === 'editTile') {
-		//     Edit(selectedTile);
-		// }
+	}
+	// $: if (step === 'editTile') {
+	//     Edit(selectedTile);
+	// }
 	
 
 </script>
@@ -320,7 +323,7 @@ step = 'selectTile'
 {#if showPlot}
 	<button onclick={() => showPlot = !showPlot}>Editor</button>
 	<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'OK' : 'Pan'}</button>
-	<r-tile TList={List} _panToggle={isPanToggle}></r-tile>
+	<r-tile TList={List} _panToggle={isPanToggle} ontileLink={tileLink}></r-tile>
 {/if}
 
 
