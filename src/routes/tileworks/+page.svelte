@@ -3,6 +3,7 @@
 	import { Plotter } from '$lib/Plotter';
 	import { RS1 } from '$lib/RSsvelte.svelte';
 	import { RTile } from '../../components/tiles/RTile'
+	import { VillaPlotter } from '../../components/tiles/VillaPlotter'
 	import Editor from '../../components/tiles/Editor.svelte';
 	import QEditor from '../../components/tiles/QEditor.svelte';
 	import panzoom from 'panzoom';
@@ -53,7 +54,7 @@
 
 	let TileStrings1: string[] = [
 		'TS4:TileStrings Desc4',
-		'T\ta|name:Full|\ts|display:flex|flex-direction:column|gap:5px|\t',
+		'T\ta|name:Full|\ts|display:flex|\t',
 		' T\ta|name:Full|\ts|display:flex|\t',
 		'  T\ta|name:Base|\ts|width:100vw|height:10vh|display:flex|flex-direction:row|\t',
 		'   T\ta|name:Top|drag:true|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
@@ -86,6 +87,13 @@
 		'  T\ta|name:tile|drag:true|link:Tile1|inner:link to villa1|\ts|display:flex|height:10vh|width:10vw|background:orange|\t',
 	]
 
+	let VillaTiles: string[] = [
+		'MagicTile1,10,10,35,30',
+        'MagicTile2,10,60,35,30',
+        'MagicTile3,60,10,35,30',
+        'MagicTile4,60,60,35,30'
+	];
+
 	// let TileStrings: string[] = [
 	// 	'TS4:TileStrings Desc4',
 	// 	'T\ta|name:Full|\ts|display:flex|height:100vh|width:100vw|\t',
@@ -109,6 +117,7 @@
 	let ListType = 'attributes'
 	let currentEditor: any = null;
 	let showPlot = $state(false)
+	let villaPlot = $state(false)
 	let isPanToggle = $state(false)
 	let fileUploaded = false
 	let newlyaddedTile: HTMLButtonElement | undefined = $state();
@@ -118,6 +127,7 @@
      
 	function createTileList(TileStrings: string[]) {
 		List = new RS1.TileList(TileStrings);
+		TileArray = [];
 		populateTileArray();
 	}
 
@@ -136,8 +146,9 @@
 
 	function tileLink(e: CustomEvent) {	
 		let CurrentTileString = getTileStrings(e.detail.name);
-		List = new RS1.TileList(CurrentTileString);
-		TileArray = [];
+		if (CurrentTileString) {
+			createTileList(CurrentTileString);
+		}
 	}
 
 	
@@ -293,6 +304,14 @@ function Edit(tile: RS1.TDE) {
 			</div>
 	  		<!-- <button>Add Tile</button> -->
 	  		<button onclick={() => showPlot = !showPlot}>Plot</button>
+			  <div class='selectContainer'>
+	    		{#each VillaTiles as tile}
+					<div class="content-wrapper">
+		 				<span>{tile}</span>
+		 			</div>
+	    		{/each}
+			</div>
+			<button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot;}}>Plot</button>
 		{/if}
 	  	{#if step === 'editTile'}
 	  		<div class="options">
@@ -321,9 +340,14 @@ function Edit(tile: RS1.TDE) {
 {/if}
 
 {#if showPlot}
-	<button onclick={() => showPlot = !showPlot}>Editor</button>
-	<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'OK' : 'Pan'}</button>
-	<r-tile TList={List} _panToggle={isPanToggle} ontileLink={tileLink}></r-tile>
+	{#if villaPlot}
+	<button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot}}>Editor</button>
+	<villa-plotter tileList={VillaTiles}></villa-plotter>
+	{:else}
+		<button onclick={() => showPlot = !showPlot}>Editor</button>
+		<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'OK' : 'Pan'}</button>
+		<r-tile TList={List} _panToggle={isPanToggle} ontileLink={tileLink}></r-tile>
+	{/if}
 {/if}
 
 
