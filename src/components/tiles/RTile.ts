@@ -297,7 +297,7 @@ export class RTile extends LitElement {
   handleClick(tile: RS1.TDE) {
     const alertContent = tile.aList?.descByName('alert');
     const redirectLink = tile.aList?.descByName('redirect');
-    const isTextBtn = tile.aList?.descByName('textBtn');
+    const isTextSaveBtn = tile.aList?.descByName('textBtn');
     const isDrag = tile.aList?.descByName('drag');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
     const isImage = tile.aList?.descByName('image');
@@ -306,11 +306,13 @@ export class RTile extends LitElement {
     const isTextItalic = tile.aList?.descByName('textItalic');
     const isTextUnderline = tile.aList?.descByName('textUnderline');
     const isLink = tile.aList?.descByName('link');
-    const textEditor = document.getElementById('text-edit');
+    const textEditor = this.shadowRoot?.getElementById('text-edit');
 
     function applyFormatting(command:string) {
-        document.execCommand(command, false);
-        textEditor?.focus();
+      if (!textEditor) return;
+
+      textEditor?.focus();
+      document.execCommand(command, false);
     }
 
     if (alertContent) {
@@ -321,7 +323,7 @@ export class RTile extends LitElement {
       window.location.href = redirectLink;
     }
 
-    if (isTextBtn === "true") { 
+    if (isTextSaveBtn === "true") { 
 
       const parent = tile.parent;
       const parentTile = this.TList.tiles[parent];
@@ -343,8 +345,16 @@ export class RTile extends LitElement {
      
     }
 
-    if( isTextBold === "true") {
-      applyFormatting('bold');
+    if (this._isTextPreview == false) {
+      if (isTextBold === "true") {
+        applyFormatting('bold');
+      }
+      if (isTextUnderline === "true") {
+        applyFormatting('underline');
+      }
+      if (isTextItalic === "true") {
+        applyFormatting('italic');
+      }
     }
 
     if (handleInteractionToggle) {
@@ -354,7 +364,6 @@ export class RTile extends LitElement {
         innerVID.Desc = this._editMode ? 'Done' : 'Edit';
         tile.aList?.setVID(innerVID);
       }
-      
     }
 
     if (!this._panToggle) {
@@ -396,7 +405,8 @@ export class RTile extends LitElement {
     const isImageBtn = tile.aList?.descByName('upload');
     const isImage = tile.aList?.descByName('image');
     const isText = tile.aList?.descByName('text');
-    const isTextBtn = tile.aList?.descByName('textBtn');
+    const isTextSaveBtn = tile.aList?.descByName('textBtn');
+    const isTextFormatBtn = tile.aList?.descByName('textFormat');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
     const displayVID = tile.sList?.getVID('display');
     const istextPreview = tile.aList?.descByName('textPreview');
@@ -443,8 +453,25 @@ export class RTile extends LitElement {
       }
     }
 
-    if (isTextBtn === "true") {
+    if (isTextSaveBtn === "true") {
       const isTextPreview = parentTile.aList?.descByName('textPreview');
+      if (isTextPreview === "true" && this._isTextPreview) {
+        if (displayVID) {
+          displayVID.Desc = 'none'
+          tile.sList?.setVID(displayVID);
+          
+        }
+      }
+      else if (isTextPreview === "false" && !this._isTextPreview) {
+        if (displayVID) {
+          displayVID.Desc = 'flex'
+          tile.sList?.setVID(displayVID);
+        }
+      }
+    }
+
+    if (isTextFormatBtn === "true") {
+      const isTextPreview = this.TList.tiles[parentTile.parent].aList?.descByName('textPreview');
       if (isTextPreview === "true" && this._isTextPreview) {
         if (displayVID) {
           displayVID.Desc = 'none'
@@ -485,27 +512,29 @@ export class RTile extends LitElement {
       if (!this._panToggle) {
         if (istextPreview === "false") {
 
-          return html`
-          <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
-            <textarea
-            .value="${innerContent}"
-            id="text-edit"
-            contenteditable="true" 
-            placeholder="Enter text here"
-            @input="${(e: Event) => {
-              console.log('inputx' + innerContent) 
-              this._textEditContent = (e.target as HTMLTextAreaElement).value;
-            }}"
-            style="background: white; border: none;">
-            </textarea> 
-            ${childrenHtml}
-          </div>`;
+        return html`
+        <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
+          <div
+          id="text-edit"
+          contenteditable="true" 
+          placeholder="Enter text here"
+          @input="${(e: Event) => {
+            console.log('inputx' + innerContent) 
+            this._textEditContent = (e.target as HTMLDivElement).textContent || '';
+          }}"
+          style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; ">
+          ${innerContentHTML}
+          </div> 
+          ${childrenHtml}
+        </div>`;
         }
+
+        
         else if (istextPreview === "true") {
           return html`
           <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
             <div
-            id="text-edit"
+            id="text-edit2"
             contenteditable="false" 
             @click="${() =>  { textPreviewVID.Desc = "false";
             tile.aList?.setVID(textPreviewVID);

@@ -73,10 +73,10 @@
 		'      ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
 		'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
 		'    Txt\ta|name:Right|drag:true|textPreview:true|inner:click to add text|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
-		// '     T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|\t',
-		// '      Btn\ta|name:TextBold|inner:B|textBold:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|\t',
-		// '      Btn\ta|name:TextBold|inner:I|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|\t',
-		// '      Btn\ta|name:TextBold|inner:U|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
+		'     T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|\t',
+		'      Btn\ta|name:TextBold|inner:B|textFormat:true|textBold:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|display:none|\t',
+		'      Btn\ta|name:TextBold|inner:I|textFormat:true|textItalic:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|display:none|\t',
+		'      Btn\ta|name:TextBold|inner:U|textFormat:true|textUnderline:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|display:none|\t',
 		'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
 	];
 
@@ -87,12 +87,12 @@
 		'  T\ta|name:tile|drag:true|link:Tile1|inner:link to villa1|\ts|display:flex|height:10vh|width:10vw|background:orange|\t',
 	]
 
-	let VillaTiles: string[] = [
+	let VillaTiles: string[] = $state([
 		'MagicTile1,10,10,35,30',
         'MagicTile2,10,60,35,30',
         'MagicTile3,60,10,35,30',
         'MagicTile4,60,60,35,30'
-	];
+	]);
 
 	// let TileStrings: string[] = [
 	// 	'TS4:TileStrings Desc4',
@@ -121,6 +121,7 @@
 	let isPanToggle = $state(false)
 	let fileUploaded = false
 	let newlyaddedTile: HTMLButtonElement | undefined = $state();
+	let selectedVillaTile: number | undefined = $state();
 	let photos = $state([]);
     let currentPhotoIndex = $state(0);
     let isShuffling = $state(true);
@@ -187,6 +188,11 @@ async function handleUpload(event: Event, tile: RS1.TDE) {
 step = 'selectTile'
 
 }
+
+function AddVillaTile() {
+	VillaTiles = [...VillaTiles, 'new tile']
+}
+
 function AddTile(tile:RS1.TDE, type: string) {
 	const Tab = " ";
 	let NewTileString: string = '';
@@ -305,13 +311,17 @@ function Edit(tile: RS1.TDE) {
 	  		<!-- <button>Add Tile</button> -->
 	  		<button onclick={() => showPlot = !showPlot}>Plot</button>
 			  <div class='selectContainer'>
-	    		{#each VillaTiles as tile}
+	    		{#each VillaTiles as tile,i}
 					<div class="content-wrapper">
-		 				<span>{tile}</span>
+						<input value={tile} class:selected={selectedVillaTile === i} onclick={() => selectedVillaTile = i} oninput={(e) => VillaTiles[i] = (e.target as HTMLInputElement)?.value}/>
 		 			</div>
 	    		{/each}
 			</div>
-			<button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot;}}>Plot</button>
+			<div class="options">
+				<button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot;}}>Plot</button>
+				<button onclick={AddVillaTile}>Add</button>
+				<button onclick={() => {if (selectedVillaTile) VillaTiles.splice(selectedVillaTile,1);}}>Delete</button>
+			</div>
 		{/if}
 	  	{#if step === 'editTile'}
 	  		<div class="options">
@@ -390,6 +400,12 @@ function Edit(tile: RS1.TDE) {
 		color: white;
 		}
 
+	.content-wrapper input:hover,
+	.content-wrapper input.selected {
+		background-color: #3297FD;
+		color: white;
+		}
+
     input {
 		width: 100%;
 		height:   32px;
@@ -398,7 +414,7 @@ function Edit(tile: RS1.TDE) {
 		outline: none;
 		border: none;
 		padding-left:   5px;
-		transition:   0.3s linear;
+		transition:   0.1s linear;
 		width: 100%;
    }
 
