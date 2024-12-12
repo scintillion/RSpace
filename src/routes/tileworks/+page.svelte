@@ -87,11 +87,18 @@
 		'  T\ta|name:tile|drag:true|link:Tile1|inner:link to villa1|\ts|display:flex|height:10vh|width:10vw|background:orange|\t',
 	]
 
+	// let VillaTiles: string[] = $state([
+	// 	'MagicTile1,10,10,35,30',
+    //     'MagicTile2,10,60,35,30',
+    //     'MagicTile3,60,10,35,30',
+    //     'MagicTile4,60,60,35,30'
+	// ]);
+
 	let VillaTiles: string[] = $state([
-		'MagicTile1,10,10,35,30',
-        'MagicTile2,10,60,35,30',
-        'MagicTile3,60,10,35,30',
-        'MagicTile4,60,60,35,30'
+		'MagicTile1,10,30,15,30',
+        'MagicTile2,30,30,15,30',
+        'MagicTile3,50,30,15,30',
+        'MagicTile4,70,30,15,30'
 	]);
 
 	// let TileStrings: string[] = [
@@ -135,7 +142,7 @@
 	function getTileStrings(name:string) {
 		return TileMap[name];
 	}
-
+	TileStrings = TileStrings1;	
 	createTileList(TileStrings1);
 
 	function populateTileArray() {
@@ -150,6 +157,7 @@
 		if (CurrentTileString) {
 			createTileList(CurrentTileString);
 		}
+		TileStrings = CurrentTileString;
 	}
 
 	
@@ -198,7 +206,7 @@ function AddTile(tile:RS1.TDE, type: string) {
 	let NewTileString: string = '';
 	switch (type) {
 		case 'Tile':
-			NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:Tile|inner:|drag:true|\ts|height:10vh|width:10vw|background:yellow|\t`;
+			NewTileString = `${Tab.repeat(selectedTile.level+1)}T\ta|name:Tile|inner:|drag:true|\ts|height:10vh|width:10vw|background:yellow|transform:translate(0px, 0px)|\t`;
 			break;
 		
 		case 'Button':
@@ -223,12 +231,8 @@ function AddTile(tile:RS1.TDE, type: string) {
 
 	}
 	TileStrings.splice(List.tiles.indexOf(selectedTile) + 1, 0, NewTileString);
-	TileArray = [];
-	List = new RS1.TileList(TileStrings);
 	
-	List.tiles.forEach(tile => {
-		TileArray.push(tile)
-	})
+	createTileList(TileStrings);
 	
 	step = 'selectTile';
 	if (newlyaddedTile) newlyaddedTile.focus();
@@ -351,7 +355,7 @@ function Edit(tile: RS1.TDE) {
 
 {#if showPlot}
 	{#if villaPlot}
-	<button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot}}>Editor</button>
+	<!-- <button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot}}>Editor</button> -->
 	<villa-plotter tileList={VillaTiles}></villa-plotter>
 	{:else}
 		<button onclick={() => showPlot = !showPlot}>Editor</button>
