@@ -6,7 +6,6 @@
 	import { VillaPlotter } from '../../components/tiles/VillaPlotter'
 	import Editor from '../../components/tiles/Editor.svelte';
 	import QEditor from '../../components/tiles/QEditor.svelte';
-	import panzoom from 'panzoom';
 	import { onMount } from 'svelte';
    
 	// const TileStrings: string[] = [
@@ -52,13 +51,41 @@
 	// ];
 
 
+	// let TileStrings1: string[] = [
+	// 	'TS4:TileStrings Desc4',
+	// 	'T\ta|name:Full|\ts|display:flex|\t',
+	// 	' T\ta|name:Full|\ts|display:flex|\t',
+	// 	'  T\ta|name:Base|\ts|width:100vw|height:10vh|display:flex|flex-direction:row|\t',
+	// 	'   T\ta|name:Top|drag:true|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
+	// 	'   T\ta|name:Top|drag:true|\ts|background:magenta|height:10vh|width:90vw|background-image:url("")|transform:translate(0px, 0px)|\t',
+	// 	'  T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
+	// 	'   T\ta|name:Base|\ts|width:20vw|height:90vh\t',
+	// 	'    Txt\ta|name:Left|drag:true|text:true|textPreview:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
+	// 	'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
+	// 	'     RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
+	// 	'   T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
+	// 	'    T\ta|name:Middle|drag:true|text:true|textPreview:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|transform:translate(0px, 0px)|\t',
+	// 	'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
+	// 	'     Btn\ta|name:EditButton|inner:Edit|toggle:true|\ts|width:70px|height:30px|display:none|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
+	// 	'     T\ta|name:image-container|drag:false|text:true|textPreview:true|image:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|display:flex|width:100%|height:100%|background-image:url("")|background-size:cover|background:cyan|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
+	// 	'      TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
+	// 	'      ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
+	// 	'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
+	// 	'    Txt\ta|name:Right|drag:true|textPreview:true|inner:click to add text|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
+	// 	'     T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|\t',
+	// 	'      Btn\ta|name:TextBold|inner:B|textFormat:true|textBold:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|display:none|\t',
+	// 	'      Btn\ta|name:TextBold|inner:I|textFormat:true|textItalic:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|display:none|\t',
+	// 	'      Btn\ta|name:TextBold|inner:U|textFormat:true|textUnderline:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|display:none|\t',
+	// 	'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
+	// 		];
+
 	let TileStrings1: string[] = [
 		'TS4:TileStrings Desc4',
 		'T\ta|name:Full|\ts|display:flex|\t',
 		' T\ta|name:Full|\ts|display:flex|\t',
-		'  T\ta|name:Base|\ts|width:100vw|height:10vh|display:flex|flex-direction:row|\t',
+		'  T\ta|name:Base|\ts|width:200vw|height:10vh|display:flex|flex-direction:row|\t',
 		'   T\ta|name:Top|drag:true|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
-		'   T\ta|name:Top|drag:true|\ts|background:magenta|height:10vh|width:90vw|background-image:url("")|transform:translate(0px, 0px)|\t',
+		'   T\ta|name:Top|drag:true|inner: <h1><i>click and drag for more >>></i></h1>|\ts|display:flex|align-items:left|padding-left:20px|background:magenta|height:10vh|width:190vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
 		'   T\ta|name:Base|\ts|width:20vw|height:90vh\t',
 		'    Txt\ta|name:Left|drag:true|text:true|textPreview:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
@@ -78,9 +105,11 @@
 		'      Btn\ta|name:TextBold|inner:I|textFormat:true|textItalic:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|display:none|\t',
 		'      Btn\ta|name:TextBold|inner:U|textFormat:true|textUnderline:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|display:none|\t',
 		'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
+		'   T\ta|name:Base|\ts|display:flex|flex-direction:row|\t',
+		'    T\ta|name:side|pan:true|\ts|background:beige|height:90vh|width:100vw|background-image:url("")|\t',
 	];
 
-	let TileStrings2: string[] = [
+		let TileStrings2: string[] = [
 		'TS4:TileStrings Desc4',
 		'T\ta|name:new|\ts|display:flex|height:100vh|width:100vw|\t',
 		' T\ta|name:new tile|drag:true|\ts|display:flex|height:100vh|width:100vw|background:blue|display:flex|flex-direction:row|align-items:top|justify-content:left|\t',
@@ -125,7 +154,7 @@
 	let currentEditor: any = null;
 	let showPlot = $state(false)
 	let villaPlot = $state(false)
-	let isPanToggle = $state(false)
+	let isPanToggle = $state(true)
 	let fileUploaded = false
 	let newlyaddedTile: HTMLButtonElement | undefined = $state();
 	let selectedVillaTile: number | undefined = $state();
@@ -357,9 +386,10 @@ function Edit(tile: RS1.TDE) {
 	{#if villaPlot}
 	<!-- <button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot}}>Editor</button> -->
 	<villa-plotter tileList={VillaTiles}></villa-plotter>
+	
 	{:else}
 		<button onclick={() => showPlot = !showPlot}>Editor</button>
-		<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'OK' : 'Pan'}</button>
+		<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'Edit' : 'Pan'}</button>
 		<r-tile TList={List} _panToggle={isPanToggle} ontileLink={tileLink}></r-tile>
 	{/if}
 {/if}

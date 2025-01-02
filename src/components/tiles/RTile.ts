@@ -250,25 +250,61 @@ export class RTile extends LitElement {
     
     const element = this.shadowRoot?.getElementById('tile2');
     if (element) {
-      const Panzoom = panzoom(element,
-        {
-        // autocenter: true, 
-        // bounds: true,
-        // initialZoom: this._currentZoom,
-        beforeMouseDown: (e: any) => {
-            if (this._currentTile && this._panToggle) {
-              if (this.TList.tiles.indexOf(this._currentTile) !== 2) {
-              e.preventDefault();
-              return false
-            }
-          }
-          return true;
-        },
-      }
-      );
+  //     const Panzoom = panzoom(element,
+  //       {
+  //       // autocenter: true, 
+  //       // bounds: true,
+  //       // initialZoom: this._currentZoom,
+  //       beforeMouseDown: (e: any) => {
+  //           if (this._currentTile && this._panToggle) {
+  //             if (this.TList.tiles.indexOf(this._currentTile) !== 2) {
+  //             e.preventDefault();
+  //             return false
+  //           }
+  //         }
+  //         return true;
+  //       },
+  //     }
+  //     );
      
+  //   }
+  // }
+  
+        interact(element).draggable({
+            listeners: {
+                move: event => this.onDragMove(event),
+                end: event => this.onDragEnd(event)
+            },
+            modifiers: [
+                interact.modifiers.restrict({
+                    restriction: element,
+                    endOnly: true
+                }),
+            ],
+            inertia: true
+        });
     }
   }
+
+  onDragMove(event: any) {
+    const target = event.target;
+    const dx = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+  
+    target.style.transform = `translate(${dx}px, 0)`;
+    target.setAttribute('data-x', dx.toString());
+  }
+
+  onDragEnd(event: any) {
+    const target = event.target;
+    let dx = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+
+    if (dx > 0 || dx < -window.innerWidth) {
+      const targetX = dx > 0 ? 0 : -window.innerWidth;
+      target.style.transform = `translate(${targetX}px)`;
+      target.setAttribute('data-x', targetX.toString());
+    }
+  }
+
 
   setupClickHandler() {
     this.shadowRoot?.addEventListener('click', (e: Event) => {
@@ -516,14 +552,14 @@ export class RTile extends LitElement {
         <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
           <div
           id="text-edit"
-          contenteditable="true" 
+          contenteditable="true"
           placeholder="Enter text here"
           @input="${(e: Event) => {
             console.log('inputx' + innerContent) 
             this._textEditContent = (e.target as HTMLDivElement).textContent || '';
           }}"
           style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; ">
-          ${innerContentHTML}
+          ${innerContentHTML} 
           </div> 
           ${childrenHtml}
         </div>`;
