@@ -14,7 +14,9 @@ export class RTile extends LitElement {
   declare _editMode: boolean;
   declare _currentTile?: RS1.TDE | undefined;
   declare _panToggle: boolean;
+  declare _panAxis: string;
   declare _isTextPreview: boolean;
+  declare _position: { x: number, y: number };
 
   static properties = {
     _fileUploaded: { type: Boolean },
@@ -22,6 +24,7 @@ export class RTile extends LitElement {
     // _textEditContent: { type: String },
     // // _currentTile: { type: Object },
     _panToggle: { type: Boolean },
+    _panAxis: { type: String },
     TList: { type: Object },
     _isTextPreview: { type: Boolean }
   };
@@ -56,8 +59,10 @@ export class RTile extends LitElement {
     this._editMode = false;
     this._textEditContent = '';
     this._panToggle = false;
+    this._panAxis = 'x';
     this.TList = new RS1.TileList('');
     this._isTextPreview = true;
+    this._position = { x: 0, y: 0 };
   }
 
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
@@ -270,41 +275,29 @@ export class RTile extends LitElement {
   //   }
   // }
   
-        interact(element).draggable({
-            listeners: {
-                move: event => this.onDragMove(event),
-                end: event => this.onDragEnd(event)
-            },
-            modifiers: [
-                interact.modifiers.restrict({
-                    restriction: element,
-                    endOnly: true
-                }),
-            ],
-            inertia: true
-        });
+      interact(element).draggable({
+        listeners: {
+            move: event => {
+              if (this._panToggle === false) return;
+                this._position.x += event.dx
+                this._position.y += event.dy
+          
+                event.target.style.transform =
+                  `translate(${this._position.x}px, ${this._position.y}px)`
+            }
+        },
+        modifiers: [
+            interact.modifiers.restrict({
+                restriction: 'parent',
+                endOnly: true
+            })
+        ],
+        inertia: true,
+        startAxis: this._panAxis as 'x' | 'y' | 'xy',
+        lockAxis: 'start'
+      });
     }
   }
-
-  onDragMove(event: any) {
-    const target = event.target;
-    const dx = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-  
-    target.style.transform = `translate(${dx}px, 0)`;
-    target.setAttribute('data-x', dx.toString());
-  }
-
-  onDragEnd(event: any) {
-    const target = event.target;
-    let dx = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-
-    if (dx > 0 || dx < -window.innerWidth) {
-      const targetX = dx > 0 ? 0 : -window.innerWidth;
-      target.style.transform = `translate(${targetX}px)`;
-      target.setAttribute('data-x', targetX.toString());
-    }
-  }
-
 
   setupClickHandler() {
     this.shadowRoot?.addEventListener('click', (e: Event) => {
@@ -347,8 +340,8 @@ export class RTile extends LitElement {
     function applyFormatting(command:string) {
       if (!textEditor) return;
 
-      textEditor?.focus();
-      document.execCommand(command, false);
+       textEditor?.focus();
+       document.execCommand(command, false);
     }
 
     if (alertContent) {
@@ -597,7 +590,7 @@ export class RTile extends LitElement {
 
   firstUpdated(changedProperties: PropertyValueMap<any>): void {
     super.firstUpdated(changedProperties);
-    this.handleBackgroundPan();
+    // this.handleBackgroundPan();
     this.setupClickHandler();
   }
 
@@ -610,6 +603,7 @@ export class RTile extends LitElement {
         interact(element).unset(); 
           }
   }
+  this.handleBackgroundPan();
 }
 
   shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {

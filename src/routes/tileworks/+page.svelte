@@ -127,7 +127,11 @@
 		'MagicTile1,10,30,15,30',
         'MagicTile2,30,30,15,30',
         'MagicTile3,50,30,15,30',
-        'MagicTile4,70,30,15,30'
+        'MagicTile4,70,30,15,30',
+		'MagicTile5,10,70,15,30',
+        'MagicTile6,30,70,15,30',
+        'MagicTile7,50,70,15,30',
+        'MagicTile8,70,70,15,30'
 	]);
 
 	// let TileStrings: string[] = [
@@ -155,6 +159,7 @@
 	let showPlot = $state(false)
 	let villaPlot = $state(false)
 	let isPanToggle = $state(true)
+	let panAxis = $state('xy')
 	let fileUploaded = false
 	let newlyaddedTile: HTMLButtonElement | undefined = $state();
 	let selectedVillaTile: number | undefined = $state();
@@ -386,11 +391,11 @@ function Edit(tile: RS1.TDE) {
 	{#if villaPlot}
 	<!-- <button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot}}>Editor</button> -->
 	<villa-plotter tileList={VillaTiles}></villa-plotter>
-	
 	{:else}
 		<button onclick={() => showPlot = !showPlot}>Editor</button>
 		<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'Edit' : 'Pan'}</button>
-		<r-tile TList={List} _panToggle={isPanToggle} ontileLink={tileLink}></r-tile>
+		<button onclick={() => {panAxis = panAxis === 'xy' ? 'x' : panAxis === 'x' ? 'y' : 'xy'; console.log('pan axis', panAxis)}}>Pan: {panAxis}</button>
+		<r-tile TList={List} _panToggle={isPanToggle} _panAxis={panAxis} ontileLink={tileLink}></r-tile>
 	{/if}
 {/if}
 
