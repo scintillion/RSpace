@@ -130,7 +130,7 @@ export class RTile extends LitElement {
     const parent = tile.parent;
     const parentTile = this.TList.tiles[parent];
 
-    const VID = parentTile.sList?.getVID('background-image');
+    const VID = tile.sList?.getVID('background-image');
     if ( files !== null && files.length > 0) {
       try {
         const file = files[0];
@@ -143,10 +143,8 @@ export class RTile extends LitElement {
         reader.onload = (e) => {
           if (VID) {
             VID.Desc = `url("${e.target?.result}")`;
-            parentTile.sList?.setVID(VID);
-           
+            tile.sList?.setVID(VID);
             this.requestUpdate();
-
           }
         }
       } catch (error) {
@@ -329,7 +327,7 @@ export class RTile extends LitElement {
     const isTextSaveBtn = tile.aList?.descByName('textBtn');
     const isDrag = tile.aList?.descByName('drag');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
-    const isImage = tile.aList?.descByName('image');
+        const isImage = tile.aList?.descByName('image');
     const isPan = tile.aList?.descByName('pan');
     const isTextBold = tile.aList?.descByName('textBold');
     const isTextItalic = tile.aList?.descByName('textItalic');
@@ -444,7 +442,7 @@ export class RTile extends LitElement {
 
     if (isImage === "true") {
       const dragVID = tile.aList?.getVID('drag');
-      if (dragVID && this._fileUploaded) {
+      if (dragVID) {
         dragVID.Desc = this._editMode ? 'true' : 'false';
         tile.aList?.setVID(dragVID);
         const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
@@ -455,7 +453,36 @@ export class RTile extends LitElement {
           this.handleInteractions(parentTile);
         }
       }
+
+      if (!this._panToggle) {
+        const borderVID = tile.sList?.getVID('border-style');
+        if (borderVID) {
+          borderVID.Desc = this._editMode ? 'dotted' : 'none';
+          tile.sList?.setVID(borderVID);
+          console.log('border', borderVID.Desc)
+        }
+
+        if (this._fileUploaded && this._editMode) {
+          childrenHtml = html`
+          <button id="image-delete" style="width:70px;height:30px;background:#1e1e1e;color:white;border-radius:8px;position:absolute;top:0px;left:0px" @click=${() => {
+            const VID = tile.sList?.getVID('background-image');
+            if (VID) {
+              VID.Desc = 'url("")';
+              tile.sList?.setVID(VID);
+              this._fileUploaded = false;
+              this.requestUpdate();
+            }
+          }}>Delete</button>`   
+        }
+        else if (!this._fileUploaded) {
+          childrenHtml = html`
+          <button style="width:70px;height:30px;background:#1e1e1e;color:white;border-radius:8px;position:absolute;top:0px;left:0px">
+            <label for="file-upload">Upload</label>
+            <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>
+          </button>`
+        }
     }
+  }
 
     if (handleInteractionToggle) {
       const innerVIDToggle = tile.aList?.getVID('inner');
@@ -464,17 +491,19 @@ export class RTile extends LitElement {
         innerVIDToggle.Desc = this._editMode ? 'Done' : 'Edit';
         tile.aList?.setVID(innerVIDToggle);
       }
-      if (this._fileUploaded) {
         this._currentTile = tile
         console.log('file uploaded!')
         if (displayVID) {
           displayVID.Desc = this._panToggle ? 'none' : 'flex';
           tile.sList?.setVID(displayVID);
         }
-      }
     }
 
     if (isImageBtn === "true") {
+      childrenHtml = html`
+        <label for="file-upload">Upload</label>
+        <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
+      
       const displayVID = tile.sList?.getVID('display');
       if (displayVID) {
         displayVID.Desc = this._panToggle ? 'none' : 'flex'
@@ -516,14 +545,6 @@ export class RTile extends LitElement {
       }
     }
  
-
-    if (isImageBtn === "true") {
-      childrenHtml = html`
-        <label for="file-upload">Upload</label>
-        <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
-    }
-
-
     const styleStr = tile.sList?.toVIDList(";");
 
     if (tile.first) {
