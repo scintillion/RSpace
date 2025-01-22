@@ -29,11 +29,11 @@ export class RTile extends LitElement {
     _isTextPreview: { type: Boolean }
   };
 
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|alert:|image:|drag:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|element:div|alert:|image:|drag:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
-  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|\ts|cursor:pointer|\t');
+  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|element:button|\ts|cursor:pointer|\t');
   static ButtonDefArray: RS1.TDE[] = [RTile.TDef, RTile.ButtonTDE];
   static ButtonDef = RTile.TileMerge(RTile.ButtonDefArray);
 
@@ -327,18 +327,18 @@ export class RTile extends LitElement {
     const isTextSaveBtn = tile.aList?.descByName('textBtn');
     const isDrag = tile.aList?.descByName('drag');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
-        const isImage = tile.aList?.descByName('image');
+    const isImage = tile.aList?.descByName('image');
     const isPan = tile.aList?.descByName('pan');
     const isTextBold = tile.aList?.descByName('textBold');
     const isTextItalic = tile.aList?.descByName('textItalic');
     const isTextUnderline = tile.aList?.descByName('textUnderline');
     const isLink = tile.aList?.descByName('link');
-    const textEditor = this.shadowRoot?.getElementById('text-edit');
+    const textEditor = this.shadowRoot?.getElementById('text-box');
 
     function applyFormatting(command:string) {
       if (!textEditor) return;
 
-       textEditor?.focus();
+      //  textEditor?.focus();
        document.execCommand(command, false);
     }
 
@@ -372,7 +372,6 @@ export class RTile extends LitElement {
      
     }
 
-    if (this._isTextPreview == false) {
       if (isTextBold === "true") {
         applyFormatting('bold');
       }
@@ -382,7 +381,6 @@ export class RTile extends LitElement {
       if (isTextItalic === "true") {
         applyFormatting('italic');
       }
-    }
 
     if (handleInteractionToggle) {
       this._editMode = !this._editMode;
@@ -428,10 +426,12 @@ export class RTile extends LitElement {
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const innerContentHTML = unsafeHTML(innerContent);
+    const elementType = tile.aList?.descByName('element');
     const parentTile = this.TList.tiles[tile.parent];
     const isImageBtn = tile.aList?.descByName('upload');
     const isImage = tile.aList?.descByName('image');
     const isText = tile.aList?.descByName('text');
+    const isTextBox = tile.aList?.descByName('textBox');
     const isTextSaveBtn = tile.aList?.descByName('textBtn');
     const isTextFormatBtn = tile.aList?.descByName('textFormat');
     const handleInteractionToggle = tile.aList?.descByName('toggle');
@@ -481,8 +481,8 @@ export class RTile extends LitElement {
             <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>
           </button>`
         }
+      }
     }
-  }
 
     if (handleInteractionToggle) {
       const innerVIDToggle = tile.aList?.getVID('inner');
@@ -555,8 +555,6 @@ export class RTile extends LitElement {
       }
     }
     
-    // return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">${innerContentHTML}${childrenHtml}</div>`;
-
     if (isText === "true") {
       
       if (!this._panToggle) {
@@ -595,12 +593,25 @@ export class RTile extends LitElement {
             ${childrenHtml}
           </div>`;
         }
+      }
     }
-  }
-    return html`<div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
-    ${innerContentHTML}
-    ${childrenHtml}
-    </div>`;
+
+    if (isTextBox === "true") {
+      childrenHtml = html`
+        <div
+        id="text-box"
+        contenteditable="true"
+        style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
+        </div> `;
+    }
+    
+    switch (elementType) {
+      case 'div':
+        return html`<div id="tile${this.TList.tiles.indexOf(tile)}" class="tile" style="${styleStr}">${innerContentHTML}${childrenHtml}</div>`;
+
+      case 'button': 
+        return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}" class="tile" style="${styleStr}">${innerContentHTML}</button>`;
+    }
   }
 
   render() {
