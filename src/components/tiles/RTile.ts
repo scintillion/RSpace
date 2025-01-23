@@ -29,7 +29,7 @@ export class RTile extends LitElement {
     _isTextPreview: { type: Boolean }
   };
 
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|element:div|alert:|image:|drag:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|drag:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
@@ -322,24 +322,67 @@ export class RTile extends LitElement {
 
   }
   handleClick(tile: RS1.TDE) {
+    const tileFunction = tile.aList?.descByName('function');
     const alertContent = tile.aList?.descByName('alert');
     const redirectLink = tile.aList?.descByName('redirect');
-    const isTextSaveBtn = tile.aList?.descByName('textBtn');
     const isDrag = tile.aList?.descByName('drag');
-    const handleInteractionToggle = tile.aList?.descByName('toggle');
-    const isImage = tile.aList?.descByName('image');
-    const isPan = tile.aList?.descByName('pan');
-    const isTextBold = tile.aList?.descByName('textBold');
-    const isTextItalic = tile.aList?.descByName('textItalic');
-    const isTextUnderline = tile.aList?.descByName('textUnderline');
     const isLink = tile.aList?.descByName('link');
     const textEditor = this.shadowRoot?.getElementById('text-box');
 
+    switch (tileFunction) {
+      case 'Image':
+        if (!this._panToggle) {
+          const parent = tile.parent;
+          const parentTile = this.TList.tiles[parent];
+          this.handleInteractions(parentTile);
+        }
+        break;
+      
+      case 'EditToggle':
+        this._editMode = !this._editMode;
+        const innerVID = tile.aList?.getVID('inner');
+        if (innerVID) {
+          innerVID.Desc = this._editMode ? 'Done' : 'Edit';
+          tile.aList?.setVID(innerVID);
+        }
+        break;
+
+      case 'TextSave':
+        const parent = tile.parent;
+        const parentTile = this.TList.tiles[parent];
+        const parentInnerVID = parentTile.aList?.getVID('inner');
+        const textPreviewVID = parentTile.aList?.getVID('textPreview');
+
+        if (parentInnerVID) {
+          parentInnerVID.Desc = this._textEditContent;
+          parentTile.aList?.setVID(parentInnerVID);
+        }
+  
+        if (textPreviewVID) {
+          textPreviewVID.Desc = 'true';
+          parentTile.aList?.setVID(textPreviewVID);
+        }
+  
+        this._isTextPreview = true;
+        break;
+
+
+      case 'Bold':
+        applyFormatting('bold');
+        break;
+
+      case 'Italic':
+        applyFormatting('italic');
+        break;
+      
+      case 'Underline':
+        applyFormatting('underline');
+        break;   
+    }
+
     function applyFormatting(command:string) {
       if (!textEditor) return;
-
-      //  textEditor?.focus();
-       document.execCommand(command, false);
+      document.execCommand(command, false);
     }
 
     if (alertContent) {
@@ -348,47 +391,6 @@ export class RTile extends LitElement {
 
     if (redirectLink) {
       window.location.href = redirectLink;
-    }
-
-    if (isTextSaveBtn === "true") { 
-
-      const parent = tile.parent;
-      const parentTile = this.TList.tiles[parent];
-      const parentInnerVID = parentTile.aList?.getVID('inner');
-      const textPreviewVID = parentTile.aList?.getVID('textPreview');
-      const isTextPreview = parentTile.aList?.descByName('textPreview');
-
-      if (parentInnerVID) {
-        parentInnerVID.Desc = this._textEditContent;
-        parentTile.aList?.setVID(parentInnerVID);
-      }
-
-      if (textPreviewVID) {
-        textPreviewVID.Desc = 'true';
-        parentTile.aList?.setVID(textPreviewVID);
-      }
-
-      this._isTextPreview = true;
-     
-    }
-
-      if (isTextBold === "true") {
-        applyFormatting('bold');
-      }
-      if (isTextUnderline === "true") {
-        applyFormatting('underline');
-      }
-      if (isTextItalic === "true") {
-        applyFormatting('italic');
-      }
-
-    if (handleInteractionToggle) {
-      this._editMode = !this._editMode;
-      const innerVID = tile.aList?.getVID('inner');
-      if (innerVID) {
-        innerVID.Desc = this._editMode ? 'Done' : 'Edit';
-        tile.aList?.setVID(innerVID);
-      }
     }
 
     if (!this._panToggle) {
@@ -403,12 +405,6 @@ export class RTile extends LitElement {
         interact(element).unset(); 
       }
       console.log('edit mode:', this._editMode)
-    }
-
-    if (isImage === "true" && !this._panToggle) {
-      const parent = tile.parent;
-      const parentTile = this.TList.tiles[parent];
-      this.handleInteractions(parentTile);
     }
 
     if (isLink) {
@@ -427,125 +423,112 @@ export class RTile extends LitElement {
     const innerContent = tile.aList?.descByName('inner') || '';
     const innerContentHTML = unsafeHTML(innerContent);
     const elementType = tile.aList?.descByName('element');
+    const tileFunction = tile.aList?.descByName('function');
     const parentTile = this.TList.tiles[tile.parent];
-    const isImageBtn = tile.aList?.descByName('upload');
-    const isImage = tile.aList?.descByName('image');
-    const isText = tile.aList?.descByName('text');
-    const isTextBox = tile.aList?.descByName('textBox');
-    const isTextSaveBtn = tile.aList?.descByName('textBtn');
-    const isTextFormatBtn = tile.aList?.descByName('textFormat');
-    const handleInteractionToggle = tile.aList?.descByName('toggle');
+    // const isText = tile.aList?.descByName('text');
+    const isInnerEdit = tile.aList?.descByName('innerEdit');
     const displayVID = tile.sList?.getVID('display');
     const istextPreview = tile.aList?.descByName('textPreview');
     const textPreviewVID = tile.aList?.getVID('textPreview');
     let childrenHtml = html``;
 
-    if (isImage === "true") {
-      const dragVID = tile.aList?.getVID('drag');
-      if (dragVID) {
-        dragVID.Desc = this._editMode ? 'true' : 'false';
-        tile.aList?.setVID(dragVID);
-        const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
-        if (element) {
-          interact(element).unset();
-          const parent = tile.parent;
-          const parentTile = this.TList.tiles[parent];
-          this.handleInteractions(parentTile);
+    switch (tileFunction) {
+      case 'Image':
+        const dragVID = tile.aList?.getVID('drag');
+        if (dragVID) {
+          dragVID.Desc = this._editMode ? 'true' : 'false';
+          tile.aList?.setVID(dragVID);
+          const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
+          if (element) {
+            interact(element).unset();
+            const parent = tile.parent;
+            const parentTile = this.TList.tiles[parent];
+            this.handleInteractions(parentTile);
+          }
         }
-      }
-
-      if (!this._panToggle) {
-        const borderVID = tile.sList?.getVID('border-style');
-        if (borderVID) {
-          borderVID.Desc = this._editMode ? 'dotted' : 'none';
-          tile.sList?.setVID(borderVID);
-          console.log('border', borderVID.Desc)
+  
+        if (!this._panToggle) {
+          const borderVID = tile.sList?.getVID('border-style');
+          if (borderVID) {
+            borderVID.Desc = this._editMode ? 'dotted' : 'none';
+            tile.sList?.setVID(borderVID);
+            console.log('border', borderVID.Desc)
+          }
+  
+          if (this._fileUploaded && this._editMode) {
+            childrenHtml = html`
+            <button id="image-delete" style="width:70px;height:30px;background:#1e1e1e;color:white;border-radius:8px;position:absolute;top:0px;left:0px" @click=${() => {
+              const VID = tile.sList?.getVID('background-image');
+              if (VID) {
+                VID.Desc = 'url("")';
+                tile.sList?.setVID(VID);
+                this._fileUploaded = false;
+                this.requestUpdate();
+              }
+            }}>Delete</button>`   
+          }
+          else if (!this._fileUploaded) {
+            childrenHtml = html`
+            <button style="width:70px;height:30px;background:#1e1e1e;color:white;border-radius:8px;position:absolute;top:0px;left:0px">
+              <label for="file-upload">Upload</label>
+              <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>
+            </button>`
+          }
         }
+        break;
 
-        if (this._fileUploaded && this._editMode) {
-          childrenHtml = html`
-          <button id="image-delete" style="width:70px;height:30px;background:#1e1e1e;color:white;border-radius:8px;position:absolute;top:0px;left:0px" @click=${() => {
-            const VID = tile.sList?.getVID('background-image');
-            if (VID) {
-              VID.Desc = 'url("")';
-              tile.sList?.setVID(VID);
-              this._fileUploaded = false;
-              this.requestUpdate();
+        case 'EditToggle':
+          const innerVIDToggle = tile.aList?.getVID('inner');
+          if (innerVIDToggle) {
+            innerVIDToggle.Desc = this._editMode ? 'Done' : 'Edit';
+            tile.aList?.setVID(innerVIDToggle);
+          }
+            this._currentTile = tile
+            if (displayVID) {
+              displayVID.Desc = this._panToggle ? 'none' : 'flex';
+              tile.sList?.setVID(displayVID);
             }
-          }}>Delete</button>`   
-        }
-        else if (!this._fileUploaded) {
+          break;
+
+        case 'ImageUpload':
           childrenHtml = html`
-          <button style="width:70px;height:30px;background:#1e1e1e;color:white;border-radius:8px;position:absolute;top:0px;left:0px">
-            <label for="file-upload">Upload</label>
-            <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>
-          </button>`
-        }
-      }
+          <label for="file-upload">Upload</label>
+          <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
+        
+          if (displayVID) {
+            displayVID.Desc = this._panToggle ? 'none' : 'flex'
+            tile.sList?.setVID(displayVID);
+          }
+          break;
+
+        case 'TextSave':
+          const isParentTextPreview = parentTile.aList?.descByName('textPreview');
+          if (isParentTextPreview === "true" && this._isTextPreview) {
+            if (displayVID) {
+              displayVID.Desc = 'none'
+              tile.sList?.setVID(displayVID);
+              
+            }
+          }
+          else if (isParentTextPreview === "false" && !this._isTextPreview) {
+            if (displayVID) {
+              displayVID.Desc = 'flex'
+              tile.sList?.setVID(displayVID);
+            }
+          }
+          break;
+
+        case 'TextBox':
+          childrenHtml = html`
+          <div
+          id="text-box"
+          contenteditable="true"
+          style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
+          </div> `;
+          break;     
     }
 
-    if (handleInteractionToggle) {
-      const innerVIDToggle = tile.aList?.getVID('inner');
-      const displayVID = tile.sList?.getVID('display');
-      if (innerVIDToggle) {
-        innerVIDToggle.Desc = this._editMode ? 'Done' : 'Edit';
-        tile.aList?.setVID(innerVIDToggle);
-      }
-        this._currentTile = tile
-        console.log('file uploaded!')
-        if (displayVID) {
-          displayVID.Desc = this._panToggle ? 'none' : 'flex';
-          tile.sList?.setVID(displayVID);
-        }
-    }
-
-    if (isImageBtn === "true") {
-      childrenHtml = html`
-        <label for="file-upload">Upload</label>
-        <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
-      
-      const displayVID = tile.sList?.getVID('display');
-      if (displayVID) {
-        displayVID.Desc = this._panToggle ? 'none' : 'flex'
-        tile.sList?.setVID(displayVID);
-      }
-    }
-
-    if (isTextSaveBtn === "true") {
-      const isTextPreview = parentTile.aList?.descByName('textPreview');
-      if (isTextPreview === "true" && this._isTextPreview) {
-        if (displayVID) {
-          displayVID.Desc = 'none'
-          tile.sList?.setVID(displayVID);
-          
-        }
-      }
-      else if (isTextPreview === "false" && !this._isTextPreview) {
-        if (displayVID) {
-          displayVID.Desc = 'flex'
-          tile.sList?.setVID(displayVID);
-        }
-      }
-    }
-
-    if (isTextFormatBtn === "true") {
-      const isTextPreview = this.TList.tiles[parentTile.parent].aList?.descByName('textPreview');
-      if (isTextPreview === "true" && this._isTextPreview) {
-        if (displayVID) {
-          displayVID.Desc = 'none'
-          tile.sList?.setVID(displayVID);
-          
-        }
-      }
-      else if (isTextPreview === "false" && !this._isTextPreview) {
-        if (displayVID) {
-          displayVID.Desc = 'flex'
-          tile.sList?.setVID(displayVID);
-        }
-      }
-    }
- 
-    const styleStr = tile.sList?.toVIDList(";");
+    let styleStr = tile.sList?.toVIDList(";");
 
     if (tile.first) {
       let child = this.TList.tiles[tile.first]
@@ -555,7 +538,7 @@ export class RTile extends LitElement {
       }
     }
     
-    if (isText === "true") {
+    if (isInnerEdit === "true") {
       
       if (!this._panToggle) {
         if (istextPreview === "false") {
@@ -596,15 +579,6 @@ export class RTile extends LitElement {
       }
     }
 
-    if (isTextBox === "true") {
-      childrenHtml = html`
-        <div
-        id="text-box"
-        contenteditable="true"
-        style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
-        </div> `;
-    }
-    
     switch (elementType) {
       case 'div':
         return html`<div id="tile${this.TList.tiles.indexOf(tile)}" class="tile" style="${styleStr}">${innerContentHTML}${childrenHtml}</div>`;
