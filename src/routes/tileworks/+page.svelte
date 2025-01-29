@@ -123,14 +123,12 @@
 	// ]);
 
 	let VillaTiles: string[] = $state([
-		'MagicTile1,10,30,15,30',
-        'MagicTile2,30,30,15,30',
-        'MagicTile3,50,30,15,30',
-        'MagicTile4,70,30,15,30',
-		'MagicTile5,10,70,15,30',
-        'MagicTile6,30,70,15,30',
-        'MagicTile7,50,70,15,30',
-        'MagicTile8,70,70,15,30'
+		'MagicTile1,10,10,20,20',
+        'MagicTile2,40,10,20,20',
+        'MagicTile3,70,10,20,20',
+		'MagicTile4,10,40,20,20',
+        'MagicTile5,40,40,20,20',
+        'MagicTile6,70,40,20,20'
 	]);
 
 	// let TileStrings: string[] = [
