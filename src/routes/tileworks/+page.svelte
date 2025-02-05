@@ -2,7 +2,7 @@
 	import { mount, unmount } from 'svelte';
 	import { Plotter } from '$lib/Plotter';
 	import { RS1 } from '$lib/RSsvelte.svelte';
-	import { RTile } from '../../components/tiles/RTile'
+	import { TileListRenderer } from '../../components/tiles/RTile'
 	import { VillaPlotter } from '../../components/tiles/VillaPlotter'
 	import Editor from '../../components/tiles/Editor.svelte';
 	import QEditor from '../../components/tiles/QEditor.svelte';
@@ -391,8 +391,8 @@ function Edit(tile: RS1.TDE) {
 	{:else}
 		<button onclick={() => showPlot = !showPlot}>Editor</button>
 		<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'Edit' : 'Pan'}</button>
-		<button onclick={() => {panAxis = panAxis === 'xy' ? 'x' : panAxis === 'x' ? 'y' : 'xy'; console.log('pan axis', panAxis)}}>Pan: {panAxis}</button>
-		<r-tile TList={List} _panToggle={isPanToggle} _panAxis={panAxis} ontileLink={tileLink}></r-tile>
+		<!-- <button onclick={() => {panAxis = panAxis === 'xy' ? 'x' : panAxis === 'x' ? 'y' : 'xy'; console.log('pan axis', panAxis)}}>Pan: {panAxis}</button> -->
+		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} TList={List} ></tile-list-renderer>
 	{/if}
 {/if}
 

@@ -9,6 +9,7 @@ import { text } from '@sveltejs/kit';
 @customElement('r-tile')
 export class RTile extends LitElement {
   declare TList: RS1.TileList;
+  declare tile: RS1.TDE;
   declare _textEditContent: string;
   declare _fileUploaded: boolean;
   declare _editMode: boolean;
@@ -16,13 +17,10 @@ export class RTile extends LitElement {
   declare _panToggle: boolean;
   declare _panAxis: string;
   declare _isTextPreview: boolean;
-  declare _position: { x: number, y: number };
 
   static properties = {
     _fileUploaded: { type: Boolean },
     _editMode: { type: Boolean },
-    // _textEditContent: { type: String },
-    // // _currentTile: { type: Object },
     _panToggle: { type: Boolean },
     _panAxis: { type: String },
     TList: { type: Object },
@@ -60,9 +58,7 @@ export class RTile extends LitElement {
     this._textEditContent = '';
     this._panToggle = false;
     this._panAxis = 'x';
-    this.TList = new RS1.TileList('');
     this._isTextPreview = true;
-    this._position = { x: 0, y: 0 };
   }
 
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
@@ -249,9 +245,11 @@ export class RTile extends LitElement {
   }
 
   handleBackgroundPan() {
-    if (!this._currentTile) this._currentTile = this.TList.tiles[1];
+    // if (!this._currentTile) this._currentTile = this.TList.tiles[1];
     
     const element = this.shadowRoot?.getElementById('tile2');
+    let xPos = 0;
+    let yPos = 0;
     if (element) {
   //     const Panzoom = panzoom(element,
   //       {
@@ -277,11 +275,11 @@ export class RTile extends LitElement {
         listeners: {
             move: event => {
               if (this._panToggle === false) return;
-                this._position.x += event.dx
-                this._position.y += event.dy
+                xPos += event.dx
+                yPos += event.dy
           
                 event.target.style.transform =
-                  `translate(${this._position.x}px, ${this._position.y}px)`
+                  `translate(${xPos}px, ${yPos}px)`
             }
         },
         modifiers: [
@@ -590,8 +588,7 @@ export class RTile extends LitElement {
 
   render() {
     this.NewInstance(this.TList);
-    const topLevelTiles = this.TList.tiles.filter(tile => !tile.parent);
-    return html`${topLevelTiles.map(tile => this.renderDivs(tile))}`;
+    return html`${ this.renderDivs(this.tile)}`;
   }
 
   firstUpdated(changedProperties: PropertyValueMap<any>): void {
@@ -618,3 +615,40 @@ export class RTile extends LitElement {
   }
 
 }
+
+@customElement ('tile-list-renderer') 
+export class TileListRenderer extends LitElement {
+
+  declare TList: RS1.TileList;
+  declare topLevelTiles: RS1.TDE[];
+  declare _panToggle: boolean; 
+
+  static properties = {
+    TList: { type: Object },
+    _panToggle: { type: Boolean, state: true },
+  };
+
+  constructor() {
+    super();
+    this.TList = new RS1.TileList('');
+    this._panToggle = false;
+  }
+  
+  willUpdate(changedProperties: PropertyValueMap<any>) {
+      if (changedProperties.has('TList')) {
+        this.topLevelTiles = this.TList.tiles.filter(tile => !tile.parent);
+      }
+  }
+
+  render() {
+    return html`
+      ${this.topLevelTiles.map(tile => html`
+        <r-tile .tile=${tile} ._panToggle=${this._panToggle} .TList=${this.TList}></r-tile>
+      `)}
+    `;
+  }
+
+}
+
+
+ 
