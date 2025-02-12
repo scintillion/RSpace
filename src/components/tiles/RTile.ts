@@ -1,10 +1,11 @@
-import { LitElement, html, type PropertyValueMap } from 'lit';
+import { LitElement, html, type PropertyValueMap, css } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import interact from 'interactjs';
 import panzoom from 'panzoom';
 import { text } from '@sveltejs/kit';
+import Splide from '@splidejs/splide';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
@@ -292,6 +293,8 @@ export class RTile extends LitElement {
         startAxis: this._panAxis as 'x' | 'y' | 'xy',
         lockAxis: 'start'
       });
+
+      interact(element).styleCursor(false);
     }
   }
 
@@ -419,12 +422,12 @@ export class RTile extends LitElement {
 
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
-    const innerContentHTML = unsafeHTML(innerContent);
     const elementType = tile.aList?.descByName('element');
     const tileFunction = tile.aList?.descByName('function');
     const parentTile = this.TList.tiles[tile.parent];
     // const isText = tile.aList?.descByName('text');
     const isInnerEdit = tile.aList?.descByName('innerEdit');
+    const innerContentHTML = isInnerEdit === 'true' ? html`<div>${unsafeHTML(innerContent)}</div>` : unsafeHTML(innerContent);
     const displayVID = tile.sList?.getVID('display');
     const istextPreview = tile.aList?.descByName('textPreview');
     const textPreviewVID = tile.aList?.getVID('textPreview');
@@ -523,7 +526,10 @@ export class RTile extends LitElement {
           contenteditable="true"
           style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
           </div> `;
-          break;     
+          break;
+          
+        case 'Carousel':
+          childrenHtml = html`<image-carousel></image-carousel>`
     }
 
     let styleStr = tile.sList?.toVIDList(";");
@@ -551,8 +557,8 @@ export class RTile extends LitElement {
             console.log('inputx' + innerContent) 
             this._textEditContent = (e.target as HTMLDivElement).textContent || '';
           }}"
-          style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; ">
-          ${innerContentHTML} 
+          style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
+          ${innerContent} 
           </div> 
           ${childrenHtml}
         </div>`;
@@ -650,5 +656,160 @@ export class TileListRenderer extends LitElement {
 
 }
 
+@customElement('image-carousel')
+export class ImageCarousel extends LitElement {
+  declare images: string[];
+  declare splide: Splide;
 
- 
+  static properties = {
+    images: { type: Array },
+  };
+
+  static styles = css`
+  .carousel-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .splide {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .splide__track {
+    width: 100%;
+    height: 100%;
+  }
+  
+  .splide__slide {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .splide__slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .upload-container {
+    width: 100%;
+    height: 70%; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    padding: 10px;
+   
+  }
+
+  .upload-button {
+    background-color: #4CAF50;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .upload-button:hover {
+    background-color: #3e8e41;
+  }
+  
+  #imageUpload {
+    display: none;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+  `;
+
+  constructor() {
+    super();
+    this.images = [];
+  }
+
+  firstUpdated() {
+    this.initSplide();
+     const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      @import url("https://cdn.jsdelivr.net/npm/@splidejs/splide/dist/css/splide.min.css");
+    `;
+    this.renderRoot.appendChild(styleElement);
+  }
+
+  updated(changedProperties: PropertyValueMap<this>) {
+    if (changedProperties.has('images')) {
+      this.initSplide();
+    }
+  }
+
+  initSplide() {
+    if (this.splide) {
+      this.splide.destroy();
+    }
+    
+    const splideElement = this.shadowRoot?.querySelector('.splide') as HTMLElement;
+    if (splideElement && this.images.length > 0) {
+      this.splide = new Splide(splideElement, {
+        type: 'loop',
+        perPage: 1,
+        autoplay: true,
+        interval: 2000,
+        pauseOnHover: true,
+        pagination: true,
+        arrows: true
+      }).mount();
+    }
+  }
+
+  handleFileUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    if (!files) {console.error('no files selected'); return} ;
+    const newImages = Array.from(files).map(file => URL.createObjectURL(file));
+    this.images = [...this.images, ...newImages];
+    this.requestUpdate();
+  }
+
+  render() {
+    return html`
+      <div class="carousel-container">
+        ${this.images.length > 0 ? html`
+          <div class="splide">
+            <div class="splide__track">
+              <ul class="splide__list">
+                ${this.images.map(image => html`
+                  <li class="splide__slide">
+                    <img src="${image}" alt="Carousel image">
+                  </li>
+                `)}
+              </ul>
+            </div>
+          </div>
+        ` : html`
+        `
+      }
+        
+        <div class="upload-container">
+          <input 
+            type="file" 
+            id="imageUpload" 
+            accept="image/*" 
+            @change="${this.handleFileUpload}"
+            multiple
+          >
+          <label for="imageUpload" class="upload-button">
+            Upload Image
+          </label>
+        </div>
+      </div>
+    `;
+  }
+}

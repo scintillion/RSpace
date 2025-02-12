@@ -25,6 +25,7 @@
 	"type": "module",
 	"dependencies": {
 		"@neodrag/svelte": "^2.0.3",
+		"@splidejs/splide": "github:splidejs/splide",
 		"better-sqlite3": "^8.7.0",
 		"btoa": "^1.2.1",
 		"install": "^0.13.0",

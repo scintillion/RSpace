@@ -95,7 +95,7 @@
 		'    T\ta|name:Middle|drag:true|innerEdit:true|textPreview:true|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|transform:translate(0px, 0px)|\t',
 		'     Btn\ta|name:EditButton|inner:Edit|function:EditToggle|toggle:true|\ts|width:70px|height:30px|display:none|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
 		'     T\ta|name:image-container|function:Image|drag:false|innerEdit:true|textPreview:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|display:flex|width:100%|height:100%|background-image:url("")|background-size:cover|background:cyan|border-style:none|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
-		'      TxtBtn\ta|name:Button|inner:Save|function:TextSave|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
+		'      Btn\ta|name:Button|inner:Save|function:TextSave|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
 		// '      ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|top:0|right:100px|position:absolute|z-index:1|\t',
 		'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
 		'    T\ta|name:Right|drag:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
@@ -105,7 +105,7 @@
 		'      Btn\ta|name:TextBold|inner:I|function:Italic|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|\t',
 		'      Btn\ta|name:TextBold|inner:U|function:Underline|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
 		'   T\ta|name:Base|\ts|display:flex|flex-direction:row|\t',
-		'    T\ta|name:side|pan:true|\ts|background:beige|height:90vh|width:100vw|background-image:url("")|\t',
+		'    T\ta|name:side|pan:true|function:Carousel|\ts|background:beige|height:90vh|width:100vw|background-image:url("")|\t',
 	];
 
 		let TileStrings2: string[] = [
@@ -392,7 +392,7 @@ function Edit(tile: RS1.TDE) {
 		<button onclick={() => showPlot = !showPlot}>Editor</button>
 		<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'Edit' : 'Pan'}</button>
 		<!-- <button onclick={() => {panAxis = panAxis === 'xy' ? 'x' : panAxis === 'x' ? 'y' : 'xy'; console.log('pan axis', panAxis)}}>Pan: {panAxis}</button> -->
-		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} TList={List} ></tile-list-renderer>
+		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} ontileLink={tileLink} TList={List} ></tile-list-renderer>
 	{/if}
 {/if}
 

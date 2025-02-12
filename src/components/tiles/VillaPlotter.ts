@@ -70,6 +70,7 @@ export class VillaPlotter extends LitElement {
                 inertia: true,
                 lockAxis: 'start'
             });
+            interact(container).styleCursor(false);
         }
     } 
 
