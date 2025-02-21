@@ -32,7 +32,7 @@ export class RTile extends LitElement {
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
-  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|element:button|\ts|cursor:pointer|\t');
+  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|element:button|type:|value:|\ts|cursor:pointer|\t');
   static ButtonDefArray: RS1.TDE[] = [RTile.TDef, RTile.ButtonTDE];
   static ButtonDef = RTile.TileMerge(RTile.ButtonDefArray);
 
@@ -51,6 +51,15 @@ export class RTile extends LitElement {
   static ImageButtonTDE = new RS1.TDE('ImgBtn\ta|name:ImageButton|drag:false|upload:true|\ts|\t');
   static ImageButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.ImageButtonTDE];
   static ImageButtonDef = RTile.TileMerge(RTile.ImageButtonDefArray);
+
+  static ImageCarouselTDE = new RS1.TDE('Carousel\ta|name:ImageCarousel|function:Carousel|event:Swipe|\ts|\t');
+  static ImageCarouselDefArray: RS1.TDE[] = [RTile.TDef, RTile.ImageCarouselTDE];
+  static ImageCarouselDef = RTile.TileMerge(RTile.ImageCarouselDefArray);
+
+  static InputTDE = new RS1.TDE('Input\ta|name:Input|function:Input|input-required:|input-type:|input-maxlength:|input-min:|input-max:|input-pattern:|input-step:|input-placeholder:|input-title:|input-readonly:|input-disabled:|input-autocomplete:|input-autofocus:|input-multiple:|input-novalidate:|\ts|\t');
+  static InputDefArray: RS1.TDE[] = [RTile.TDef, RTile.InputTDE];
+  static InputDef = RTile.TileMerge(RTile.InputDefArray);
+
 
   constructor() {
     super();
@@ -116,6 +125,14 @@ export class RTile extends LitElement {
 
         case 'ImgBtn':
           RTile.Merge(RTile.ImageButtonDef, tile);
+          break;
+
+        case 'Carousel':
+          RTile.Merge(RTile.ImageCarouselDef, tile);
+          break;
+
+        case 'Input':
+          RTile.Merge(RTile.InputDef, tile);
           break;
       }
     })
@@ -530,6 +547,16 @@ export class RTile extends LitElement {
           
         case 'Carousel':
           childrenHtml = html`<image-carousel></image-carousel>`
+          break;
+
+        case 'Input':
+          const submitButton = new RS1.TDE('Btn\ta|name:Submit|element:button|inner:Submit|type:submit|\ts|width:70px|height:30px|background:#1e1e1e|color:white|\t')
+          childrenHtml = html`
+          <form style="display: flex; background: transparent;">
+            <input type="${tile.aList?.getVID('input-type')?.Desc}" placeholder="${tile.aList?.getVID('input-placeholder')?.Desc}" ${tile.aList?.getVID('input-required')?.Desc === 'true' ? 'required' : '' } minlength="${tile.aList?.getVID('input-minlength')?.Desc}" maxlength="${tile.aList?.getVID('input-maxlength')?.Desc}"></input>
+            ${this.renderDivs(submitButton)}
+          </form> `;
+          break;
     }
 
     let styleStr = tile.sList?.toVIDList(";");
@@ -588,7 +615,7 @@ export class RTile extends LitElement {
         return html`<div id="tile${this.TList.tiles.indexOf(tile)}" class="tile" style="${styleStr}">${innerContentHTML}${childrenHtml}</div>`;
 
       case 'button': 
-        return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}" class="tile" style="${styleStr}">${innerContentHTML}</button>`;
+        return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}" type="${tile.aList?.getVID('type')?.Desc}" value="${tile.aList?.getVID('value')?.Desc}" class="tile" style="${styleStr}">${innerContentHTML}</button>`;
     }
   }
 
@@ -599,8 +626,8 @@ export class RTile extends LitElement {
 
   firstUpdated(changedProperties: PropertyValueMap<any>): void {
     super.firstUpdated(changedProperties);
-    // this.handleBackgroundPan();
     this.setupClickHandler();
+    this.handleBackgroundPan();
   }
 
   updated(changedProperties: PropertyValueMap<any>): void {
@@ -611,8 +638,9 @@ export class RTile extends LitElement {
       if (element) {
         interact(element).unset(); 
           }
-  }
-  this.handleBackgroundPan();
+    }
+    console.log('updated property: ', changedProperties);
+  // this.handleBackgroundPan();
 }
 
   shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
@@ -667,6 +695,7 @@ export class ImageCarousel extends LitElement {
 
   static styles = css`
   .carousel-container {
+    position: relative;
     width: 100%;
     height: 100%;
     display: flex;
@@ -697,32 +726,35 @@ export class ImageCarousel extends LitElement {
     object-fit: cover;
   }
 
-  .upload-container {
-    width: 100%;
-    height: 70%; 
+  .controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    opacity: 0; 
+    transition: opacity 0.3s; 
+    z-index: 10; 
+    display: flex;
+    gap: 10px;
+    
+  }
+
+  .carousel-container:hover .controls {
+    opacity: 1;
+  }
+
+  .upload-button, .delete-button {
+    display: inline-block;
+    border: none;
+    border-radius: 5px;
     display: flex;
     justify-content: center;
     align-items: center;
-    
-    padding: 10px;
-   
-  }
-
-  .upload-button {
-    background-color: #4CAF50;
-    color: #fff;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
     cursor: pointer;
-  }
-  
-  .upload-button:hover {
-    background-color: #3e8e41;
-  }
-  
-  #imageUpload {
-    display: none;
+    color: #fff;
+    cursor: pointer;
+    width:70px;
+    height:30px;
+    background:#1e1e1e;
   }
 
   input[type="file"] {
@@ -778,38 +810,59 @@ export class ImageCarousel extends LitElement {
     this.requestUpdate();
   }
 
+  deleteCurrentImage() {
+    if (this.splide && this.images.length > 0) {
+      const currentIndex = this.splide.index;
+      if (currentIndex >= 0 && currentIndex < this.images.length) {
+        const removedImage = this.images[currentIndex];
+        this.images = this.images.filter((_, index) => index !== currentIndex);
+        URL.revokeObjectURL(removedImage); 
+        this.requestUpdate();
+      }
+    }
+  }
+
   render() {
     return html`
       <div class="carousel-container">
-        ${this.images.length > 0 ? html`
-          <div class="splide">
-            <div class="splide__track">
-              <ul class="splide__list">
-                ${this.images.map(image => html`
-                  <li class="splide__slide">
-                    <img src="${image}" alt="Carousel image">
-                  </li>
-                `)}
-              </ul>
-            </div>
-          </div>
-        ` : html`
-        `
-      }
-        
-        <div class="upload-container">
-          <input 
-            type="file" 
-            id="imageUpload" 
-            accept="image/*" 
-            @change="${this.handleFileUpload}"
-            multiple
-          >
-          <label for="imageUpload" class="upload-button">
-            Upload Image
-          </label>
+        <div class="controls">
+          <label for="imageUpload" class="upload-button">Upload</label>
+          ${this.images.length > 0
+            ? html`<button class="delete-button" @click="${this.deleteCurrentImage}">Delete</button>`
+            : ''}
         </div>
+        ${this.images.length > 0
+          ? html`
+              <div class="splide">
+                <div class="splide__track">
+                  <ul class="splide__list">
+                    ${this.images.map(
+                      image => html`
+                        <li class="splide__slide">
+                          <img src="${image}" alt="Carousel image" />
+                        </li>
+                      `
+                    )}
+                  </ul>
+                </div>
+              </div>
+            `
+          : html``}
+        <input
+          type="file"
+          id="imageUpload"
+          accept="image/*"
+          @change="${this.handleFileUpload}"
+          multiple
+        />
       </div>
     `;
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.splide) {
+      this.splide.destroy();
+    }
   }
 }

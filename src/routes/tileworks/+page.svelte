@@ -81,7 +81,7 @@
 
 	let TileStrings1: string[] = [
 		'TS4:TileStrings Desc4',
-		'T\ta|name:Full|\ts|display:flex|\t',
+		'T\ta|name:Full|\ts|display:flex|touch-action:none|\t',
 		' T\ta|name:Full|\ts|display:flex|\t',
 		'  T\ta|name:Base|\ts|width:200vw|height:10vh|display:flex|flex-direction:row|\t',
 		'   T\ta|name:Top|drag:true|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
@@ -105,7 +105,7 @@
 		'      Btn\ta|name:TextBold|inner:I|function:Italic|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|\t',
 		'      Btn\ta|name:TextBold|inner:U|function:Underline|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
 		'   T\ta|name:Base|\ts|display:flex|flex-direction:row|\t',
-		'    T\ta|name:side|pan:true|function:Carousel|\ts|background:beige|height:90vh|width:100vw|background-image:url("")|\t',
+		'    Carousel\ta|name:side|pan:true|\ts|background:beige|height:90vh|width:100vw|background-image:url("")|\t',
 	];
 
 		let TileStrings2: string[] = [
