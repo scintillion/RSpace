@@ -98,6 +98,39 @@ export class RTile extends LitElement {
     return TDEArray[TDEArray.length - 1];
   }
 
+  static modifyTDE(TileDef: RS1.TDE, modifications: {
+      styles?: Record<string, string>,
+      attributes?: Record<string, string>
+    }): RS1.TDE {
+     
+      if (modifications.styles) {
+        Object.entries(modifications.styles).forEach(([property, value]) => {
+          const VID = TileDef.sList?.getVID(property);
+          if (VID) {
+            VID.Desc = value;
+            TileDef.sList?.setVID(VID);
+          }
+          else {
+            TileDef.sList?.set(property, value);
+          }
+        });
+      }
+
+      if (modifications.attributes) {
+        Object.entries(modifications.attributes).forEach(([property, value]) => {
+          const VID = TileDef.aList?.getVID(property);
+          if (VID) {
+            VID.Desc = value;
+            TileDef.aList?.setVID(VID);
+          }
+          else {
+            TileDef.aList?.set(property, value);
+          }
+        });
+      }
+      return TileDef;
+    }
+
   NewInstance = (TileList: RS1.TileList) => {
 
     TileList.tiles.forEach(tile => {
@@ -550,13 +583,32 @@ export class RTile extends LitElement {
           break;
 
         case 'Input':
-          const submitButton = new RS1.TDE('Btn\ta|name:Submit|element:button|inner:Submit|type:submit|\ts|width:70px|height:30px|background:#1e1e1e|color:white|\t')
+          // const submitButton = new RS1.TDE('Btn\ta|name:Submit|element:button|inner:Submit|type:submit|\ts|width:70px|height:30px|background:#1e1e1e|color:white|\t')
+          const submitButton = RTile.modifyTDE(RTile.ButtonTDE, {
+            attributes: {
+              name: 'Submit',
+              inner: 'Submit',
+              type: 'submit',
+            },
+            styles: {
+              width: '70px',
+              height: '30px',
+              background: '#1e1e1e',
+              color: 'white'
+            }
+          })
           childrenHtml = html`
           <form style="display: flex; background: transparent;">
             <input type="${tile.aList?.getVID('input-type')?.Desc}" placeholder="${tile.aList?.getVID('input-placeholder')?.Desc}" ${tile.aList?.getVID('input-required')?.Desc === 'true' ? 'required' : '' } minlength="${tile.aList?.getVID('input-minlength')?.Desc}" maxlength="${tile.aList?.getVID('input-maxlength')?.Desc}"></input>
             ${this.renderDivs(submitButton)}
-          </form> `;
+          </form> `; 
           break;
+
+        case 'ColorPicker':
+          childrenHtml = html`
+          <color-picker></color-picker>`
+          break;
+
     }
 
     let styleStr = tile.sList?.toVIDList(";");
@@ -864,5 +916,45 @@ export class ImageCarousel extends LitElement {
     if (this.splide) {
       this.splide.destroy();
     }
+  }
+}
+
+@customElement('color-picker')
+class ColorPicker extends LitElement {
+  
+  static get styles() {
+    return css`
+      .color-picker {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        overflow: hidden;
+        appearance: none;
+        -webkit-appearance: none;
+        border: none;
+        cursor: pointer;
+        background:#D1D5DB
+    
+      }
+      .color-picker::-webkit-color-swatch {
+        border-radius: 50%;
+        border: none;
+    }
+
+      .color-picker::-moz-color-swatch {
+        border-radius: 50%;
+        border: none;
+      }
+    `;
+  }
+
+  changeTextColor(color: string) {
+    document.execCommand('foreColor', false, color);
+  }
+
+  render() {
+    return html`
+      <input type="color" class="color-picker" id="text-color" @change=${(e: Event) => this.changeTextColor((e.target as HTMLInputElement).value)}> 
+    `;
   }
 }

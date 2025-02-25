@@ -87,7 +87,7 @@
 		'   T\ta|name:Top|drag:true|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'   T\ta|name:Top|drag:true|inner: <h1><i>click and drag for more >>></i></h1>|\ts|display:flex|align-items:left|padding-left:20px|background:magenta|height:10vh|width:190vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
-		'   T\ta|name:Base|\ts|width:20vw|height:90vh\t',
+		'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
 		'    Txt\ta|name:Left|drag:true|textPreview:true|innerEdit:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'     TxtBtn\ta|name:Button|inner:Save|function:TextSave|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
 		'     RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
@@ -104,6 +104,7 @@
 		'      Btn\ta|name:TextBold|inner:B|function:Bold|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|\t',
 		'      Btn\ta|name:TextBold|inner:I|function:Italic|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|\t',
 		'      Btn\ta|name:TextBold|inner:U|function:Underline|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
+		'      T\ta|name:ColorPicker|function:ColorPicker|\ts|background:transparent|\t',
 		'   T\ta|name:Base|\ts|display:flex|flex-direction:row|\t',
 		'    Carousel\ta|name:side|pan:true|\ts|background:beige|height:90vh|width:100vw|background-image:url("")|\t',
 	];
