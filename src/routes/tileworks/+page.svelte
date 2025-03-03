@@ -106,7 +106,10 @@
 		'      Btn\ta|name:TextBold|inner:U|function:Underline|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
 		'      T\ta|name:ColorPicker|function:ColorPicker|\ts|background:transparent|\t',
 		'   T\ta|name:Base|\ts|display:flex|flex-direction:row|\t',
-		'    Carousel\ta|name:side|pan:true|\ts|background:beige|height:90vh|width:100vw|background-image:url("")|\t',
+		'    Carousel\ta|name:Carousel|pan:true|\ts|background:beige|height:90vh|width:50vw|background-image:url("")|\t',
+		'   T\ta|name:Base|\ts|\t',
+		'    Video\ta|name:VideoPlayer|function:VideoPlayer|video-src:|video-type:video/mp4|video-controls:true|video-autoplay:true|video-loop:true|video-muted:true|\ts|width:50vw|height:90vh|background:blue|\t'
+		
 	];
 
 		let TileStrings2: string[] = [

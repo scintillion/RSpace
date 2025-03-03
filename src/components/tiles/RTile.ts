@@ -6,6 +6,7 @@ import interact from 'interactjs';
 import panzoom from 'panzoom';
 import { text } from '@sveltejs/kit';
 import Splide from '@splidejs/splide';
+import {MediaController} from 'media-chrome';
 
 @customElement('r-tile')
 export class RTile extends LitElement {
@@ -60,6 +61,9 @@ export class RTile extends LitElement {
   static InputDefArray: RS1.TDE[] = [RTile.TDef, RTile.InputTDE];
   static InputDef = RTile.TileMerge(RTile.InputDefArray);
 
+  static VideoPlayerTDE = new RS1.TDE('Video\ta|name:VideoPlayer|function:VideoPlayer|video-src:|video-type:|video-controls:true|video-autoplay:false|video-loop:false|video-muted:false|\ts|\t');
+  static VideoPlayerDefArray: RS1.TDE[] = [RTile.TDef, RTile.VideoPlayerTDE];
+  static VideoPlayerDef = RTile.TileMerge(RTile.VideoPlayerDefArray);
 
   constructor() {
     super();
@@ -166,6 +170,10 @@ export class RTile extends LitElement {
 
         case 'Input':
           RTile.Merge(RTile.InputDef, tile);
+          break;
+
+        case 'Video':
+          RTile.Merge(RTile.VideoPlayerDef, tile);
           break;
       }
     })
@@ -304,7 +312,6 @@ export class RTile extends LitElement {
     if (element) {
   //     const Panzoom = panzoom(element,
   //       {
-  //       // autocenter: true, 
   //       // bounds: true,
   //       // initialZoom: this._currentZoom,
   //       beforeMouseDown: (e: any) => {
@@ -318,7 +325,6 @@ export class RTile extends LitElement {
   //       },
   //     }
   //     );
-     
   //   }
   // }
   
@@ -609,6 +615,26 @@ export class RTile extends LitElement {
           <color-picker></color-picker>`
           break;
 
+        case 'VideoPlayer':
+          const videoSrc = tile.aList?.descByName('video-src') || '';
+          const videoType = tile.aList?.descByName('video-type') || 'video/mp4';
+          const videoControls = tile.aList?.descByName('video-controls') === 'true';
+          const videoAutoplay = tile.aList?.descByName('video-autoplay') === 'true';
+          const videoLoop = tile.aList?.descByName('video-loop') === 'true';
+          const videoMuted = tile.aList?.descByName('video-muted') === 'true';
+
+          childrenHtml = html`
+            <video-player
+              .src=${videoSrc}
+              .type=${videoType}
+              ?controls=${videoControls}
+              ?autoplay=${videoAutoplay}
+              ?loop=${videoLoop}
+              ?muted=${videoMuted}
+            ></video-player>
+          `;
+          break;
+
     }
 
     let styleStr = tile.sList?.toVIDList(";");
@@ -689,11 +715,11 @@ export class RTile extends LitElement {
       const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this._currentTile)}`);
       if (element) {
         interact(element).unset(); 
-          }
+      }
     }
     console.log('updated property: ', changedProperties);
   // this.handleBackgroundPan();
-}
+  }
 
   shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
     console.log('Changed properties:', [...changedProperties.keys()]); 
@@ -953,8 +979,198 @@ class ColorPicker extends LitElement {
   }
 
   render() {
+    return html`<input type="color" class="color-picker" @input=${(e: any) => this.changeTextColor(e.target.value)}>`;
+  }
+}
+
+@customElement('video-player')
+export class VideoPlayerElement extends LitElement {
+  private mediaController: any = null;
+  private videoElement: HTMLVideoElement | null = null;
+  private currentVideoUrl: string | null = null;
+  declare src: string | null;
+  declare type: string;
+  declare controls: boolean;
+  declare autoplay: boolean;
+  declare loop: boolean;
+  declare muted: boolean;
+
+  static properties = {
+    type: { type: String },
+    controls: { type: Boolean },
+    autoplay: { type: Boolean },
+    loop: { type: Boolean },
+    muted: { type: Boolean },
+  }
+
+  constructor() {
+    super()
+    this.src = null
+    this.type = 'video/mp4'
+    this.controls = true
+    this.autoplay = false
+    this.loop = false
+    this.muted = false
+  }
+ 
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    media-controller {
+      width: 100%;
+      height: 100%;
+      --media-control-background: rgba(20, 20, 20, 0.7);
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+    }
+    :host(:hover) .controls {
+      opacity: 1;
+    } 
+    .upload-button, .delete-button {
+      display: inline-block;
+      border: none;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      color: #fff;
+      cursor: pointer;
+      width: 70px;
+      height: 30px;
+      background: #1e1e1e;
+    }
+    input[type="file"] {
+      display: none;
+    }
+  `;
+
+  firstUpdated() {
+    this.initializePlayer();
+  }
+
+  updated(changedProperties: Map<string, any>) {
+    if (changedProperties.has('src') && this.src) {
+      this.currentVideoUrl = this.src;
+      if (this.videoElement) {
+        this.videoElement.src = this.currentVideoUrl;
+        this.videoElement.load();
+      }
+    }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this.currentVideoUrl && this.currentVideoUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(this.currentVideoUrl);
+    }
+  }
+
+  private initializePlayer() {
+    this.mediaController = this.shadowRoot?.querySelector('media-controller');
+    this.videoElement = this.shadowRoot!.querySelector('video');
+    console.log('vidautoplay: ', this.autoplay)
+  }
+
+  private handleFileUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    
+    if (file) {
+      if (this.currentVideoUrl && this.currentVideoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(this.currentVideoUrl);
+      }
+      
+      this.currentVideoUrl = URL.createObjectURL(file);
+      
+      if (this.videoElement) {
+        this.videoElement.src = this.currentVideoUrl;
+        this.videoElement.load();
+      }
+      
+      this.requestUpdate();
+    }
+  }
+
+  private handleDelete() {
+    if (this.currentVideoUrl) {
+      if (this.currentVideoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(this.currentVideoUrl);
+      }
+      this.currentVideoUrl = null;
+      if (this.videoElement) {
+        this.videoElement.src = '';
+      }
+      this.requestUpdate();
+    }
+  }
+
+  render() {
     return html`
-      <input type="color" class="color-picker" id="text-color" @change=${(e: Event) => this.changeTextColor((e.target as HTMLInputElement).value)}> 
+      <div class="container">
+        <div class="controls">
+          <label class="upload-button">
+            Upload
+            <input type="file" accept="video/*" @change="${this.handleFileUpload}">
+          </label>
+          ${this.currentVideoUrl ? html`
+            <button class="delete-button" @click="${this.handleDelete}">
+              Delete
+            </button>
+          ` : ''}
+        </div>
+        ${this.currentVideoUrl ? html`
+          <media-controller>
+            <video
+              slot="media"
+              preload="auto"
+              crossorigin
+              playsinline
+              src="${this.currentVideoUrl}"
+              ?type="${this.type}"
+              ?autoplay="${this.autoplay}"
+              ?loop="${this.loop}"
+              ?muted="${this.muted}"
+            >
+              <source src="${this.currentVideoUrl}" type="${this.type}">
+            </video>
+            <media-control-bar>
+              <media-play-button></media-play-button>
+              <media-seek-backward-button></media-seek-backward-button>
+              <media-seek-forward-button></media-seek-forward-button>
+              <media-mute-button></media-mute-button>
+              <media-volume-range></media-volume-range>
+              <media-time-range></media-time-range>
+              <media-time-display></media-time-display>
+              <media-fullscreen-button></media-fullscreen-button>
+            </media-control-bar>
+          </media-controller>
+        ` : ''}
+      </div>
     `;
   }
 }
