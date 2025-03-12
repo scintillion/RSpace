@@ -327,6 +327,16 @@ function Edit(tile: RS1.TDE) {
 	//     Edit(selectedTile);
 	// }
 	
+	onMount(() => {
+		const handleTogglePlot = (event: any) => {
+			showPlot = event.detail.showPlot;
+		};
+		window.addEventListener('toggle-plot-view', handleTogglePlot);
+
+		return () => {
+			window.removeEventListener('toggle-plot-view', handleTogglePlot);
+		};
+	});
 
 </script>
 
@@ -393,10 +403,8 @@ function Edit(tile: RS1.TDE) {
 	<!-- <button onclick={() => {showPlot = !showPlot; villaPlot = !villaPlot}}>Editor</button> -->
 	<villa-plotter tileList={VillaTiles}></villa-plotter>
 	{:else}
-		<button onclick={() => showPlot = !showPlot}>Editor</button>
-		<button onclick={() => {isPanToggle = !isPanToggle; console.log('pan toggle', isPanToggle)}}>{isPanToggle ? 'Edit' : 'Pan'}</button>
-		<!-- <button onclick={() => {panAxis = panAxis === 'xy' ? 'x' : panAxis === 'x' ? 'y' : 'xy'; console.log('pan axis', panAxis)}}>Pan: {panAxis}</button> -->
-		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} ontileLink={tileLink} TList={List} ></tile-list-renderer>
+		
+		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} ontileLink={tileLink} TList={List} showPlot={showPlot}></tile-list-renderer>
 	{/if}
 {/if}
 

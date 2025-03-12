@@ -19,6 +19,8 @@ export class RTile extends LitElement {
   declare _panToggle: boolean;
   declare _panAxis: string;
   declare _isTextPreview: boolean;
+  declare _showEditorPanel: boolean;
+  declare showListEditor: boolean;
 
   static properties = {
     _fileUploaded: { type: Boolean },
@@ -26,7 +28,8 @@ export class RTile extends LitElement {
     _panToggle: { type: Boolean },
     _panAxis: { type: String },
     TList: { type: Object },
-    _isTextPreview: { type: Boolean }
+    _isTextPreview: { type: Boolean },
+    _showEditorPanel: { type: Boolean }
   };
 
   static TTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|drag:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
@@ -73,6 +76,7 @@ export class RTile extends LitElement {
     this._panToggle = false;
     this._panAxis = 'x';
     this._isTextPreview = true;
+    this._showEditorPanel = true;
   }
 
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
@@ -476,6 +480,23 @@ export class RTile extends LitElement {
     }
 }
 
+deleteTile(tile: RS1.TDE) {
+  if (!this.TList || !tile) return;
+  const tileIndex = this.TList.tiles.indexOf(tile);
+  this.TList.tiles.splice(tileIndex, 1);
+  this.TList.Links();
+
+  this.dispatchEvent(
+    new CustomEvent('tile-deleted', {
+      detail: { tileIndex },
+      bubbles: true,
+      composed: true
+    })
+  );
+
+  this.requestUpdate();
+}
+
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const elementType = tile.aList?.descByName('element');
@@ -487,6 +508,7 @@ export class RTile extends LitElement {
     const displayVID = tile.sList?.getVID('display');
     const istextPreview = tile.aList?.descByName('textPreview');
     const textPreviewVID = tile.aList?.getVID('textPreview');
+    let styleStr = tile.sList?.toVIDList(";");
     let childrenHtml = html``;
 
     switch (tileFunction) {
@@ -584,9 +606,19 @@ export class RTile extends LitElement {
           </div> `;
           break;
           
-        case 'Carousel':
-          childrenHtml = html`<image-carousel></image-carousel>`
-          break;
+          case 'Carousel':
+            const tileIndexCarousel = this.TList.tiles.indexOf(tile);
+            childrenHtml = html`
+              <div id="tile${tileIndexCarousel}" class="tile" style="position: relative; ${styleStr}">
+                <image-carousel 
+                  .tileIndex="${tileIndexCarousel}"
+                  .canDelete="${tileIndexCarousel !== 1}"
+                  @delete-tile="${() => this.deleteTile(tile)}">
+                </image-carousel>
+              </div>
+            `;
+            return childrenHtml;
+            break;
 
         case 'Input':
           // const submitButton = new RS1.TDE('Btn\ta|name:Submit|element:button|inner:Submit|type:submit|\ts|width:70px|height:30px|background:#1e1e1e|color:white|\t')
@@ -637,7 +669,7 @@ export class RTile extends LitElement {
 
     }
 
-    let styleStr = tile.sList?.toVIDList(";");
+     styleStr = tile.sList?.toVIDList(";");
 
     if (tile.first) {
       let child = this.TList.tiles[tile.first]
@@ -690,8 +722,27 @@ export class RTile extends LitElement {
 
     switch (elementType) {
       case 'div':
-        return html`<div id="tile${this.TList.tiles.indexOf(tile)}" class="tile" style="${styleStr}">${innerContentHTML}${childrenHtml}</div>`;
-
+        const tileIndex = this.TList.tiles.indexOf(tile);
+        return html`<div id="tile${tileIndex}" class="tile" style="${styleStr}"
+          @mouseenter="${(e: Event) => {
+            e.stopPropagation();
+            const button = (e.currentTarget as HTMLElement).querySelector(':scope > .delete-button');
+            if (button) (button as HTMLElement).style.opacity = '1';
+          }}"
+          @mouseleave="${(e: Event) => {
+            e.stopPropagation();
+            const button = (e.currentTarget as HTMLElement).querySelector(':scope > .delete-button');
+            if (button) (button as HTMLElement).style.opacity = '0';
+          }}">
+          ${innerContentHTML}${childrenHtml}
+          ${tileIndex !== 1 ? html`
+            <button class="delete-button" 
+              style="position: absolute; top: 10px; right: 10px; opacity: 0; transition: opacity 0.3s; z-index: 10; display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
+              @click="${() => this.deleteTile(tile)}">
+              Delete
+            </button>
+          ` : ''}
+        </div>`;
       case 'button': 
         return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}" type="${tile.aList?.getVID('type')?.Desc}" value="${tile.aList?.getVID('value')?.Desc}" class="tile" style="${styleStr}">${innerContentHTML}</button>`;
     }
@@ -699,7 +750,38 @@ export class RTile extends LitElement {
 
   render() {
     this.NewInstance(this.TList);
-    return html`${ this.renderDivs(this.tile)}`;
+    return html`
+      ${this.renderDivs(this.tile)}
+      <tile-editor-panel
+        ?editMode=${this._editMode}
+        ?BrowseMode=${this._panToggle}
+        ?showPanel=${this._showEditorPanel}
+        ?showListEditor=${this.showListEditor}
+        @edit-mode-toggle=${this.handleEditModeToggle}
+        @pan-mode-toggle=${this.handleBrowseModeToggle}
+        @panel-toggle=${this.handlePanelToggle}
+      ></tile-editor-panel>
+    `;
+  }
+  private handleEditModeToggle(e: CustomEvent) {
+    this._editMode = e.detail.editMode;
+    if (this._editMode) {
+      this._panToggle = false;
+    }
+    this.requestUpdate();
+  }
+  
+  private handleBrowseModeToggle(e: CustomEvent) {
+    this._panToggle = e.detail.BrowseMode;
+    if (this._panToggle) {
+      this._editMode = false;
+    }
+    this.requestUpdate();
+  }
+  
+  private handlePanelToggle(e: CustomEvent) {
+    this._showEditorPanel = e.detail.showPanel;
+    this.requestUpdate();
   }
 
   firstUpdated(changedProperties: PropertyValueMap<any>): void {
@@ -734,16 +816,19 @@ export class TileListRenderer extends LitElement {
   declare TList: RS1.TileList;
   declare topLevelTiles: RS1.TDE[];
   declare _panToggle: boolean; 
+  declare showListEditor: boolean;
 
   static properties = {
     TList: { type: Object },
     _panToggle: { type: Boolean, state: true },
+    showListEditor: { type: Boolean, state: true },
   };
 
   constructor() {
     super();
     this.TList = new RS1.TileList('');
     this._panToggle = false;
+    this.showListEditor = false;
   }
   
   willUpdate(changedProperties: PropertyValueMap<any>) {
@@ -755,7 +840,7 @@ export class TileListRenderer extends LitElement {
   render() {
     return html`
       ${this.topLevelTiles.map(tile => html`
-        <r-tile .tile=${tile} ._panToggle=${this._panToggle} .TList=${this.TList}></r-tile>
+        <r-tile .tile=${tile} ._panToggle=${this._panToggle} .TList=${this.TList} .showListEditor=${this.showListEditor}></r-tile>
       `)}
     `;
   }
@@ -766,9 +851,13 @@ export class TileListRenderer extends LitElement {
 export class ImageCarousel extends LitElement {
   declare images: string[];
   declare splide: Splide;
+  declare tileIndex: number;
+  declare canDelete: boolean;
 
   static properties = {
     images: { type: Array },
+    tileIndex: { type: Number },
+    canDelete: { type: Boolean }
   };
 
   static styles = css`
@@ -820,19 +909,19 @@ export class ImageCarousel extends LitElement {
     opacity: 1;
   }
 
-  .upload-button, .delete-button {
-    display: inline-block;
-    border: none;
-    border-radius: 5px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    color: #fff;
-    cursor: pointer;
-    width:70px;
-    height:30px;
-    background:#1e1e1e;
+  .upload-button, .delete-button, .delete-tile-button {
+ display: inline-block;
+      border: none;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      color: #fff;
+      cursor: pointer;
+      width: 70px;
+      height: 30px;
+      background: #1e1e1e;
   }
 
   input[type="file"] {
@@ -843,6 +932,8 @@ export class ImageCarousel extends LitElement {
   constructor() {
     super();
     this.images = [];
+    this.tileIndex = -1;
+    this.canDelete = true;
   }
 
   firstUpdated() {
@@ -899,6 +990,13 @@ export class ImageCarousel extends LitElement {
       }
     }
   }
+  
+  deleteTile() {
+    this.dispatchEvent(new CustomEvent('delete-tile', {
+      bubbles: true,
+      composed: true
+    }));
+  }
 
   render() {
     return html`
@@ -906,7 +1004,10 @@ export class ImageCarousel extends LitElement {
         <div class="controls">
           <label for="imageUpload" class="upload-button">Upload</label>
           ${this.images.length > 0
-            ? html`<button class="delete-button" @click="${this.deleteCurrentImage}">Delete</button>`
+            ? html`<button class="delete-button" @click="${this.deleteCurrentImage}">Delete Image</button>`
+            : ''}
+          ${this.canDelete
+            ? html`<button class="delete-tile-button" @click="${this.deleteTile}">Delete</button>`
             : ''}
         </div>
         ${this.images.length > 0
@@ -1170,6 +1271,177 @@ export class VideoPlayerElement extends LitElement {
             </media-control-bar>
           </media-controller>
         ` : ''}
+      </div>
+    `;
+  }
+}
+
+@customElement('tile-editor-panel')
+export class TileEditorPanel extends LitElement {
+  declare editMode: boolean;
+  declare BrowseMode: boolean;
+  declare showPanel: boolean;
+  declare showListEditor: boolean;
+
+  static properties = {
+    editMode: { type: Boolean },
+    BrowseMode: { type: Boolean },
+    showPanel: { type: Boolean },
+    showListEditor: { type: Boolean },
+  }
+
+  constructor() {
+    super()
+    this.editMode = false;
+    this.BrowseMode = false;
+    this.showPanel = true;
+    this.showListEditor = false;
+  }
+ 
+  static styles = css`
+    :host {
+      display: block;
+    }
+    
+    .editor-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: rgba(40, 44, 52, 0.9);
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 200px;
+      color: white;
+      font-family: Arial, sans-serif;
+      transition: transform 0.3s ease;
+    }
+    
+    .editor-panel-hidden {
+      transform: translateX(calc(100% + 20px));
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .panel-title {
+      font-weight: bold;
+      margin: 0;
+    }
+    
+    .toggle-panel-btn {
+      position: absolute;
+      left: -20px;
+      top: 10px;
+      width: 20px;
+      height: 40px;
+      background-color: rgba(40, 44, 52, 0.9);
+      border-radius: 4px 0 0 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+    }
+    
+    .editor-btn {
+      padding: 8px 12px;
+      background-color: #3a3f4b;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+    
+    .editor-btn:hover {
+      background-color: #4a4f5b;
+    }
+    
+    .editor-btn.active {
+      background-color: #3498db;
+    }
+    
+    .editor-btn-icon {
+      margin-right: 8px;
+    }
+  `;
+
+  private togglePanel() {
+    this.showPanel = !this.showPanel;
+    this.dispatchEvent(new CustomEvent('panel-toggle', { 
+      detail: { showPanel: this.showPanel },
+      bubbles: true, 
+      composed: true 
+    }));
+  }
+
+  private toggleEditMode() {
+    this.editMode = !this.editMode;
+    this.dispatchEvent(new CustomEvent('edit-mode-toggle', { 
+      detail: { editMode: this.editMode },
+      bubbles: true, 
+      composed: true 
+    }));
+  }
+
+  private toggleBrowseMode() {
+    this.BrowseMode = !this.BrowseMode;
+    this.dispatchEvent(new CustomEvent('pan-mode-toggle', { 
+      detail: { BrowseMode: this.BrowseMode },
+      bubbles: true, 
+      composed: true 
+    }));
+  }
+
+  private navigateToListEditor() {
+    this.showListEditor = !this.showListEditor;
+    const globalEvent = new CustomEvent('toggle-plot-view', {
+      detail: { showListEditor: this.showListEditor }
+    });
+    window.dispatchEvent(globalEvent);
+  }
+
+  render() {
+    const BrowseModeActive = this.BrowseMode ? 'active' : '';
+    const editModeActive = this.editMode ? 'active' : '';
+    const panelHidden = !this.showPanel ? 'editor-panel-hidden' : '';
+    
+    return html`
+      <div class="editor-panel ${panelHidden}">
+        <div class="toggle-panel-btn" @click="${this.togglePanel}">
+          ${this.showPanel ? '◀' : '▶'}
+        </div>
+        
+        <div class="panel-header">
+          <h3 class="panel-title">Tile Editor</h3>
+        </div>
+        
+        <button class="editor-btn ${editModeActive}" @click="${this.toggleEditMode}">
+          <span class="editor-btn-icon">✏️</span> Edit Mode
+        </button>
+        
+        <button class="editor-btn ${BrowseModeActive}" @click="${this.toggleBrowseMode}">
+          <span class="editor-btn-icon">🖐️</span> Browse Mode
+        </button>
+
+        <button class="editor-btn" @click="${this.navigateToListEditor}">
+          <span class="editor-btn-icon">📝</span> List Editor
+        </button>
       </div>
     `;
   }
