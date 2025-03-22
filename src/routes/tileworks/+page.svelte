@@ -88,7 +88,7 @@
 		'   T\ta|name:Top|drag:true|inner: <h1><i>click and drag for more >>></i></h1>|\ts|display:flex|align-items:left|padding-left:20px|background:magenta|height:10vh|width:190vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
 		'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-		'    Txt\ta|name:Left|drag:true|textPreview:true|innerEdit:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
+		'    Txt\ta|name:Left|drag:true|hold:true|textPreview:true|innerEdit:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'     TxtBtn\ta|name:Button|inner:Save|function:TextSave|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
 		'     RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
 		'   T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
@@ -98,7 +98,7 @@
 		'      Btn\ta|name:Button|inner:Save|function:TextSave|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
 		// '      ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|top:0|right:100px|position:absolute|z-index:1|\t',
 		'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-		'    T\ta|name:Right|drag:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
+		'    T\ta|name:Right|drag:true|hold:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'     T\ta|name:TextBox|function:TextBox|\ts||\t',
 		'     T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|padding:5px|\t',
 		'      Btn\ta|name:TextBold|inner:B|function:Bold|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|\t',
@@ -181,10 +181,17 @@
 	createTileList(TileStrings1);
 
 	function populateTileArray() {
-    let Tiles = List.tiles;
+	TileArray = [];
 	List.tiles.forEach(tile => {
 		TileArray.push(tile)
 		})
+	}
+
+	function handleTileDelete(event: CustomEvent) {
+		const deletedTileIndex = event.detail.tileIndex;
+  		List.tiles.splice(deletedTileIndex, 1);
+  		List.Links();
+		populateTileArray();
 	}
 
 	function tileLink(e: CustomEvent) {	
@@ -404,7 +411,7 @@ function Edit(tile: RS1.TDE) {
 	<villa-plotter tileList={VillaTiles}></villa-plotter>
 	{:else}
 		
-		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} ontileLink={tileLink} TList={List} showPlot={showPlot}></tile-list-renderer>
+		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} ontileLink={tileLink} TList={List} showPlot={showPlot} ontile-deleted={handleTileDelete}></tile-list-renderer>
 	{/if}
 {/if}
 

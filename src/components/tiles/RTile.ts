@@ -32,7 +32,7 @@ export class RTile extends LitElement {
     _showEditorPanel: { type: Boolean }
   };
 
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|drag:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|drag:|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
@@ -214,7 +214,7 @@ export class RTile extends LitElement {
     }
   }
 
-  handleInteractions(tile: RS1.TDE) {
+  handleTilePlacemant(tile: RS1.TDE) {
     const id = `tile${this.TList.tiles.indexOf(tile)}`;
     const element = this.shadowRoot?.getElementById(id);
     console.log('interaction id ' + id);
@@ -358,30 +358,83 @@ export class RTile extends LitElement {
     }
   }
 
-  setupClickHandler() {
+  setupInteractions() {
+    this.TList.tiles.forEach((_, index) => {
+      const element = this.shadowRoot?.getElementById(`tile${index}`);
+      if (element) {
+        interact(element).unset();
+      }
+    });
+
     this.shadowRoot?.addEventListener('click', (e: Event) => {
       const target = e.target as HTMLElement;
-      
+
       if (!target) return;
 
       if (this._currentTile) {
         const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this._currentTile)}`);
-          if (element) {
-            interact(element).unset();
-          }
+        if (element) {
+          interact(element).unset();
         }
+      }
       
-      const tileIndex = parseInt(target.id.replace('tile', ''));
+    const tileIndex = parseInt(target.id.replace('tile', ''));
       const tile = this.TList.tiles[tileIndex];
       this._currentTile = tile;
       
       if (!tile) return;
 
-        this.handleClick(tile);
-    })
-   
+      this.handleClick(tile);
+  })
+    
+    this.TList.tiles.forEach((tile, index) => {
+      const id = `tile${index}`;
+      const element = this.shadowRoot?.getElementById(id);
 
+      const isSwipe = tile.aList.descByName('swipe');
+      const isHold = tile.aList.descByName('hold');
+      
+      if (element) {
+
+        if(isSwipe === 'true') {
+          interact(element)
+            // .draggable({
+            //   inertia: true,
+            //   modifiers: [
+            //     interact.modifiers.restrictRect({
+            //       restriction: 'parent',
+            //       endOnly: true
+            //     })
+            //   ],
+            //   autoScroll: true,
+            //   onmove: (event) => {},
+            //   onend: (event) => {
+            //     const swipe = event.swipe || (event.getSwipe && event.getSwipe());
+            //     if (swipe) {
+            //       if (swipe.left) {
+            //         console.log('Swiped left');
+            //       } else if (swipe.right) {
+            //         console.log('Swiped right');
+            //       } else if (swipe.up) {
+            //         console.log('Swiped up');
+            //       } else if (swipe.down) {
+            //         console.log('Swiped down');
+            //       }
+            //     }
+            //   }
+            // })
+          }
+          
+        if (isHold === 'true') {
+          interact(element)
+          .on('hold', () => {
+            this.handleLongPress(tile);
+          });
+        }
+      }
+    });
   }
+
   handleClick(tile: RS1.TDE) {
     const tileFunction = tile.aList?.descByName('function');
     const alertContent = tile.aList?.descByName('alert');
@@ -395,7 +448,7 @@ export class RTile extends LitElement {
         if (!this._panToggle) {
           const parent = tile.parent;
           const parentTile = this.TList.tiles[parent];
-          this.handleInteractions(parentTile);
+          this.handleTilePlacemant(parentTile);
         }
         break;
       
@@ -456,7 +509,7 @@ export class RTile extends LitElement {
 
     if (!this._panToggle) {
       if (isDrag === "true") {
-      this.handleInteractions(tile);
+      this.handleTilePlacemant(tile);
       }
     } 
 
@@ -522,7 +575,7 @@ deleteTile(tile: RS1.TDE) {
             interact(element).unset();
             const parent = tile.parent;
             const parentTile = this.TList.tiles[parent];
-            this.handleInteractions(parentTile);
+            this.handleTilePlacemant(parentTile);
           }
         }
   
@@ -726,13 +779,22 @@ deleteTile(tile: RS1.TDE) {
         return html`<div id="tile${tileIndex}" class="tile" style="${styleStr}"
           @mouseenter="${(e: Event) => {
             e.stopPropagation();
+            this.handleHover(tile, true);
             const button = (e.currentTarget as HTMLElement).querySelector(':scope > .delete-button');
-            if (button) (button as HTMLElement).style.opacity = '1';
+            if (button) {
+              if (this._panToggle)  (button as HTMLElement).style.opacity = '1';
+              else (button as HTMLButtonElement).disabled = true
+            }
           }}"
           @mouseleave="${(e: Event) => {
             e.stopPropagation();
+            this.handleHover(tile, false);
             const button = (e.currentTarget as HTMLElement).querySelector(':scope > .delete-button');
             if (button) (button as HTMLElement).style.opacity = '0';
+          }}"
+          @dblclick="${(e: Event) => { 
+            e.stopPropagation();
+            this.handleDoubleClick(tile)
           }}">
           ${innerContentHTML}${childrenHtml}
           ${tileIndex !== 1 ? html`
@@ -744,7 +806,7 @@ deleteTile(tile: RS1.TDE) {
           ` : ''}
         </div>`;
       case 'button': 
-        return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}" type="${tile.aList?.getVID('type')?.Desc}" value="${tile.aList?.getVID('value')?.Desc}" class="tile" style="${styleStr}">${innerContentHTML}</button>`;
+        return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}" type="${tile.aList?.getVID('type')?.Desc}" value="${tile.aList?.getVID('value')?.Desc}" class="button" style="${styleStr}">${innerContentHTML}</button>`;
     }
   }
 
@@ -764,8 +826,7 @@ deleteTile(tile: RS1.TDE) {
     `;
   }
   private handleEditModeToggle(e: CustomEvent) {
-    this._editMode = e.detail.editMode;
-    if (this._editMode) {
+    if (e.detail.editMode) {
       this._panToggle = false;
     }
     this.requestUpdate();
@@ -784,15 +845,56 @@ deleteTile(tile: RS1.TDE) {
     this.requestUpdate();
   }
 
+  handleDoubleClick(tile: RS1.TDE) {
+    console.log('Double click detected on tile:', tile.aList?.descByName('name'));
+  
+    const tileIndex = this.TList.tiles.indexOf(tile);
+    const element = this.shadowRoot?.getElementById(`tile${tileIndex}`);
+    
+    if (element) {
+
+    }
+  }
+  
+  handleHover(tile: RS1.TDE, isEnter: boolean) {
+    const tileIndex = this.TList.tiles.indexOf(tile);
+    const element = this.shadowRoot?.getElementById(`tile${tileIndex}`);
+    // console.log('Hover detected on tile:', tile.aList?.descByName('name'));
+    
+    if (!element || this._panToggle) return;
+    
+    if (isEnter) {
+      const hover = tile.aList?.descByName('hover');
+
+      if (hover === 'true') {
+        element.style.transition = 'all 0.3s ease';
+        element.style.filter = 'brightness(1.2)';
+        element.style.transition = 'box-shadow 0.3s ease';
+        element.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.7)';
+      }
+      
+    } else {
+        element.style.filter = '';
+    }
+  }
+  
+  handleSwipe(tile: RS1.TDE, direction: number) {
+    console.log('Swipe detected on tile:', tile.aList?.descByName('name'), 'Direction:', direction);
+  }
+  
+  handleLongPress(tile: RS1.TDE) {
+    console.log('Long press detected on tile:', tile.aList?.descByName('name'));
+  }
+
   firstUpdated(changedProperties: PropertyValueMap<any>): void {
     super.firstUpdated(changedProperties);
-    this.setupClickHandler();
+    this.setupInteractions();
     this.handleBackgroundPan();
   }
 
   updated(changedProperties: PropertyValueMap<any>): void {
     super.updated(changedProperties);
-    // this.setupClickHandler();
+    // this.setupInteractions();
     if (this._currentTile && this._panToggle) {
       const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this._currentTile)}`);
       if (element) {
@@ -1391,7 +1493,12 @@ export class TileEditorPanel extends LitElement {
   }
 
   private toggleEditMode() {
-    this.editMode = !this.editMode;
+    if (this.editMode) {
+      return;
+    }
+    this.editMode = true;
+    this.BrowseMode = false;
+    // this.editMode = !this.editMode;
     this.dispatchEvent(new CustomEvent('edit-mode-toggle', { 
       detail: { editMode: this.editMode },
       bubbles: true, 
@@ -1400,7 +1507,9 @@ export class TileEditorPanel extends LitElement {
   }
 
   private toggleBrowseMode() {
-    this.BrowseMode = !this.BrowseMode;
+    if (this.BrowseMode) return;
+    this.editMode = false;
+    this.BrowseMode = true;
     this.dispatchEvent(new CustomEvent('pan-mode-toggle', { 
       detail: { BrowseMode: this.BrowseMode },
       bubbles: true, 
