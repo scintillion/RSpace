@@ -1,4 +1,4 @@
-import { LitElement, html, type PropertyValueMap, css } from 'lit';
+import { LitElement, html, type PropertyValueMap, css, type PropertyValues } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
@@ -15,12 +15,9 @@ export class RTile extends LitElement {
   declare _textEditContent: string;
   declare _fileUploaded: boolean;
   declare _editMode: boolean;
-  declare _currentTile?: RS1.TDE | undefined;
   declare _panToggle: boolean;
   declare _panAxis: string;
   declare _isTextPreview: boolean;
-  declare _showEditorPanel: boolean;
-  declare showListEditor: boolean;
 
   static properties = {
     _fileUploaded: { type: Boolean },
@@ -29,7 +26,6 @@ export class RTile extends LitElement {
     _panAxis: { type: String },
     TList: { type: Object },
     _isTextPreview: { type: Boolean },
-    _showEditorPanel: { type: Boolean }
   };
 
   static TTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|drag:|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
@@ -76,7 +72,6 @@ export class RTile extends LitElement {
     this._panToggle = false;
     this._panAxis = 'x';
     this._isTextPreview = true;
-    this._showEditorPanel = true;
   }
 
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
@@ -183,7 +178,6 @@ export class RTile extends LitElement {
 
   handleUpload(event: Event, tile: RS1.TDE) {
     const files = (event.currentTarget as HTMLInputElement).files;
-    this._currentTile = tile;
     const parent = tile.parent;
     const parentTile = this.TList.tiles[parent];
 
@@ -216,7 +210,6 @@ export class RTile extends LitElement {
     const id = `tile${this.TList.tiles.indexOf(tile)}`;
     const element = this.shadowRoot?.getElementById(id);
     console.log('interaction id ' + id);
-    this._currentTile = tile;
 
     if (element) {
       let x = 0;
@@ -419,17 +412,29 @@ private setupTileInteractions(tile: RS1.TDE) {
         break;
 
 
-      case 'Bold':
-        applyFormatting('bold');
-        break;
-
-      case 'Italic':
-        applyFormatting('italic');
-        break;
-      
-      case 'Underline':
-        applyFormatting('underline');
-        break;   
+        case 'Bold':
+          this.dispatchEvent(new CustomEvent('format-text', {
+            detail: { command: 'bold' },
+            bubbles: true,
+            composed: true 
+          }));
+          break;
+        
+        case 'Italic':
+          this.dispatchEvent(new CustomEvent('format-text', {
+            detail: { command: 'italic' },
+            bubbles: true,
+            composed: true
+          }));
+          break;
+        
+        case 'Underline':
+          this.dispatchEvent(new CustomEvent('format-text', {
+            detail: { command: 'underline' },
+            bubbles: true,
+            composed: true
+          }));
+          break;
     }
 
     function applyFormatting(command:string) {
@@ -496,15 +501,78 @@ deleteTile(tile: RS1.TDE) {
     const parentTile = this.TList.tiles[tile.parent];
     // const isText = tile.aList?.descByName('text');
     const isInnerEdit = tile.aList?.descByName('innerEdit');
-    const innerContentHTML = isInnerEdit === 'true' ? html`<div>${unsafeHTML(innerContent)}</div>` : unsafeHTML(innerContent);
     const displayVID = tile.sList?.getVID('display');
     const istextPreview = tile.aList?.descByName('textPreview');
     const textPreviewVID = tile.aList?.getVID('textPreview');
     let styleStr = tile.sList?.toVIDList(";");
     let childrenHtml = html``;
 
+    const innerContentHTMLEditable = () => {
+          if (istextPreview === "false") {
+            return html`
+            <div
+            id="text-edit"
+            contenteditable="true"
+            placeholder="Enter text here"
+            @input="${(e: Event) => {
+              console.log('inputx' + innerContent) 
+              this._textEditContent = (e.target as HTMLDivElement).textContent || '';
+            }}"
+            style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
+            ${(innerContent)}
+            </div> 
+             <button class="system-button" 
+                style="border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
+                @click="${() => {
+                  const parentInnerVID = tile.aList?.getVID('inner');
+                  const textPreviewVID = tile.aList?.getVID('textPreview');
+          
+                  if (parentInnerVID) {
+                    parentInnerVID.Desc = this._textEditContent;
+                    tile.aList?.setVID(parentInnerVID);
+                  }
+            
+                  if (textPreviewVID) {
+                    textPreviewVID.Desc = 'true';
+                    tile.aList?.setVID(textPreviewVID);
+                  }
+            
+                  this._isTextPreview = true;
+                
+                }}">
+                Save
+              </button>
+         `;
+          }
+
+          else if (istextPreview === "true") {
+            return html`
+              <div
+              id="text-edit2"
+              contenteditable="false" 
+              @click="${() =>  {
+                if (!this._panToggle) {
+                 textPreviewVID.Desc = "false";
+              tile.aList?.setVID(textPreviewVID);
+              this._isTextPreview = false;}}}"
+              style="background: transparent; border: none; color: white;">
+              ${unsafeHTML(innerContent)}
+              </div>
+             
+              
+            `;
+          }
+          if (!this._panToggle) {
+               textPreviewVID.Desc = "true";
+              tile.aList?.setVID(textPreviewVID);
+              this._isTextPreview = true;
+          } 
+      }
+
+    const innerContentHTML = isInnerEdit === 'true' ? innerContentHTMLEditable() : unsafeHTML(innerContent);
+
     switch (tileFunction) {
-      // case 'Image':
+  // case 'Image':
       //   const dragVID = tile.aList?.getVID('drag');
       //   if (dragVID) {
       //     dragVID.Desc = this._editMode ? 'true' : 'false';
@@ -554,7 +622,6 @@ deleteTile(tile: RS1.TDE) {
             innerVIDToggle.Desc = this._editMode ? 'Done' : 'Edit';
             tile.aList?.setVID(innerVIDToggle);
           }
-            this._currentTile = tile
             if (displayVID) {
               displayVID.Desc = this._panToggle ? 'none' : 'flex';
               tile.sList?.setVID(displayVID);
@@ -663,72 +730,6 @@ deleteTile(tile: RS1.TDE) {
 
      styleStr = tile.sList?.toVIDList(";");
 
-    // if (isInnerEdit === "true") {
-      
-    //   if (!this._panToggle) {
-    //     if (istextPreview === "false") {
-
-    //     return html`
-    //     <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
-    //       <div
-    //       id="text-edit"
-    //       contenteditable="true"
-    //       placeholder="Enter text here"
-    //       @input="${(e: Event) => {
-    //         console.log('inputx' + innerContent) 
-    //         this._textEditContent = (e.target as HTMLDivElement).textContent || '';
-    //       }}"
-    //       style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
-    //       ${innerContent} 
-    //       </div> 
-    //        <button class="system-button" 
-    //           style="border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
-    //           @click="${() => {
-    //             // const parent = tile.parent;
-    //             // const parentTile = this.TList.tiles[parent];
-    //             const parentInnerVID = tile.aList?.getVID('inner');
-    //             const textPreviewVID = tile.aList?.getVID('textPreview');
-        
-    //             if (parentInnerVID) {
-    //               parentInnerVID.Desc = this._textEditContent;
-    //               tile.aList?.setVID(parentInnerVID);
-    //             }
-          
-    //             if (textPreviewVID) {
-    //               textPreviewVID.Desc = 'true';
-    //               tile.aList?.setVID(textPreviewVID);
-    //             }
-          
-    //             this._isTextPreview = true;
-              
-    //           }}">
-    //           Delete
-    //         </button>
-             
-    //       <slot></slot>
-    //     </div>`;
-    //     }
-
-        
-    //     else if (istextPreview === "true") {
-    //       return html`
-    //       <div id="tile${this.TList.tiles.indexOf(tile)}" style="${styleStr}">
-    //         <div
-    //         id="text-edit2"
-    //         contenteditable="false" 
-    //         @click="${() =>  { textPreviewVID.Desc = "false";
-    //         tile.aList?.setVID(textPreviewVID);
-    //         this._isTextPreview = false;}}"
-    //         style="background: transparent; border: none; color: white;">
-    //         ${innerContentHTML}
-    //         </div>
-           
-    //         <slot></slot>
-    //       </div>`;
-    //     }
-    //   }
-    // }
-
     switch (elementType) {
       case 'div':
         const tileIndex = this.TList.tiles.indexOf(tile);
@@ -756,7 +757,17 @@ deleteTile(tile: RS1.TDE) {
           @dblclick="${(e: Event) => { 
             e.stopPropagation();
             this.handleDoubleClick(tile)
-          }}">
+          }
+        }"
+          @format-text="${(e: CustomEvent) => { 
+            const targetTextBox = this.shadowRoot?.getElementById('text-box') as HTMLDivElement | null;
+            if (targetTextBox) {
+              const command = e.detail.command;
+              document.execCommand(command, false);
+              e.stopPropagation(); 
+            }
+          }
+        }">
           ${innerContentHTML}${childrenHtml}
            <slot></slot>
           ${tileIndex !== 1 ? html`
@@ -776,7 +787,6 @@ deleteTile(tile: RS1.TDE) {
   }
 
   render() {
-    this.NewInstance(this.tile);
     return html`
       ${this.renderDivs(this.tile)}
     `;
@@ -804,7 +814,7 @@ deleteTile(tile: RS1.TDE) {
       const hover = tile.aList?.descByName('hover');
 
       if (hover === 'true') {
-        element.style.transition = 'all 0.3s ease';
+        element.style.transition = 'filter 0.3s ease';
         element.style.filter = 'brightness(1.2)';
         element.style.transition = 'box-shadow 0.3s ease';
         element.style.boxShadow = '0 0 15px rgba(255, 255, 255, 0.7)';
@@ -812,6 +822,7 @@ deleteTile(tile: RS1.TDE) {
       
     } else {
         element.style.filter = '';
+        element.style.boxShadow = '';
     }
   }
   
@@ -831,17 +842,27 @@ deleteTile(tile: RS1.TDE) {
   updated(changedProperties: PropertyValueMap<any>): void {
     super.updated(changedProperties);
 
-    if (this._currentTile && this._panToggle) {
-      const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this._currentTile)}`);
-      if (element) {
-        interact(element).unset(); 
-      }
-    }
+    // if (this._currentTile && this._panToggle) {
+    //   const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
+    //   if (element) {
+    //     interact(element).unset(); 
+    //   }
+    // }
 
     if (changedProperties.has('tile') || changedProperties.has('_panToggle')) {
       const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
       if (element) {
         this.setupTileInteractions(this.tile);
+      }
+    }
+
+    if (this._panToggle) {
+      const textPreviewVID = this.tile.aList?.getVID('textPreview');
+      if (textPreviewVID && textPreviewVID.Desc === 'false') {
+        console.log(`Tile '${this.tile.aList?.descByName('name')}': Forcing textPreview to false because panToggle is enabled.`);
+        textPreviewVID.Desc = 'true';
+        this.tile.aList?.setVID(textPreviewVID);
+        this._isTextPreview = true;
       }
     }
   }
@@ -857,6 +878,10 @@ deleteTile(tile: RS1.TDE) {
   shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
     console.log('Changed properties:', [...changedProperties.keys()]); 
     return super.shouldUpdate(changedProperties);
+  }
+
+  willUpdate(changedProperties: PropertyValues): void {
+    this.NewInstance(this.tile)
   }
 
 }
@@ -917,8 +942,6 @@ export class TileListRenderer extends LitElement {
   }
 
   private handleBackgroundPan() {
-    // if (!this._currentTile) this._currentTile = this.TList.tiles[1];
-    
     const element = this.shadowRoot?.getElementById('tile-container');
     let xPos = 0;
     let yPos = 0;
