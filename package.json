@@ -11,8 +11,8 @@
 		"lint": "prettier --write src/**/*"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "^3.2.0",
-		"@sveltejs/kit": "^2.7.3",
+		"@sveltejs/adapter-auto": "^6.0.0",
+		"@sveltejs/kit": "^2.20.4",
 		"@types/better-sqlite3": "^7.6.4",
 		"@types/btoa": "^1.2.3",
 		"prettier": "^2.8.8",
@@ -20,12 +20,13 @@
 		"svelte-check": "^4.0.5",
 		"tslib": "^2.4.1",
 		"typescript": "^5.4.5",
-		"vite": "^5.4.10"
+		"vite": "^6.2.5"
 	},
 	"type": "module",
 	"dependencies": {
 		"@neodrag/svelte": "^2.0.3",
 		"@splidejs/splide": "github:splidejs/splide",
+		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"better-sqlite3": "^8.7.0",
 		"btoa": "^1.2.1",
 		"install": "^0.13.0",
