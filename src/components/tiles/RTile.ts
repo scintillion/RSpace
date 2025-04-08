@@ -658,26 +658,39 @@ deleteTile(tile: RS1.TDE) {
 
         case 'TextBox':
           childrenHtml = html`
-          <div
-          id="text-box"
-          contenteditable="true"
-          style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
-          </div> `;
+            <div
+            id="text-box"
+            contenteditable="true"
+            style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; "
+            @focus="${() => {
+              this.dispatchEvent(new CustomEvent('text-box-interaction', {
+                bubbles: true,
+                composed: true,
+              }))
+            }}"
+            @blur="${() => {
+              this.dispatchEvent(new CustomEvent('text-box-interaction-over', {
+                bubbles: true,
+                composed: true,
+              }))
+            }}">
+            </div> `;
           break;
           
-          case 'Carousel':
-            const tileIndexCarousel = this.TList.tiles.indexOf(tile);
-            childrenHtml = html`
-              <div id="tile${tileIndexCarousel}" class="tile" style="position: relative; ${styleStr}">
-                <image-carousel 
-                  .tileIndex="${tileIndexCarousel}"
-                  .canDelete="${tileIndexCarousel !== 1}"
-                  @delete-tile="${() => this.deleteTile(tile)}">
-                </image-carousel>
-              </div>
-            `;
-            return childrenHtml;
-            break;
+        case 'Carousel':
+          const tileIndexCarousel = this.TList.tiles.indexOf(tile);
+          childrenHtml = html`
+            <image-carousel
+              id="tile${tileIndexCarousel}"
+              class="tile"
+              style="position: relative; ${styleStr}"
+              .tileIndex="${tileIndexCarousel}"
+              .canDelete="${tileIndexCarousel !== 1}"
+              @delete-tile="${() => this.deleteTile(tile)}">
+            </image-carousel>          
+          `;
+          return childrenHtml;
+          break;
 
         case 'Input':
           // const submitButton = new RS1.TDE('Btn\ta|name:Submit|element:button|inner:Submit|type:submit|\ts|width:70px|height:30px|background:#1e1e1e|color:white|\t')
@@ -890,10 +903,11 @@ deleteTile(tile: RS1.TDE) {
 export class TileListRenderer extends LitElement {
  
   declare TList: RS1.TileList;
-  declare topLevelTiles: RS1.TDE[];
   declare _panToggle: boolean;
   declare showEditorPanel: boolean;
   declare showListEditor: boolean;
+  private isInteractingWithCarousel = false;
+  private isInteractingwithTextBox = false
 
   static properties = {
     TList: { type: Object },
@@ -963,17 +977,26 @@ export class TileListRenderer extends LitElement {
   //     );
   //   }
   // }
-  
+
       interact(element).draggable({
         listeners: {
-            move: event => {
-              if (this._panToggle === false) return;
-                xPos += event.dx
-                yPos += event.dy
+          move: event => {
+            if (!this._panToggle) return;
           
-                event.target.style.transform =
-                  `translate(${xPos}px, ${yPos}px)`
+            if (this.isInteractingWithCarousel) {
+              event.interaction.stop();
+              this.isInteractingWithCarousel = false;
+              return;
             }
+            if (this.isInteractingwithTextBox) {
+              event.interaction.stop();
+              return;
+            }
+          
+            xPos += event.dx;
+            yPos += event.dy;
+            event.target.style.transform = `translate(${xPos}px, ${yPos}px)`;
+          }
         },
         modifiers: [
             interact.modifiers.restrict({
@@ -1049,6 +1072,20 @@ export class TileListRenderer extends LitElement {
     this.handleBackgroundPan();
   }
 
+  protected updated(_changedProperties: PropertyValues): void {
+    this.addEventListener('carousel-interaction', () => {
+      this.isInteractingWithCarousel = true;
+    });
+    this.addEventListener('text-box-interaction', () => {
+      this.isInteractingwithTextBox = true;
+      console.log('focus event')
+    });
+    this.addEventListener('text-box-interaction-over', () => {
+      this.isInteractingwithTextBox = false;
+      console.log('focus event')
+    });
+  }
+
 }
 
 @customElement('image-carousel')
@@ -1114,18 +1151,18 @@ export class ImageCarousel extends LitElement {
   }
 
   .upload-button, .delete-button, .delete-tile-button {
- display: inline-block;
-      border: none;
-      border-radius: 5px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      color: #fff;
-      cursor: pointer;
-      width: 70px;
-      height: 30px;
-      background: #1e1e1e;
+    display: inline-block;
+    border: none;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #fff;
+    cursor: pointer;
+    width: 70px;
+    height: 30px;
+    background: #1e1e1e;
   }
 
   input[type="file"] {
@@ -1142,11 +1179,12 @@ export class ImageCarousel extends LitElement {
 
   firstUpdated() {
     this.initSplide();
-     const styleElement = document.createElement('style');
+    const styleElement = document.createElement('style');
     styleElement.textContent = `
       @import url("https://cdn.jsdelivr.net/npm/@splidejs/splide/dist/css/splide.min.css");
     `;
     this.renderRoot.appendChild(styleElement);
+    this.handlePointerDown();
   }
 
   updated(changedProperties: PropertyValueMap<this>) {
@@ -1202,6 +1240,17 @@ export class ImageCarousel extends LitElement {
     }));
   }
 
+  handlePointerDown() {
+    this.addEventListener('pointerdown', (e) => {
+      if (this.images.length > 0) {
+        this.dispatchEvent(new CustomEvent('carousel-interaction', {
+          bubbles: true,
+          composed: true,
+        }));
+      }
+    }); 
+}
+
   render() {
     return html`
       <div class="carousel-container">
@@ -1247,6 +1296,7 @@ export class ImageCarousel extends LitElement {
     if (this.splide) {
       this.splide.destroy();
     }
+    window.removeEventListener('pointerdown', this.handlePointerDown)
   }
 }
 
