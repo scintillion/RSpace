@@ -1,4 +1,4 @@
-import { LitElement, html, type PropertyValueMap, css, type PropertyValues } from 'lit';
+import { LitElement, html, nothing, type PropertyValueMap, css, type PropertyValues } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
@@ -7,6 +7,14 @@ import panzoom from 'panzoom';
 import { text } from '@sveltejs/kit';
 import Splide from '@splidejs/splide';
 import {MediaController} from 'media-chrome';
+
+type BackgroundImageState = {
+  url: string | null;
+  position: string;
+  size: number; 
+  posX: number; 
+  posY: number; 
+};
 
 @customElement('r-tile')
 export class RTile extends LitElement {
@@ -18,6 +26,11 @@ export class RTile extends LitElement {
   declare _panToggle: boolean;
   declare _panAxis: string;
   declare _isTextPreview: boolean;
+  declare _backgroundImageState: BackgroundImageState; 
+  declare _isDraggingBg: boolean;
+  declare _isResizingBg: boolean;
+  declare _isEditBg: boolean;
+  declare _bgControlsInitialized: boolean;
 
   static properties = {
     _fileUploaded: { type: Boolean },
@@ -26,9 +39,14 @@ export class RTile extends LitElement {
     _panAxis: { type: String },
     TList: { type: Object },
     _isTextPreview: { type: Boolean },
+    _backgroundImageState: { state: true },
+    _bgControlsInitialized: { state: true },
+    _isDraggingBg: { state: true },
+    _isResizingBg: { state: true },
+    _isEditBg: { state: true },
   };
 
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|drag:|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|\t');
+  static TTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|bgImage:|drag:|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|\t');
   static TDefArray: RS1.TDE[] = [RTile.TTDE];
   static TDef = RTile.TileMerge(RTile.TDefArray)
 
@@ -72,6 +90,17 @@ export class RTile extends LitElement {
     this._panToggle = false;
     this._panAxis = 'x';
     this._isTextPreview = true;
+    this._backgroundImageState = { 
+      url: null, 
+      position: 'center center',
+      size: 100, 
+      posX: 50, 
+      posY: 50  
+    };
+    this._bgControlsInitialized = false;
+    this._isDraggingBg = false;
+    this._isResizingBg = false;
+    this._isEditBg = false;
   }
 
   static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
@@ -176,36 +205,6 @@ export class RTile extends LitElement {
       }
   }
 
-  handleUpload(event: Event, tile: RS1.TDE) {
-    const files = (event.currentTarget as HTMLInputElement).files;
-    const parent = tile.parent;
-    const parentTile = this.TList.tiles[parent];
-
-    const VID = tile.sList?.getVID('background-image');
-    if ( files !== null && files.length > 0) {
-      try {
-        const file = files[0];
-        if (!file.type.startsWith('image/')) {
-          alert('Only image files are allowed');
-          return;
-        }
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (e) => {
-          if (VID) {
-            VID.Desc = `url("${e.target?.result}")`;
-            tile.sList?.setVID(VID);
-            this.requestUpdate();
-          }
-        }
-      } catch (error) {
-        console.error('Error uploading file:', error);
-      }
-      this._fileUploaded = true;
-      this._editMode = true;
-    }
-  }
-
   handleTilePlacemant(tile: RS1.TDE) {
     const id = `tile${this.TList.tiles.indexOf(tile)}`;
     const element = this.shadowRoot?.getElementById(id);
@@ -235,6 +234,10 @@ export class RTile extends LitElement {
               y = matrix.m42;
             },
             move: (event) => {
+              if (this._isEditBg) {
+                event.interaction.stop();
+                return;
+              }
               x += event.dx;
               y += event.dy;
               element.style.transform = `translate(${x}px, ${y}px)`;
@@ -249,6 +252,10 @@ export class RTile extends LitElement {
           edges: { left: true, right: true, bottom: true, top: true },
           listeners: {
             move: (event) => {
+              if (this._isEditBg) {
+                event.interaction.stop();
+                return;
+              }
               const currentTransform = new DOMMatrix(element.style.transform);
               const currentX = currentTransform.m41;
               const currentY = currentTransform.m42;
@@ -494,6 +501,191 @@ deleteTile(tile: RS1.TDE) {
   this.requestUpdate();
 }
 
+  private handleBackgroundImageUpload(event: Event, tile: RS1.TDE) {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    const bgImageVID = tile.sList?.getVID('background-image');
+    const bgPositionVID = tile.sList?.getVID('background-position');
+    const bgSizeVID = tile.sList?.getVID('background-size');
+
+    if (files !== null && files.length > 0 && bgImageVID) {
+      try {
+        const file = files[0];
+        if (!file.type.startsWith('image/')) {
+          alert('Only image files are allowed');
+          return;
+        }
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+          const imageUrl = `url("${e.target?.result}")`;
+          bgImageVID.Desc = imageUrl;
+          tile.sList?.setVID(bgImageVID);
+
+          if (bgPositionVID) {
+            bgPositionVID.Desc = 'center center';
+            tile.sList?.setVID(bgPositionVID);
+          }
+          
+          if (bgSizeVID) {
+            bgSizeVID.Desc = 'cover';
+            tile.sList?.setVID(bgSizeVID);
+          }
+          
+          this._backgroundImageState = {
+            ...this._backgroundImageState,
+            url: imageUrl
+          }
+        }
+      } catch (error) {
+        console.error('Error uploading background image:', error);
+      }
+    }
+  }
+
+  private handleRemoveBackgroundImage(tile: RS1.TDE) {
+    const bgImageVID = tile.sList?.getVID('background-image');
+    if (bgImageVID) {
+      bgImageVID.Desc = 'url("")'; 
+      tile.sList?.setVID(bgImageVID);
+      this._backgroundImageState = { ...this._backgroundImageState, url: null };
+    }
+  }
+
+  private triggerBgImageUpload(tile: RS1.TDE) {
+    this._isEditBg = true;
+    const tileIndex = this.TList.tiles.indexOf(tile);
+    const input = this.shadowRoot?.getElementById(`bg-file-upload-${tileIndex}`) as HTMLInputElement;
+    if (input) {
+      input.click();
+    }
+  }
+
+  private setupBackgroundControls(tileId: string) {
+    const bgController = this.shadowRoot?.querySelector(`#tile${tileId} .bg-controller`) as HTMLElement;
+    const resizeHandle = this.shadowRoot?.querySelector(`#tile${tileId} .resize-handle`) as HTMLElement;
+    
+    if (!bgController || !resizeHandle) return;
+    
+    interact(bgController).unset();
+    interact(resizeHandle).unset();
+
+    interact(bgController).draggable({
+      listeners: {
+        start: (event) => {
+          event.target.dataset.startPosX = this._backgroundImageState.posX.toString();
+          event.target.dataset.startPosY = this._backgroundImageState.posY.toString();
+        },
+
+        move: (event) => {
+          if (this._panToggle) {
+            event.interaction.stop();
+            return;
+          }
+          
+          const tileElement = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
+          if (!tileElement) return;
+          
+          const startPosX = parseFloat(event.target.dataset.startPosX || '50');
+          const startPosY = parseFloat(event.target.dataset.startPosY || '50');
+          
+          const containerWidth = tileElement.clientWidth;
+          const containerHeight = tileElement.clientHeight;
+          
+          const deltaPercentX = -(event.dx / containerWidth) * 100;
+          const deltaPercentY = -(event.dy / containerHeight) * 100;
+
+          const newPosX = Math.max(0, Math.min(100, startPosX + deltaPercentX));
+          const newPosY = Math.max(0, Math.min(100, startPosY + deltaPercentY));
+          
+          this._backgroundImageState.posX = newPosX;
+          this._backgroundImageState.posY = newPosY;
+
+
+          tileElement.style.backgroundPosition = `${newPosX}% ${newPosY}%`;
+
+          event.target.dataset.startPosX = this._backgroundImageState.posX.toString();
+          event.target.dataset.startPosY = this._backgroundImageState.posY.toString();
+          
+        },
+
+        end: (event) => {
+
+        }
+      }
+    });
+  
+    interact(resizeHandle).draggable({
+      listeners: {
+        start: (event) => {
+          event.target.dataset.startSize = this._backgroundImageState.size.toString();
+          event.target.dataset.startX = event.clientX.toString();
+          event.target.dataset.startY = event.clientY.toString();
+        },
+      
+        move: (event) => {
+            if (this._panToggle) {
+              event.interaction.stop();
+              return;
+            }
+          
+          const tileElement = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
+          if (!tileElement) return;
+          
+          const startSize = parseFloat(event.target.dataset.startSize || '100');
+          const startX = parseFloat(event.target.dataset.startX || '0');
+          const startY = parseFloat(event.target.dataset.startY || '0');
+          
+          const totalDeltaX = event.clientX - startX;
+          const totalDeltaY = event.clientY - startY;
+          
+          const diagonalDelta = (totalDeltaX + totalDeltaY) / 2;
+          
+          const containerSize = Math.min(tileElement.clientWidth, tileElement.clientHeight);
+          const deltaPercent = (diagonalDelta / containerSize) * 100;
+          
+          const newSize = Math.max(50, Math.min(300, startSize + deltaPercent));
+
+          this._backgroundImageState.size = newSize;
+        
+          tileElement.style.backgroundSize = `${newSize}%`;
+
+          event.target.dataset.startSize = this._backgroundImageState.size.toString();
+          event.target.dataset.startX = event.clientX.toString();
+          event.target.dataset.startY = event.clientY.toString();
+        },
+        
+        end: (event) => {
+        
+        }
+      }
+    });
+  }
+
+  private updateBackgroundStyles(tile: RS1.TDE) {
+    if (!this._backgroundImageState.url) return;
+    
+    const bgImageVID = tile.sList?.getVID('background-image');
+    const bgSizeVID = tile.sList?.getVID('background-size');
+    const bgPositionVID = tile.sList?.getVID('background-position');
+    
+    if (bgImageVID) {
+      bgImageVID.Desc = this._backgroundImageState.url;
+      tile.sList?.setVID(bgImageVID);
+    }
+    
+    if (bgSizeVID) {
+      bgSizeVID.Desc =  `${this._backgroundImageState.size !== 100 ? `${this._backgroundImageState.size}%` : 'cover' }`;
+      tile.sList?.setVID(bgSizeVID);
+    } 
+    
+    if (bgPositionVID) {
+      bgPositionVID.Desc = `${this._backgroundImageState.posX}% ${this._backgroundImageState.posY}%`;
+      tile.sList?.setVID(bgPositionVID);
+    }
+    
+  }
+
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const elementType = tile.aList?.descByName('element');
@@ -506,6 +698,47 @@ deleteTile(tile: RS1.TDE) {
     const textPreviewVID = tile.aList?.getVID('textPreview');
     let styleStr = tile.sList?.toVIDList(";");
     let childrenHtml = html``;
+    const tileIndex = this.TList.tiles.indexOf(tile);
+
+    const currentBgUrl = tile.sList?.descByName('background-image');
+    const currentBgPos = tile.sList?.descByName('background-position'); 
+    const currentBgSize = tile.sList?.descByName('background-size'); 
+    
+    if (currentBgUrl && currentBgUrl !== 'url("")') {
+         let posX = 50;
+         let posY = 50;
+         let size = 100;
+         
+         if (currentBgPos) {
+           const posValues = currentBgPos.trim().split(' ');
+           if (posValues.length >= 2) {
+             const xPos = posValues[0];
+             const yPos = posValues[1];
+             
+             if (xPos.endsWith('%')) {
+               posX = parseFloat(xPos);
+             }
+             if (yPos.endsWith('%')) {
+               posY = parseFloat(yPos);
+             }
+           }
+         }
+         
+         if (currentBgSize && currentBgSize.endsWith('%')) {
+           size = parseFloat(currentBgSize);
+         } else if (currentBgSize === 'cover') {
+           size = 100;
+         }
+         
+         this._backgroundImageState = { 
+           url: currentBgUrl, 
+           position: currentBgPos,
+           size: size,
+           posX: posX, 
+           posY: posY 
+         };
+      }
+
 
     const innerContentHTMLEditable = () => {
           if (istextPreview === "false") {
@@ -572,73 +805,6 @@ deleteTile(tile: RS1.TDE) {
     const innerContentHTML = isInnerEdit === 'true' ? innerContentHTMLEditable() : unsafeHTML(innerContent);
 
     switch (tileFunction) {
-  // case 'Image':
-      //   const dragVID = tile.aList?.getVID('drag');
-      //   if (dragVID) {
-      //     dragVID.Desc = this._editMode ? 'true' : 'false';
-      //     tile.aList?.setVID(dragVID);
-      //     const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
-      //     if (element) {
-      //       interact(element).unset();
-      //       const parent = tile.parent;
-      //       const parentTile = this.TList.tiles[parent];
-      //       this.handleTilePlacemant(parentTile);
-      //     }
-      //   }
-  
-      //   if (!this._panToggle) {
-      //     const borderVID = tile.sList?.getVID('border-style');
-      //     if (borderVID) {
-      //       borderVID.Desc = this._editMode ? 'dotted' : 'none';
-      //       tile.sList?.setVID(borderVID);
-      //       console.log('border', borderVID.Desc)
-      //     }
-  
-      //     if (this._fileUploaded && this._editMode) {
-      //       childrenHtml = html`
-      //       <button id="image-delete" style="width:70px;height:30px;background:#1e1e1e;color:white;border-radius:8px;position:absolute;top:0px;left:0px" @click=${() => {
-      //         const VID = tile.sList?.getVID('background-image');
-      //         if (VID) {
-      //           VID.Desc = 'url("")';
-      //           tile.sList?.setVID(VID);
-      //           this._fileUploaded = false;
-      //           this.requestUpdate();
-      //         }
-      //       }}>Delete</button>`   
-      //     }
-      //     else if (!this._fileUploaded) {
-      //       childrenHtml = html`
-      //       <button style="width:70px;height:30px;background:#1e1e1e;color:white;border-radius:8px;position:absolute;top:0px;left:0px">
-      //         <label for="file-upload">Upload</label>
-      //         <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>
-      //       </button>`
-      //     }
-      //   }
-      //   break;
-
-        case 'EditToggle':
-          const innerVIDToggle = tile.aList?.getVID('inner');
-          if (innerVIDToggle) {
-            innerVIDToggle.Desc = this._editMode ? 'Done' : 'Edit';
-            tile.aList?.setVID(innerVIDToggle);
-          }
-            if (displayVID) {
-              displayVID.Desc = this._panToggle ? 'none' : 'flex';
-              tile.sList?.setVID(displayVID);
-            }
-          break;
-
-        case 'ImageUpload':
-          childrenHtml = html`
-          <label for="file-upload">Upload</label>
-          <input id="file-upload" type="file" style="display: none;" @change=${(event:Event) => this.handleUpload(event, tile)}>`
-        
-          if (displayVID) {
-            displayVID.Desc = this._panToggle ? 'none' : 'flex'
-            tile.sList?.setVID(displayVID);
-          }
-          break;
-
         case 'TextSave':
           const isParentTextPreview = parentTile.aList?.descByName('textPreview');
           if (isParentTextPreview === "true" && this._isTextPreview) {
@@ -745,7 +911,43 @@ deleteTile(tile: RS1.TDE) {
 
     switch (elementType) {
       case 'div':
-        const tileIndex = this.TList.tiles.indexOf(tile);
+        const isBgImage = tile.aList?.descByName('BgImage');
+        const bgControls = (!this._panToggle) ? html`
+          <div class="background-controls" style="position: absolute; top: 50px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 11;">
+            <input
+              type="file"
+              id="bg-file-upload-${tileIndex}"
+              style="display: none;"
+              accept="image/*"
+              @change=${(e: Event) => this.handleBackgroundImageUpload(e, tile)}
+            />
+            ${this._isEditBg ? html`
+              ${this._backgroundImageState.url ? html`
+                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.triggerBgImageUpload(tile)}>Replace</button>
+                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.handleRemoveBackgroundImage(tile)}>Remove</button>
+                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => {this.updateBackgroundStyles(tile); this._isEditBg = false}}>Done</button>
+              ` : html`
+                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.triggerBgImageUpload(tile)}>Upload</button>
+                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => {this.updateBackgroundStyles(tile); this._isEditBg = false}}>Done</button>
+              `}
+            ` : html`
+              <button class="system-button"   style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 100px; height: 30px; background: #1e1e1e;" @click=${() => this._isEditBg = true}>Background</button>
+            `}
+            
+          </div>
+        ` : '';
+
+        const bgController = (!this._panToggle && this._backgroundImageState.url && this._isEditBg) ? html`
+          <div 
+            class="bg-controller" 
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 5; background-color: rgba(255, 255, 255, 0.1);"
+          ></div>
+          <div 
+            class="resize-handle" 
+            style="position: absolute; bottom: 10px; right: 10px; width: 12px; height: 12px; background-color: #3498db; border: 2px solid white; border-radius: 50%; z-index: 15; cursor: se-resize;"
+          ></div>
+        ` : '';
+
         return html`<div id="tile${tileIndex}" class="tile" style="${styleStr}"
           @click="${(e: Event) => {
             e.stopPropagation();
@@ -782,6 +984,7 @@ deleteTile(tile: RS1.TDE) {
           }
         }">
           ${innerContentHTML}${childrenHtml}
+          ${isBgImage ==='true' ? html`${bgControls}${bgController}` : nothing}
            <slot></slot>
           ${tileIndex !== 1 ? html`
             <button class="delete-button" 
@@ -850,6 +1053,7 @@ deleteTile(tile: RS1.TDE) {
   firstUpdated(changedProperties: PropertyValueMap<any>): void {
     super.firstUpdated(changedProperties);
     this.setupTileInteractions(this.tile);
+    this.handleTilePlacemant(this.tile);
   }
 
   updated(changedProperties: PropertyValueMap<any>): void {
@@ -878,6 +1082,23 @@ deleteTile(tile: RS1.TDE) {
         this._isTextPreview = true;
       }
     }
+
+    if (changedProperties.has('_backgroundImageState')) {
+      const oldState = changedProperties.get('_backgroundImageState') as BackgroundImageState;
+      if (oldState?.url !== this._backgroundImageState.url) {
+        this._bgControlsInitialized = false;
+      }
+    }
+  
+    if ((changedProperties.has('_isEditBg') || changedProperties.has('_backgroundImageState')) && 
+        this._backgroundImageState.url && 
+        this._isEditBg && 
+        !this._bgControlsInitialized) {
+      this._bgControlsInitialized = true;
+      this.setupBackgroundControls(this.TList.tiles.indexOf(this.tile).toString());
+    } else if (!this._isEditBg) {
+      this._bgControlsInitialized = false;
+    }
   }
 
   disconnectedCallback(): void {
@@ -885,6 +1106,12 @@ deleteTile(tile: RS1.TDE) {
     const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
     if (element) {
       interact(element).unset();
+      
+      const bgController = element.querySelector('.bg-controller') as HTMLElement;
+      const resizeHandle = element.querySelector('.resize-handle') as HTMLElement;
+      
+      if (bgController) {interact(bgController).unset()};
+      if (resizeHandle) interact(resizeHandle).unset();
     }
   }
 
@@ -896,7 +1123,6 @@ deleteTile(tile: RS1.TDE) {
   willUpdate(changedProperties: PropertyValues): void {
     this.NewInstance(this.tile)
   }
-
 }
 
 @customElement ('tile-list-renderer')
@@ -995,7 +1221,7 @@ export class TileListRenderer extends LitElement {
           
             xPos += event.dx;
             yPos += event.dy;
-            event.target.style.transform = `translate(${xPos}px, ${yPos}px)`;
+            element.style.transform = `translate(${xPos}px, ${yPos}px)`;
           }
         },
         modifiers: [
@@ -1296,7 +1522,6 @@ export class ImageCarousel extends LitElement {
     if (this.splide) {
       this.splide.destroy();
     }
-    window.removeEventListener('pointerdown', this.handlePointerDown)
   }
 }
 
