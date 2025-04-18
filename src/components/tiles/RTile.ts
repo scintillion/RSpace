@@ -16,94 +16,16 @@ type BackgroundImageState = {
   posY: number; 
 };
 
-@customElement('r-tile')
-export class RTile extends LitElement {
-  declare TList: RS1.TileList;
-  declare tile: RS1.TDE;
-  declare _textEditContent: string;
-  declare _fileUploaded: boolean;
-  declare _editMode: boolean;
-  declare _panToggle: boolean;
-  declare _panAxis: string;
-  declare _isTextPreview: boolean;
-  declare _backgroundImageState: BackgroundImageState; 
-  declare _isDraggingBg: boolean;
-  declare _isResizingBg: boolean;
-  declare _isEditBg: boolean;
-  declare _bgControlsInitialized: boolean;
+class TileDefBuilder {
+  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|BgImage:|drag:|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|\t');
+  static readonly ButtonTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Btn\ta|name:Button|element:button|type:|value:|\ts|cursor:pointer|\t'))
+  static readonly RoundButtonTDE = this.listMerge(this.ButtonTDE, new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t'));
+  static readonly InnerTextTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Txt\ta|name:TextEdit|text:true|textPreview:true|innerEdit:true|\ts|\t'));
+  static readonly ImageCarouselTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Carousel\ta|name:ImageCarousel|function:Carousel|event:Swipe|\ts|\t'));
+  static readonly InputTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Input\ta|name:Input|function:Input|input-required:|input-type:|input-maxlength:|input-min:|input-max:|input-pattern:|input-step:|input-placeholder:|input-title:|input-readonly:|input-disabled:|input-autocomplete:|input-autofocus:|input-multiple:|input-novalidate:|\ts|\t'));
+  static readonly VideoPlayerTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Video\ta|name:VideoPlayer|function:VideoPlayer|video-src:|video-type:|video-controls:true|video-autoplay:false|video-loop:false|video-muted:false|\ts|\t'));
 
-  static properties = {
-    _fileUploaded: { type: Boolean },
-    _editMode: { type: Boolean },
-    _panToggle: { type: Boolean },
-    _panAxis: { type: String },
-    TList: { type: Object },
-    _isTextPreview: { type: Boolean },
-    _backgroundImageState: { state: true },
-    _bgControlsInitialized: { state: true },
-    _isDraggingBg: { state: true },
-    _isResizingBg: { state: true },
-    _isEditBg: { state: true },
-  };
-
-  static TTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|bgImage:|drag:|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|\t');
-  static TDefArray: RS1.TDE[] = [RTile.TTDE];
-  static TDef = RTile.TileMerge(RTile.TDefArray)
-
-  static ButtonTDE = new RS1.TDE('Btn\ta|name:Button|element:button|type:|value:|\ts|cursor:pointer|\t');
-  static ButtonDefArray: RS1.TDE[] = [RTile.TDef, RTile.ButtonTDE];
-  static ButtonDef = RTile.TileMerge(RTile.ButtonDefArray);
-
-  static RoundButtonTDE = new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t');
-  static RoundButtonDefArray: RS1.TDE[] = [RTile.ButtonDef, RTile.RoundButtonTDE];
-  static RoundButtonDef = RTile.TileMerge(RTile.RoundButtonDefArray);
-
-  static TextEditTDE = new RS1.TDE('Txt\ta|name:TextEdit|text:true|textPreview:true|\ts|\t');
-  static TextEditDefArray: RS1.TDE[] = [RTile.TDef, RTile.TextEditTDE];
-  static TextEditDef = RTile.TileMerge(RTile.TextEditDefArray);
-
-  static TextButtonTDE = new RS1.TDE('TxtBtn\ta|name:TextButton|textBtn:true|\ts|\t');
-  static TextButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.TextButtonTDE];
-  static TextButtonDef = RTile.TileMerge(RTile.TextButtonDefArray);
-
-  static ImageButtonTDE = new RS1.TDE('ImgBtn\ta|name:ImageButton|drag:false|upload:true|\ts|\t');
-  static ImageButtonDefArray: RS1.TDE[] = [RTile.RoundButtonDef, RTile.ImageButtonTDE];
-  static ImageButtonDef = RTile.TileMerge(RTile.ImageButtonDefArray);
-
-  static ImageCarouselTDE = new RS1.TDE('Carousel\ta|name:ImageCarousel|function:Carousel|event:Swipe|\ts|\t');
-  static ImageCarouselDefArray: RS1.TDE[] = [RTile.TDef, RTile.ImageCarouselTDE];
-  static ImageCarouselDef = RTile.TileMerge(RTile.ImageCarouselDefArray);
-
-  static InputTDE = new RS1.TDE('Input\ta|name:Input|function:Input|input-required:|input-type:|input-maxlength:|input-min:|input-max:|input-pattern:|input-step:|input-placeholder:|input-title:|input-readonly:|input-disabled:|input-autocomplete:|input-autofocus:|input-multiple:|input-novalidate:|\ts|\t');
-  static InputDefArray: RS1.TDE[] = [RTile.TDef, RTile.InputTDE];
-  static InputDef = RTile.TileMerge(RTile.InputDefArray);
-
-  static VideoPlayerTDE = new RS1.TDE('Video\ta|name:VideoPlayer|function:VideoPlayer|video-src:|video-type:|video-controls:true|video-autoplay:false|video-loop:false|video-muted:false|\ts|\t');
-  static VideoPlayerDefArray: RS1.TDE[] = [RTile.TDef, RTile.VideoPlayerTDE];
-  static VideoPlayerDef = RTile.TileMerge(RTile.VideoPlayerDefArray);
-
-  constructor() {
-    super();
-    this._fileUploaded = false;
-    this._editMode = false;
-    this._textEditContent = '';
-    this._panToggle = false;
-    this._panAxis = 'x';
-    this._isTextPreview = true;
-    this._backgroundImageState = { 
-      url: null, 
-      position: 'center center',
-      size: 100, 
-      posX: 50, 
-      posY: 50  
-    };
-    this._bgControlsInitialized = false;
-    this._isDraggingBg = false;
-    this._isResizingBg = false;
-    this._isEditBg = false;
-  }
-
-  static Merge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
+  static listMerge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
     const style = A.sList?.copy() as RS1.qList;
     const attr = A.aList?.copy() as RS1.qList;
     style?.merge(B.sList);
@@ -111,23 +33,6 @@ export class RTile extends LitElement {
     B.sList = style;
     B.aList = attr;
     return B;
-  }
-
-  static TileMerge(TDEArray: RS1.TDE[]): RS1.TDE {
-
-    if(TDEArray.length == 0) {
-      throw new Error('TDEArray is empty');
-    }
-
-    if(TDEArray.length == 1) {
-      return TDEArray[0];
-    }
-
-    for (let i = TDEArray.length - 2; i >= 0; --i) {
-      RTile.Merge(TDEArray[i], TDEArray[i+1]);
-    }
-   
-    return TDEArray[TDEArray.length - 1];
   }
 
   static modifyTDE(TileDef: RS1.TDE, modifications: {
@@ -163,46 +68,79 @@ export class RTile extends LitElement {
       return TileDef;
     }
 
-  NewInstance = (tile:RS1.TDE) => {
-
+  static NewInstance = (tile:RS1.TDE) => {
 
       switch(tile.TList?.listName.replace(/^\s+/, '')) {
         case 'T':
-          RTile.Merge(RTile.TDef, tile);
+          this.listMerge(this.MasterTDE, tile);
           break;
 
         case 'Btn':
-          RTile.Merge(RTile.ButtonDef, tile);
+          this.listMerge(this.ButtonTDE, tile);
+        
           break;
 
         case 'RndBtn':
-          RTile.Merge(RTile.RoundButtonDef, tile);
+          this.listMerge(this.RoundButtonTDE, tile);
           break;
 
         case 'Txt':
-          RTile.Merge(RTile.TextEditDef, tile);
+          this.listMerge(this.InnerTextTDE, tile);
           break;  
-
-        case 'TxtBtn':
-          RTile.Merge(RTile.TextButtonDef, tile);
-          break;  
-
-        case 'ImgBtn':
-          RTile.Merge(RTile.ImageButtonDef, tile);
-          break;
 
         case 'Carousel':
-          RTile.Merge(RTile.ImageCarouselDef, tile);
+          this.listMerge(this.ImageCarouselTDE, tile);
           break;
 
         case 'Input':
-          RTile.Merge(RTile.InputDef, tile);
+          this.listMerge(this.InputTDE, tile);
           break;
 
         case 'Video':
-          RTile.Merge(RTile.VideoPlayerDef, tile);
+          this.listMerge(this.VideoPlayerTDE, tile);
           break;
       }
+  }
+}
+
+
+@customElement('r-tile')
+export class RTile extends LitElement {
+  declare TList: RS1.TileList;
+  declare tile: RS1.TDE;
+ 
+  declare _panToggle: boolean;
+  declare _panAxis: string;
+
+  private declare _isTextPreview: boolean;
+  private _textEditContent: string = '' ;
+
+  private declare _backgroundImageState: BackgroundImageState; 
+  private declare _isEditBg: boolean;
+  private _bgControlsInitialized: boolean = false;
+
+  static properties = {
+    _panToggle: { type: Boolean },
+    _panAxis: { type: String },
+    TList: { type: Object },
+    _isTextPreview: { type: Boolean },
+    _backgroundImageState: { type: Object },
+     _isEditBg: { type: Boolean },
+  };
+
+  constructor() {
+    super();
+    this._panToggle = false;
+    this._panAxis = 'x';
+    this._isTextPreview = true;
+    this._backgroundImageState = { 
+      url: null, 
+      position: 'center center',
+      size: 100, 
+      posX: 50, 
+      posY: 50  
+    };
+    this._isEditBg = false;
   }
 
   handleTilePlacemant(tile: RS1.TDE) {
@@ -382,23 +320,6 @@ private setupTileInteractions(tile: RS1.TDE) {
     const textEditor = this.shadowRoot?.getElementById('text-box');
 
     switch (tileFunction) {
-      case 'Image':
-        if (!this._panToggle) {
-          const parent = tile.parent;
-          const parentTile = this.TList.tiles[parent];
-          this.handleTilePlacemant(parentTile);
-        }
-        break;
-      
-      case 'EditToggle':
-        this._editMode = !this._editMode;
-        const innerVID = tile.aList?.getVID('inner');
-        if (innerVID) {
-          innerVID.Desc = this._editMode ? 'Done' : 'Edit';
-          tile.aList?.setVID(innerVID);
-        }
-        break;
-
       case 'TextSave':
         const parent = tile.parent;
         const parentTile = this.TList.tiles[parent];
@@ -468,7 +389,6 @@ private setupTileInteractions(tile: RS1.TDE) {
       if (element) {
         interact(element).unset(); 
       }
-      console.log('edit mode:', this._editMode)
     }
 
     if (isLink) {
@@ -860,7 +780,7 @@ deleteTile(tile: RS1.TDE) {
 
         case 'Input':
           // const submitButton = new RS1.TDE('Btn\ta|name:Submit|element:button|inner:Submit|type:submit|\ts|width:70px|height:30px|background:#1e1e1e|color:white|\t')
-          const submitButton = RTile.modifyTDE(RTile.ButtonTDE, {
+          const submitButton = TileDefBuilder.modifyTDE(TileDefBuilder.ButtonTDE, {
             attributes: {
               name: 'Submit',
               inner: 'Submit',
@@ -913,7 +833,7 @@ deleteTile(tile: RS1.TDE) {
       case 'div':
         const isBgImage = tile.aList?.descByName('BgImage');
         const bgControls = (!this._panToggle) ? html`
-          <div class="background-controls" style="position: absolute; top: 50px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 11;">
+          <div class="background-controls" style="position: absolute; opacity:0; top: 50px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 11;">
             <input
               type="file"
               id="bg-file-upload-${tileIndex}"
@@ -931,7 +851,7 @@ deleteTile(tile: RS1.TDE) {
                 <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => {this.updateBackgroundStyles(tile); this._isEditBg = false}}>Done</button>
               `}
             ` : html`
-              <button class="system-button"   style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 100px; height: 30px; background: #1e1e1e;" @click=${() => this._isEditBg = true}>Background</button>
+              <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 100px; height: 30px; background: #1e1e1e;" @click=${() => this._isEditBg = true}>Background</button>
             `}
             
           </div>
@@ -962,12 +882,19 @@ deleteTile(tile: RS1.TDE) {
               if (this._panToggle)  (button as HTMLElement).style.opacity = '1';
               else (button as HTMLButtonElement).disabled = true
             }
+            const bgControlsElement = (e.currentTarget as HTMLElement).querySelector(':scope > .background-controls');
+            if (bgControlsElement) {
+              if (!this._panToggle) (bgControlsElement as HTMLElement).style.opacity = '1';
+              else (bgControlsElement as HTMLButtonElement).disabled = true
+            }
           }}"
           @mouseleave="${(e: Event) => {
             e.stopPropagation();
             this.handleHover(tile, false);
             const button = (e.currentTarget as HTMLElement).querySelector(':scope > .delete-button');
             if (button) (button as HTMLElement).style.opacity = '0';
+            const bgControlsElement = (e.currentTarget as HTMLElement).querySelector(':scope > .background-controls');
+            if (bgControlsElement) (bgControlsElement as HTMLElement).style.opacity = '0';
           }}"
           @dblclick="${(e: Event) => { 
             e.stopPropagation();
@@ -1121,7 +1048,7 @@ deleteTile(tile: RS1.TDE) {
   }
 
   willUpdate(changedProperties: PropertyValues): void {
-    this.NewInstance(this.tile)
+    TileDefBuilder.NewInstance(this.tile)
   }
 }
 
@@ -1143,7 +1070,7 @@ export class TileListRenderer extends LitElement {
   };
 
   constructor() {
-    super();
+      super();
     this.TList = new RS1.TileList('');
     this._panToggle = false;
   }
