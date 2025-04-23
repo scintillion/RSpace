@@ -109,7 +109,7 @@ export class RTile extends LitElement {
   declare TList: RS1.TileList;
   declare tile: RS1.TDE;
  
-  declare _panToggle: boolean;
+  declare editMode: boolean;
   declare _panAxis: string;
 
   private declare _isTextPreview: boolean;
@@ -120,7 +120,7 @@ export class RTile extends LitElement {
   private _bgControlsInitialized: boolean = false;
 
   static properties = {
-    _panToggle: { type: Boolean },
+    editMode: { type: Boolean },
     _panAxis: { type: String },
     TList: { type: Object },
     _isTextPreview: { type: Boolean },
@@ -130,7 +130,7 @@ export class RTile extends LitElement {
 
   constructor() {
     super();
-    this._panToggle = false;
+    this.editMode = false;
     this._panAxis = 'x';
     this._isTextPreview = true;
     this._backgroundImageState = { 
@@ -243,6 +243,76 @@ export class RTile extends LitElement {
     }
   }
 
+  handleSwipe(target:HTMLElement, options?:Object) {
+    const defaults = {
+        minSwipeDistance: 60,  
+        maxSwipeTime: 500,    
+        onSwipe: (direction:any) => {
+            console.log(`Swipe detected: ${direction}`);
+        }
+    };
+
+    const config = { ...defaults, ...options };
+
+    if (!target) {
+        console.error("No target detected for swipe interaction");
+        return null;
+    }
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    const swipeInteractable = interact(target)
+        .draggable({
+            onstart: function (event) {
+                startX = event.pageX;
+                startY = event.pageY;
+                startTime = event.timeStamp;
+            },
+            onend: function (event) {
+                const endX = event.pageX;
+                const endY = event.pageY;
+                const endTime = event.timeStamp;
+
+                const deltaX = endX - startX;
+                const deltaY = endY - startY;
+                const absDeltaX = Math.abs(deltaX);
+                const absDeltaY = Math.abs(deltaY);
+                const deltaTime = endTime - startTime;
+                
+                if (deltaTime <= config.maxSwipeTime &&
+                    (absDeltaX >= config.minSwipeDistance || absDeltaY >= config.minSwipeDistance))
+                {
+                    let direction = null;
+
+                    if (absDeltaX > absDeltaY) {
+                        direction = (deltaX > 0) ? 'right' : 'left';
+                    } else {
+                        direction = (deltaY > 0) ? 'down' : 'up';
+                    }
+
+                    if (direction && typeof config.onSwipe === 'function') {
+                        config.onSwipe(direction);
+                    }  
+                }
+            },
+            modifiers: [
+             
+            ],
+            listeners: {
+                 move(event) {
+                     event.preventDefault();
+                 }
+            }
+
+        })
+        
+    if (swipeInteractable) swipeInteractable.styleCursor(false);
+
+    return swipeInteractable;
+}
+
 private setupTileInteractions(tile: RS1.TDE) {
   const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
 
@@ -256,51 +326,7 @@ private setupTileInteractions(tile: RS1.TDE) {
 
  
     if(isSwipe === 'true'){
-      // interact(element).draggable({
-      //   inertia: true,
-      //   listeners:{
-      //     move: (event) => {},
-      //     end: (event) => {
-      //       if (event.speed > 300) {
-      //         if (Math.abs(event.velocityX) > Math.abs(event.velocityY)) {
-      //           this.handleSwipe(tile, event.velocityX > 0 ? 1 : -1)
-      //           console.log('swipe left')
-      //         }
-      //         else {
-      //           this.handleSwipe(tile, event.velocityY > 0 ? 2 : -2)
-      //           console.log('swipe right')
-      //         }
-      //       }
-      //     }
-      //   }
-      // })
-      
-      // interact(element)
-      // .draggable({
-      //   inertia: true,
-      //   modifiers: [
-      //     interact.modifiers.restrictRect({
-      //       restriction: 'parent',
-      //       endOnly: true
-      //     })
-      //   ],
-      //   autoScroll: true,
-      //   onmove: (event) => {},
-      //   onend: (event) => {
-      //     const swipe = event.swipe || (event.getSwipe && event.getSwipe());
-      //     if (swipe) {
-      //       if (swipe.left) {
-      //         console.log('Swiped left');
-      //       } else if (swipe.right) {
-      //         console.log('Swiped right');
-      //       } else if (swipe.up) {
-      //         console.log('Swiped up');
-      //       } else if (swipe.down) {
-      //         console.log('Swiped down');
-      //       }
-      //     }
-      //   }
-      // })
+      this.handleSwipe(element)
     }
 
     if (isHold === 'true') {
@@ -378,7 +404,7 @@ private setupTileInteractions(tile: RS1.TDE) {
       window.location.href = redirectLink;
     }
 
-    if (!this._panToggle) {
+    if (this.editMode) {
       if (isDrag === "true") {
       this.handleTilePlacemant(tile);
       }
@@ -404,7 +430,6 @@ private setupTileInteractions(tile: RS1.TDE) {
 }
 
 deleteTile(tile: RS1.TDE) {
-  if (!this.TList || !tile) return;
   const tileIndex = this.TList.tiles.indexOf(tile);
   this.TList.tiles.splice(tileIndex, 1);
   this.TList.Links();
@@ -498,7 +523,7 @@ deleteTile(tile: RS1.TDE) {
         },
 
         move: (event) => {
-          if (this._panToggle) {
+          if (!this.editMode) {
             event.interaction.stop();
             return;
           }
@@ -544,7 +569,7 @@ deleteTile(tile: RS1.TDE) {
         },
       
         move: (event) => {
-            if (this._panToggle) {
+            if (!this.editMode) {
               event.interaction.stop();
               return;
             }
@@ -704,7 +729,7 @@ deleteTile(tile: RS1.TDE) {
               id="text-edit2"
               contenteditable="false" 
               @click="${() =>  {
-                if (!this._panToggle) {
+                if (this.editMode) {
                  textPreviewVID.Desc = "false";
               tile.aList?.setVID(textPreviewVID);
               this._isTextPreview = false;}}}"
@@ -715,7 +740,7 @@ deleteTile(tile: RS1.TDE) {
               
             `;
           }
-          if (!this._panToggle) {
+          if (this.editMode) {
                textPreviewVID.Desc = "true";
               tile.aList?.setVID(textPreviewVID);
               this._isTextPreview = true;
@@ -726,7 +751,7 @@ deleteTile(tile: RS1.TDE) {
 
     switch (tileFunction) {
         case 'TextSave':
-          const isParentTextPreview = parentTile.aList?.descByName('textPreview');
+          const isParentTextPreview = parentTile?.aList?.descByName('textPreview');
           if (isParentTextPreview === "true" && this._isTextPreview) {
             if (displayVID) {
               displayVID.Desc = 'none'
@@ -832,7 +857,7 @@ deleteTile(tile: RS1.TDE) {
     switch (elementType) {
       case 'div':
         const isBgImage = tile.aList?.descByName('BgImage');
-        const bgControls = (!this._panToggle) ? html`
+        const bgControls = (this.editMode) ? html`
           <div class="background-controls" style="position: absolute; opacity:0; top: 50px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 11;">
             <input
               type="file"
@@ -857,7 +882,7 @@ deleteTile(tile: RS1.TDE) {
           </div>
         ` : '';
 
-        const bgController = (!this._panToggle && this._backgroundImageState.url && this._isEditBg) ? html`
+        const bgController = (this.editMode && this._backgroundImageState.url && this._isEditBg) ? html`
           <div 
             class="bg-controller" 
             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 5; background-color: rgba(255, 255, 255, 0.1);"
@@ -879,12 +904,12 @@ deleteTile(tile: RS1.TDE) {
             this.handleHover(tile, true);
             const button = (e.currentTarget as HTMLElement).querySelector(':scope > .delete-button');
             if (button) {
-              if (this._panToggle)  (button as HTMLElement).style.opacity = '1';
+              if (!this.editMode) (button as HTMLElement).style.opacity = '1';
               else (button as HTMLButtonElement).disabled = true
             }
             const bgControlsElement = (e.currentTarget as HTMLElement).querySelector(':scope > .background-controls');
             if (bgControlsElement) {
-              if (!this._panToggle) (bgControlsElement as HTMLElement).style.opacity = '1';
+              if (this.editMode) (bgControlsElement as HTMLElement).style.opacity = '1';
               else (bgControlsElement as HTMLButtonElement).disabled = true
             }
           }}"
@@ -951,7 +976,7 @@ deleteTile(tile: RS1.TDE) {
     const element = this.shadowRoot?.getElementById(`tile${tileIndex}`);
     // console.log('Hover detected on tile:', tile.aList?.descByName('name'));
     
-    if (!element || this._panToggle) return;
+    if (!element || !this.editMode) return;
     
     if (isEnter) {
       const hover = tile.aList?.descByName('hover');
@@ -967,10 +992,6 @@ deleteTile(tile: RS1.TDE) {
         element.style.filter = '';
         element.style.boxShadow = '';
     }
-  }
-  
-  handleSwipe(tile: RS1.TDE, direction: number) {
-    console.log('Swipe detected on tile:', tile.aList?.descByName('name'), 'Direction:', direction);
   }
   
   handleLongPress(tile: RS1.TDE) {
@@ -993,14 +1014,14 @@ deleteTile(tile: RS1.TDE) {
     //   }
     // }
 
-    if (changedProperties.has('tile') || changedProperties.has('_panToggle')) {
+    if (changedProperties.has('tile') || changedProperties.has('editMode')) {
       const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
       if (element) {
         this.setupTileInteractions(this.tile);
       }
     }
 
-    if (this._panToggle) {
+    if (!this.editMode) {
       const textPreviewVID = this.tile.aList?.getVID('textPreview');
       if (textPreviewVID && textPreviewVID.Desc === 'false') {
         console.log(`Tile '${this.tile.aList?.descByName('name')}': Forcing textPreview to false because panToggle is enabled.`);
@@ -1056,7 +1077,7 @@ deleteTile(tile: RS1.TDE) {
 export class TileListRenderer extends LitElement {
  
   declare TList: RS1.TileList;
-  declare _panToggle: boolean;
+  declare editMode: boolean;
   declare showEditorPanel: boolean;
   declare showListEditor: boolean;
   private isInteractingWithCarousel = false;
@@ -1064,15 +1085,17 @@ export class TileListRenderer extends LitElement {
 
   static properties = {
     TList: { type: Object },
-    _panToggle: { type: Boolean},
-    showEditorPanel: { type: Boolean},
-    showListEditor: { type: Boolean},
+    showEditorPanel: { type: Boolean },
+    showListEditor: { type: Boolean },
+    editMode: { type: Boolean },
   };
 
   constructor() {
-      super();
+    super();
     this.TList = new RS1.TileList('');
-    this._panToggle = false;
+    this.editMode = false;
+    this.showEditorPanel = true;
+    this.showListEditor = false;
   }
 
   private renderTileAndChildren(tile: RS1.TDE | undefined): any {
@@ -1099,7 +1122,7 @@ export class TileListRenderer extends LitElement {
       <r-tile
         .tile=${tile}
         .TList=${this.TList}
-        ._panToggle=${this._panToggle}
+        .editMode=${this.editMode}
         .showListEditor=${this.showListEditor}
         @tile-deleted=${this.handleTileDeletion}
       >
@@ -1134,7 +1157,7 @@ export class TileListRenderer extends LitElement {
       interact(element).draggable({
         listeners: {
           move: event => {
-            if (!this._panToggle) return;
+            // if (!this.editMode) return;
           
             if (this.isInteractingWithCarousel) {
               event.interaction.stop();
@@ -1169,24 +1192,18 @@ export class TileListRenderer extends LitElement {
     }
   }
 
-  private handleEditModeToggle(e: CustomEvent) {
-    if (e.detail.editMode) {
-      this._panToggle = false;
+  private handleModeChange(e: CustomEvent) {
+    if (typeof e.detail.editMode === 'boolean') {
+      this.editMode = e.detail.editMode;
+      this.requestUpdate('editMode');
     }
-    this.requestUpdate();
-  }
-  
-  private handleBrowseModeToggle(e: CustomEvent) {
-    this._panToggle = e.detail.BrowseMode;
-    if (this._panToggle) {
-      // this._editMode = false;
-    }
-    this.requestUpdate();
   }
   
   private handlePanelToggle(e: CustomEvent) {
-    this.showEditorPanel = e.detail.showPanel;
-    this.requestUpdate();
+    if (typeof e.detail.showPanel === 'boolean') {
+        this.showEditorPanel = e.detail.showPanel;
+        this.requestUpdate('showEditorPanel');
+    }
   }
 
   private handleTileDeletion(event: CustomEvent) {
@@ -1211,11 +1228,10 @@ export class TileListRenderer extends LitElement {
       ${topLevelTiles.map(tile => this.renderTileAndChildren(tile))}
       </div>
        <tile-editor-panel
-        ?BrowseMode=${this._panToggle}
-        ?showPanel=${this.showEditorPanel}
-        ?showListEditor=${this.showListEditor}
-        @edit-mode-toggle=${this.handleEditModeToggle}
-        @pan-mode-toggle=${this.handleBrowseModeToggle}
+        .editMode=${this.editMode}
+        .showPanel=${this.showEditorPanel}
+        .showListEditor=${this.showListEditor}
+        @mode-change=${this.handleModeChange}
         @panel-toggle=${this.handlePanelToggle}
       ></tile-editor-panel>
     `;
@@ -1685,13 +1701,11 @@ export class VideoPlayerElement extends LitElement {
 @customElement('tile-editor-panel')
 export class TileEditorPanel extends LitElement {
   declare editMode: boolean;
-  declare BrowseMode: boolean;
   declare showPanel: boolean;
   declare showListEditor: boolean;
 
   static properties = {
     editMode: { type: Boolean },
-    BrowseMode: { type: Boolean },
     showPanel: { type: Boolean },
     showListEditor: { type: Boolean },
   }
@@ -1699,7 +1713,6 @@ export class TileEditorPanel extends LitElement {
   constructor() {
     super()
     this.editMode = false;
-    this.BrowseMode = false;
     this.showPanel = true;
     this.showListEditor = false;
   }
@@ -1788,9 +1801,8 @@ export class TileEditorPanel extends LitElement {
   `;
 
   private togglePanel() {
-    this.showPanel = !this.showPanel;
     this.dispatchEvent(new CustomEvent('panel-toggle', { 
-      detail: { showPanel: this.showPanel },
+      detail: { showPanel: !this.showPanel },
       bubbles: true, 
       composed: true 
     }));
@@ -1801,21 +1813,20 @@ export class TileEditorPanel extends LitElement {
       return;
     }
     this.editMode = true;
-    this.BrowseMode = false;
-    // this.editMode = !this.editMode;
-    this.dispatchEvent(new CustomEvent('edit-mode-toggle', { 
-      detail: { editMode: this.editMode },
+    this.dispatchEvent(new CustomEvent('mode-change', { 
+      detail: { editMode: true },
       bubbles: true, 
       composed: true 
     }));
   }
 
   private toggleBrowseMode() {
-    if (this.BrowseMode) return;
+    if (!this.editMode) {
+      return;
+    }
     this.editMode = false;
-    this.BrowseMode = true;
-    this.dispatchEvent(new CustomEvent('pan-mode-toggle', { 
-      detail: { BrowseMode: this.BrowseMode },
+    this.dispatchEvent(new CustomEvent('mode-change', { 
+      detail: { editMode: false },
       bubbles: true, 
       composed: true 
     }));
@@ -1830,7 +1841,7 @@ export class TileEditorPanel extends LitElement {
   }
 
   render() {
-    const BrowseModeActive = this.BrowseMode ? 'active' : '';
+    const BrowseModeActive = !this.editMode ? 'active' : '';
     const editModeActive = this.editMode ? 'active' : '';
     const panelHidden = !this.showPanel ? 'editor-panel-hidden' : '';
     
