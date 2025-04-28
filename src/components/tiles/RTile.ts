@@ -68,7 +68,7 @@ class TileDefBuilder {
       return TileDef;
     }
 
-  static NewInstance = (tile:RS1.TDE) => {
+  static newTDEInstance = (tile:RS1.TDE) => {
 
       switch(tile.TList?.listName.replace(/^\s+/, '')) {
         case 'T':
@@ -108,6 +108,9 @@ class TileDefBuilder {
 export class RTile extends LitElement {
   declare TList: RS1.TileList;
   declare tile: RS1.TDE;
+
+  private tileId: string;
+  private tileElement: HTMLElement | null;
  
   declare editMode: boolean;
   declare _panAxis: string;
@@ -130,6 +133,8 @@ export class RTile extends LitElement {
 
   constructor() {
     super();
+    this.tileElement = null,
+    this.tileId = '',
     this.editMode = false;
     this._panAxis = 'x';
     this._isTextPreview = true;
@@ -142,12 +147,85 @@ export class RTile extends LitElement {
     };
     this._isEditBg = false;
   }
+  
+  firstUpdated(changedProperties: PropertyValueMap<any>): void {
+    super.firstUpdated(changedProperties);
+    const tileId = this.TList.tiles.indexOf(this.tile).toString()
+    if (tileId) {
+        this.tileElement = this.shadowRoot?.getElementById(`tile${tileId}`) ?? null;
+    }
+  
+    if (!this.tileElement) {
+        console.warn(`Element with ID 'tile${tileId}' not found in shadowRoot.`);
+    }
+   
+    this.setupTileInteractions(this.tile);
+    this.handleTilePlacement(this.tile);
+  }
 
-  handleTilePlacemant(tile: RS1.TDE) {
-    const id = `tile${this.TList.tiles.indexOf(tile)}`;
-    const element = this.shadowRoot?.getElementById(id);
-    console.log('interaction id ' + id);
+  updated(changedProperties: PropertyValueMap<any>): void {
+    super.updated(changedProperties);
 
+    if (changedProperties.has('tile') || changedProperties.has('editMode')) {
+      const element = this.tileElement;
+      
+      if (element) {
+        this.setupTileInteractions(this.tile);
+      }
+
+      if (changedProperties.has('editMode') && !this.editMode) {
+        const textPreviewVID = this.tile.aList?.getVID('textPreview');
+        if (textPreviewVID && textPreviewVID.Desc === 'false') {
+          textPreviewVID.Desc = 'true';
+          this.tile.aList?.setVID(textPreviewVID);
+          this._isTextPreview = true;
+        }
+        this._isEditBg = false;
+      }
+    }
+
+   
+
+    if (changedProperties.has('_backgroundImageState')) {
+      const oldState = changedProperties.get('_backgroundImageState') as BackgroundImageState;
+      if (oldState?.url !== this._backgroundImageState.url) {
+        this._bgControlsInitialized = false;
+      }
+    }
+  
+    if ((changedProperties.has('_isEditBg') || changedProperties.has('_backgroundImageState')) && 
+        this._backgroundImageState.url && 
+        this._isEditBg && 
+        !this._bgControlsInitialized) {
+      this._bgControlsInitialized = true;
+      this.setupBackgroundControls(this.TList.tiles.indexOf(this.tile).toString());
+    } else if (!this._isEditBg) {
+      this._bgControlsInitialized = false;
+    }
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    const element = this.tileElement;
+    if (element) {
+      interact(element).unset();
+      
+      const bgController = element.querySelector('.bg-controller') as HTMLElement;
+      const resizeHandle = element.querySelector('.resize-handle') as HTMLElement;
+      
+      if (bgController) {interact(bgController).unset()};
+      if (resizeHandle) interact(resizeHandle).unset();
+    }
+  }
+
+  shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
+    console.log('Changed properties:', [...changedProperties.keys()]); 
+    return super.shouldUpdate(changedProperties);
+  }
+
+  handleTilePlacement(tile: RS1.TDE) {
+    const element = this.tileElement;
+   
     if (element) {
       let x = 0;
       let y = 0;
@@ -314,34 +392,35 @@ export class RTile extends LitElement {
 }
 
 private setupTileInteractions(tile: RS1.TDE) {
-  const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
-
+  const element = this.tileElement;
   if (!element) return;
-
 
   interact(element).unset();
 
-  const isSwipe = tile.aList.descByName('swipe');
-  const isHold = tile.aList.descByName('hold');
+  const isDrag = this.editMode && tile.aList?.descByName('drag') === 'true';
+  const isSwipe = tile.aList.descByName('swipe') === 'true';
+  const isHold = tile.aList.descByName('hold') === 'true';
 
- 
-    if(isSwipe === 'true'){
-      this.handleSwipe(element)
-    }
-
-    if (isHold === 'true') {
-      interact(element)
-      .on('hold', () => {
-          this.handleLongPress(tile);
-      });
+  if (isDrag) {
+    this.handleTilePlacement(tile);
   }
+
+  if(isSwipe){
+    this.handleSwipe(element)
+  }
+
+  if (isHold) {
+    interact(element)
+    .on('hold', () => {
+        this.handleLongPress(tile);
+    });
+}
 }
 
   handleClick(tile: RS1.TDE) {
     const tileFunction = tile.aList?.descByName('function');
     const alertContent = tile.aList?.descByName('alert');
     const redirectLink = tile.aList?.descByName('redirect');
-    const isDrag = tile.aList?.descByName('drag');
     const isLink = tile.aList?.descByName('link');
     const textEditor = this.shadowRoot?.getElementById('text-box');
 
@@ -402,19 +481,6 @@ private setupTileInteractions(tile: RS1.TDE) {
 
     if (redirectLink) {
       window.location.href = redirectLink;
-    }
-
-    if (this.editMode) {
-      if (isDrag === "true") {
-      this.handleTilePlacemant(tile);
-      }
-    } 
-
-    if (isDrag === "false") {
-      const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(tile)}`);
-      if (element) {
-        interact(element).unset(); 
-      }
     }
 
     if (isLink) {
@@ -528,14 +594,14 @@ deleteTile(tile: RS1.TDE) {
             return;
           }
           
-          const tileElement = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
-          if (!tileElement) return;
+          const element = this.tileElement;
+          if (!element) return;
           
           const startPosX = parseFloat(event.target.dataset.startPosX || '50');
           const startPosY = parseFloat(event.target.dataset.startPosY || '50');
           
-          const containerWidth = tileElement.clientWidth;
-          const containerHeight = tileElement.clientHeight;
+          const containerWidth = element.clientWidth;
+          const containerHeight = element.clientHeight;
           
           const deltaPercentX = -(event.dx / containerWidth) * 100;
           const deltaPercentY = -(event.dy / containerHeight) * 100;
@@ -547,7 +613,7 @@ deleteTile(tile: RS1.TDE) {
           this._backgroundImageState.posY = newPosY;
 
 
-          tileElement.style.backgroundPosition = `${newPosX}% ${newPosY}%`;
+          element.style.backgroundPosition = `${newPosX}% ${newPosY}%`;
 
           event.target.dataset.startPosX = this._backgroundImageState.posX.toString();
           event.target.dataset.startPosY = this._backgroundImageState.posY.toString();
@@ -574,8 +640,8 @@ deleteTile(tile: RS1.TDE) {
               return;
             }
           
-          const tileElement = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
-          if (!tileElement) return;
+            const element = this.tileElement;
+            if (!element) return;
           
           const startSize = parseFloat(event.target.dataset.startSize || '100');
           const startX = parseFloat(event.target.dataset.startX || '0');
@@ -586,14 +652,14 @@ deleteTile(tile: RS1.TDE) {
           
           const diagonalDelta = (totalDeltaX + totalDeltaY) / 2;
           
-          const containerSize = Math.min(tileElement.clientWidth, tileElement.clientHeight);
+          const containerSize = Math.min(element.clientWidth, element.clientHeight);
           const deltaPercent = (diagonalDelta / containerSize) * 100;
           
           const newSize = Math.max(50, Math.min(300, startSize + deltaPercent));
 
           this._backgroundImageState.size = newSize;
         
-          tileElement.style.backgroundSize = `${newSize}%`;
+          element.style.backgroundSize = `${newSize}%`;
 
           event.target.dataset.startSize = this._backgroundImageState.size.toString();
           event.target.dataset.startX = event.clientX.toString();
@@ -637,9 +703,9 @@ deleteTile(tile: RS1.TDE) {
     const tileFunction = tile.aList?.descByName('function');
     const parentTile = this.TList.tiles[tile.parent];
     // const isText = tile.aList?.descByName('text');
-    const isInnerEdit = tile.aList?.descByName('innerEdit');
+    const isInnerEdit = tile.aList?.descByName('innerEdit') === 'true';
     const displayVID = tile.sList?.getVID('display');
-    const istextPreview = tile.aList?.descByName('textPreview');
+    const istextPreview = tile.aList?.descByName('textPreview') === 'true';
     const textPreviewVID = tile.aList?.getVID('textPreview');
     let styleStr = tile.sList?.toVIDList(";");
     let childrenHtml = html``;
@@ -686,7 +752,7 @@ deleteTile(tile: RS1.TDE) {
 
 
     const innerContentHTMLEditable = () => {
-          if (istextPreview === "false") {
+          if (!istextPreview) {
             return html`
             <div
             id="text-edit"
@@ -723,7 +789,7 @@ deleteTile(tile: RS1.TDE) {
          `;
           }
 
-          else if (istextPreview === "true") {
+          else if (istextPreview) {
             return html`
               <div
               id="text-edit2"
@@ -747,19 +813,19 @@ deleteTile(tile: RS1.TDE) {
           } 
       }
 
-    const innerContentHTML = isInnerEdit === 'true' ? innerContentHTMLEditable() : unsafeHTML(innerContent);
+    const innerContentHTML = isInnerEdit ? innerContentHTMLEditable() : unsafeHTML(innerContent);
 
     switch (tileFunction) {
         case 'TextSave':
-          const isParentTextPreview = parentTile?.aList?.descByName('textPreview');
-          if (isParentTextPreview === "true" && this._isTextPreview) {
+          const isParentTextPreview = parentTile?.aList?.descByName('textPreview') === 'true';
+          if (isParentTextPreview && this._isTextPreview) {
             if (displayVID) {
               displayVID.Desc = 'none'
               tile.sList?.setVID(displayVID);
               
             }
           }
-          else if (isParentTextPreview === "false" && !this._isTextPreview) {
+          else if (!isParentTextPreview && !this._isTextPreview) {
             if (displayVID) {
               displayVID.Desc = 'flex'
               tile.sList?.setVID(displayVID);
@@ -962,26 +1028,18 @@ deleteTile(tile: RS1.TDE) {
 
   handleDoubleClick(tile: RS1.TDE) {
     console.log('Double click detected on tile:', tile.aList?.descByName('name'));
-  
-    const tileIndex = this.TList.tiles.indexOf(tile);
-    const element = this.shadowRoot?.getElementById(`tile${tileIndex}`);
-    
-    if (element) {
-
-    }
   }
   
   handleHover(tile: RS1.TDE, isEnter: boolean) {
-    const tileIndex = this.TList.tiles.indexOf(tile);
-    const element = this.shadowRoot?.getElementById(`tile${tileIndex}`);
+    const element = this.tileElement;
     // console.log('Hover detected on tile:', tile.aList?.descByName('name'));
     
     if (!element || !this.editMode) return;
     
     if (isEnter) {
-      const hover = tile.aList?.descByName('hover');
+      const hover = tile.aList?.descByName('hover') === 'true';
 
-      if (hover === 'true') {
+      if (hover) {
         element.style.transition = 'filter 0.3s ease';
         element.style.filter = 'brightness(1.2)';
         element.style.transition = 'box-shadow 0.3s ease';
@@ -998,79 +1056,6 @@ deleteTile(tile: RS1.TDE) {
     console.log('Long press detected on tile:', tile.aList?.descByName('name'));
   }
 
-  firstUpdated(changedProperties: PropertyValueMap<any>): void {
-    super.firstUpdated(changedProperties);
-    this.setupTileInteractions(this.tile);
-    this.handleTilePlacemant(this.tile);
-  }
-
-  updated(changedProperties: PropertyValueMap<any>): void {
-    super.updated(changedProperties);
-
-    // if (this._currentTile && this._panToggle) {
-    //   const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
-    //   if (element) {
-    //     interact(element).unset(); 
-    //   }
-    // }
-
-    if (changedProperties.has('tile') || changedProperties.has('editMode')) {
-      const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
-      if (element) {
-        this.setupTileInteractions(this.tile);
-      }
-    }
-
-    if (!this.editMode) {
-      const textPreviewVID = this.tile.aList?.getVID('textPreview');
-      if (textPreviewVID && textPreviewVID.Desc === 'false') {
-        console.log(`Tile '${this.tile.aList?.descByName('name')}': Forcing textPreview to false because panToggle is enabled.`);
-        textPreviewVID.Desc = 'true';
-        this.tile.aList?.setVID(textPreviewVID);
-        this._isTextPreview = true;
-      }
-    }
-
-    if (changedProperties.has('_backgroundImageState')) {
-      const oldState = changedProperties.get('_backgroundImageState') as BackgroundImageState;
-      if (oldState?.url !== this._backgroundImageState.url) {
-        this._bgControlsInitialized = false;
-      }
-    }
-  
-    if ((changedProperties.has('_isEditBg') || changedProperties.has('_backgroundImageState')) && 
-        this._backgroundImageState.url && 
-        this._isEditBg && 
-        !this._bgControlsInitialized) {
-      this._bgControlsInitialized = true;
-      this.setupBackgroundControls(this.TList.tiles.indexOf(this.tile).toString());
-    } else if (!this._isEditBg) {
-      this._bgControlsInitialized = false;
-    }
-  }
-
-  disconnectedCallback(): void {
-    super.disconnectedCallback();
-    const element = this.shadowRoot?.getElementById(`tile${this.TList.tiles.indexOf(this.tile)}`);
-    if (element) {
-      interact(element).unset();
-      
-      const bgController = element.querySelector('.bg-controller') as HTMLElement;
-      const resizeHandle = element.querySelector('.resize-handle') as HTMLElement;
-      
-      if (bgController) {interact(bgController).unset()};
-      if (resizeHandle) interact(resizeHandle).unset();
-    }
-  }
-
-  shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
-    console.log('Changed properties:', [...changedProperties.keys()]); 
-    return super.shouldUpdate(changedProperties);
-  }
-
-  willUpdate(changedProperties: PropertyValues): void {
-    TileDefBuilder.NewInstance(this.tile)
-  }
 }
 
 @customElement ('tile-list-renderer')
@@ -1117,6 +1102,8 @@ export class TileListRenderer extends LitElement {
 
         currentChildIndex = childTile.next; 
     }
+
+    TileDefBuilder.newTDEInstance(tile)
   
     return html`
       <r-tile
