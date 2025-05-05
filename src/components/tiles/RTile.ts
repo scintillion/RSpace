@@ -17,7 +17,7 @@ type BackgroundImageState = {
 };
 
 class TileDefBuilder {
-  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|BgImage:|drag:|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|\t');
+  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|BgImage:|drag:|dragAxis:xy|resize:true|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|\t');
   static readonly ButtonTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Btn\ta|name:Button|element:button|type:|value:|\ts|cursor:pointer|\t'))
   static readonly RoundButtonTDE = this.listMerge(this.ButtonTDE, new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t'));
   static readonly InnerTextTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Txt\ta|name:TextEdit|text:true|textPreview:true|innerEdit:true|\ts|\t'));
@@ -160,7 +160,6 @@ export class RTile extends LitElement {
     }
    
     this.setupTileInteractions(this.tile);
-    this.handleTilePlacement(this.tile);
   }
 
   updated(changedProperties: PropertyValueMap<any>): void {
@@ -168,7 +167,7 @@ export class RTile extends LitElement {
 
     if (changedProperties.has('tile') || changedProperties.has('editMode')) {
       const element = this.tileElement;
-      
+
       if (element) {
         this.setupTileInteractions(this.tile);
       }
@@ -223,18 +222,17 @@ export class RTile extends LitElement {
     return super.shouldUpdate(changedProperties);
   }
 
-  handleTilePlacement(tile: RS1.TDE) {
+  setupDraggable(tile: RS1.TDE, axis?:string) {
     const element = this.tileElement;
    
     if (element) {
       let x = 0;
       let y = 0;
-      let width = element.offsetWidth;
-      let height = element.offsetHeight;
-
       interact(element)
         .draggable({
           inertia: true,
+          startAxis: (axis === 'x' || axis === 'y') ? axis : 'xy',
+          // lockAxis: undefined,
           modifiers: [
             interact.modifiers.restrictRect({
               // restriction: 'parent',
@@ -253,7 +251,7 @@ export class RTile extends LitElement {
               if (this._isEditBg) {
                 event.interaction.stop();
                 return;
-              }
+              }              
               x += event.dx;
               y += event.dy;
               element.style.transform = `translate(${x}px, ${y}px)`;
@@ -261,37 +259,48 @@ export class RTile extends LitElement {
             end: (event) => {
               this.updateTilePosition(tile, element, x, y);
             }
-          }
-        })
+          },
+        })  
+    }
+  }
 
-        .resizable({
-          edges: { left: true, right: true, bottom: true, top: true },
-          listeners: {
-            move: (event) => {
-              if (this._isEditBg) {
-                event.interaction.stop();
-                return;
-              }
-              const currentTransform = new DOMMatrix(element.style.transform);
-              const currentX = currentTransform.m41;
-              const currentY = currentTransform.m42;
-        
-              x = currentX + event.deltaRect.left;
-              y = currentY + event.deltaRect.top;
-              width = event.rect.width;
-              height = event.rect.height;
-        
-              Object.assign(element.style, {
-                width: `${width}px`,
-                height: `${height}px`,
-                transform: `translate(${x}px, ${y}px)`
-              });
-            },
-            end: (event) => {
-              this.updateTilePosition(tile, element,x,y);
-              this.updateTileSize(tile, width, height);
+  setupResizable(tile: RS1.TDE) {
+    const element = this.tileElement;
+    
+    if (element) {
+      let x = 0;
+      let y = 0;
+      let width = element.offsetWidth;
+      let height = element.offsetHeight;
+      interact(element)
+      .resizable({
+        edges: { left: true, right: true, bottom: true, top: true },
+        listeners: {
+          move: (event) => {
+            if (this._isEditBg) {
+              event.interaction.stop();
+              return;
             }
-          }});
+            const currentTransform = new DOMMatrix(element.style.transform);
+            const currentX = currentTransform.m41;
+            const currentY = currentTransform.m42;
+      
+            x = currentX + event.deltaRect.left;
+            y = currentY + event.deltaRect.top;
+            width = event.rect.width;
+            height = event.rect.height;
+      
+            Object.assign(element.style, {
+              width: `${width}px`,
+              height: `${height}px`,
+              transform: `translate(${x}px, ${y}px)`
+            });
+          },
+          end: (event) => {
+            this.updateTilePosition(tile, element,x,y);
+            this.updateTileSize(tile, width, height);
+          }
+        }});
     }
   }
 
@@ -398,14 +407,20 @@ private setupTileInteractions(tile: RS1.TDE) {
   interact(element).unset();
 
   const isDrag = this.editMode && tile.aList?.descByName('drag') === 'true';
+  const dragAxis = tile.aList?.descByName('dragAxis')
+  const isResize = this.editMode && tile.aList?.descByName('resize') === 'true';
   const isSwipe = tile.aList.descByName('swipe') === 'true';
   const isHold = tile.aList.descByName('hold') === 'true';
 
   if (isDrag) {
-    this.handleTilePlacement(tile);
+    this.setupDraggable(tile, dragAxis);
   }
 
-  if(isSwipe){
+  if (isResize) {
+    this.setupResizable(tile);
+  }
+
+  if(isSwipe) {
     this.handleSwipe(element)
   }
 
@@ -414,7 +429,7 @@ private setupTileInteractions(tile: RS1.TDE) {
     .on('hold', () => {
         this.handleLongPress(tile);
     });
-}
+  }
 }
 
   handleClick(tile: RS1.TDE) {
@@ -1083,6 +1098,18 @@ export class TileListRenderer extends LitElement {
     this.showListEditor = false;
   }
 
+  static styles = css`
+  :host {
+      width: 100%;
+      height: 100%;
+  }
+  .container {
+      position: relative;
+      overflow: auto;
+      touch-action: pan-x pan-y;
+      scrollbar-width: none;
+  }`
+
   private renderTileAndChildren(tile: RS1.TDE | undefined): any {
     if (!tile) {
       return html``;
@@ -1118,67 +1145,6 @@ export class TileListRenderer extends LitElement {
     `;
   }
 
-  private handleBackgroundPan() {
-    const element = this.shadowRoot?.getElementById('tile-container');
-    let xPos = 0;
-    let yPos = 0;
-    if (element) {
-  //     const Panzoom = panzoom(element,
-  //       {
-  //       // bounds: true,
-  //       // initialZoom: this._currentZoom,
-  //       beforeMouseDown: (e: any) => {
-  //           if (this._currentTile && this._panToggle) {
-  //             if (this.TList.tiles.indexOf(this._currentTile) !== 2) {
-  //             e.preventDefault();
-  //             return false
-  //           }
-  //         }
-  //         return true;
-  //       },
-  //     }
-  //     );
-  //   }
-  // }
-
-      interact(element).draggable({
-        listeners: {
-          move: event => {
-            // if (!this.editMode) return;
-          
-            if (this.isInteractingWithCarousel) {
-              event.interaction.stop();
-              this.isInteractingWithCarousel = false;
-              return;
-            }
-            if (this.isInteractingwithTextBox) {
-              event.interaction.stop();
-              return;
-            }
-          
-            xPos += event.dx;
-            yPos += event.dy;
-            element.style.transform = `translate(${xPos}px, ${yPos}px)`;
-          }
-        },
-        modifiers: [
-            interact.modifiers.restrict({
-                restriction: 'parent',
-                endOnly: true
-            })
-        ],
-        inertia: true,
-        // startAxis: this._panAxis as 'x' | 'y' | 'xy',
-        lockAxis: 'start'
-      });
-
-      interact(element).styleCursor(false);
-    }
-    else {
-      console.warn('base tile not found')
-    }
-  }
-
   private handleModeChange(e: CustomEvent) {
     if (typeof e.detail.editMode === 'boolean') {
       this.editMode = e.detail.editMode;
@@ -1211,21 +1177,18 @@ export class TileListRenderer extends LitElement {
     }
 
     return html`
-     <div id="tile-container" style="width: 100%; height: 100%; overflow: hidden; position: relative;">
-      ${topLevelTiles.map(tile => this.renderTileAndChildren(tile))}
+      <div class="container">
+        ${topLevelTiles.map(tile => this.renderTileAndChildren(tile))}
       </div>
-       <tile-editor-panel
-        .editMode=${this.editMode}
-        .showPanel=${this.showEditorPanel}
-        .showListEditor=${this.showListEditor}
-        @mode-change=${this.handleModeChange}
-        @panel-toggle=${this.handlePanelToggle}
-      ></tile-editor-panel>
+      <tile-editor-panel
+      .editMode=${this.editMode}
+      .showPanel=${this.showEditorPanel}
+      .showListEditor=${this.showListEditor}
+      @mode-change=${this.handleModeChange}
+      @panel-toggle=${this.handlePanelToggle}
+      >
+      </tile-editor-panel>
     `;
-  }
-
-  protected firstUpdated(): void {
-    this.handleBackgroundPan();
   }
 
   protected updated(_changedProperties: PropertyValues): void {
