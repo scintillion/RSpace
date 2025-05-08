@@ -17,7 +17,7 @@ type BackgroundImageState = {
 };
 
 class TileDefBuilder {
-  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|BgImage:|drag:|dragAxis:xy|resize:true|click:true|dblclick:|hold:|swipe:|hover:true|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|\t');
+  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|BgImage:|drag:|dragAxis:xy|resize:true|click:true|clickAction:|dblclick:|dblclickAction:|hold:|holdAction:|swipe:|swipeAction:|hover:true|hoverAction:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|\t');
   static readonly ButtonTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Btn\ta|name:Button|element:button|type:|value:|\ts|cursor:pointer|\t'))
   static readonly RoundButtonTDE = this.listMerge(this.ButtonTDE, new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t'));
   static readonly InnerTextTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Txt\ta|name:TextEdit|text:true|textPreview:true|innerEdit:true|\ts|\t'));
@@ -432,14 +432,10 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 }
 
-  handleClick(tile: RS1.TDE) {
-    const tileFunction = tile.aList?.descByName('function');
-    const alertContent = tile.aList?.descByName('alert');
-    const redirectLink = tile.aList?.descByName('redirect');
-    const isLink = tile.aList?.descByName('link');
-    const textEditor = this.shadowRoot?.getElementById('text-box');
+  handleClickAction(tile: RS1.TDE) {
+    const action = tile.aList?.descByName('clickAction');
 
-    switch (tileFunction) {
+    switch (action) {
       case 'TextSave':
         const parent = tile.parent;
         const parentTile = this.TList.tiles[parent];
@@ -461,52 +457,42 @@ private setupTileInteractions(tile: RS1.TDE) {
 
 
         case 'Bold':
-          this.dispatchEvent(new CustomEvent('format-text', {
-            detail: { command: 'bold' },
-            bubbles: true,
-            composed: true 
-          }));
+          this.applyTextFormatting(tile, 'bold');
           break;
         
         case 'Italic':
-          this.dispatchEvent(new CustomEvent('format-text', {
-            detail: { command: 'italic' },
-            bubbles: true,
-            composed: true
-          }));
+          this.applyTextFormatting(tile, 'italic');
           break;
         
         case 'Underline':
-          this.dispatchEvent(new CustomEvent('format-text', {
-            detail: { command: 'underline' },
-            bubbles: true,
-            composed: true
-          }));
+          this.applyTextFormatting(tile, 'underline');
           break;
-    }
 
-    function applyFormatting(command:string) {
-      if (!textEditor) return;
-      document.execCommand(command, false);
-    }
+        case 'Alert':
+          const alertContent = tile.aList?.descByName('alertContent');
+          if (alertContent && alertContent !== '') {
+            alert(alertContent);
+          } 
+          else {
+            alert('No alert set');
+          } 
+          break;
 
-    if (alertContent) {
-      alert(alertContent);
-    }
+        case 'Redirect':
+          const redirectLink = tile.aList?.descByName('redirect');
+          window.location.href = redirectLink;
+          break;
 
-    if (redirectLink) {
-      window.location.href = redirectLink;
-    }
-
-    if (isLink) {
-      const link = tile.aList?.descByName('link');
-      this.dispatchEvent(
-        new CustomEvent('tileLink', {
-          detail: { name: `${link}` },
-          bubbles: true,
-          composed: true
-        })
-      );
+        case 'VillaLink':
+          const link = tile.aList?.descByName('link');
+          this.dispatchEvent(
+            new CustomEvent('tileLink', {
+              detail: { name: `${link}` },
+              bubbles: true,
+              composed: true
+            })
+          );
+          break;
     }
 }
 
@@ -712,6 +698,33 @@ deleteTile(tile: RS1.TDE) {
     
   }
 
+  private findClosestParentByType(tile: RS1.TDE, tileType: string) {
+    let currentTile = tile;
+
+    while (currentTile) {
+      if (currentTile.TList?.listName.replace(/^\s+/, '') === tileType) {
+        return currentTile;
+      }
+      currentTile = this.TList.tiles[currentTile.parent];
+    }
+    console.warn('No parent found');
+    return null;
+  }
+
+  private applyTextFormatting(tile:RS1.TDE, command: string) {
+    const textBoxTile = this.findClosestParentByType(tile, 'Txt');
+    const textBoxTileId = textBoxTile ? this.TList.tiles.indexOf(this.tile).toString() : null;
+    const textBoxTileElement = textBoxTileId ? this.shadowRoot?.getElementById(`tile${textBoxTileId}`) : null;
+
+    if (textBoxTileElement !== null) {
+      document.execCommand(command, false);
+    }
+    else {
+      console.warn('No text box found');
+    }
+    
+  }
+
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const elementType = tile.aList?.descByName('element');
@@ -729,6 +742,10 @@ deleteTile(tile: RS1.TDE) {
     const currentBgUrl = tile.sList?.descByName('background-image');
     const currentBgPos = tile.sList?.descByName('background-position'); 
     const currentBgSize = tile.sList?.descByName('background-size'); 
+
+    const isClick = tile.aList?.descByName('click') === 'true';
+    const isDblClick = tile.aList?.descByName('dblclick') === 'true';
+    
     
     if (currentBgUrl && currentBgUrl !== 'url("")') {
          let posX = 50;
@@ -851,7 +868,7 @@ deleteTile(tile: RS1.TDE) {
         case 'TextBox':
           childrenHtml = html`
             <div
-            id="text-box"
+            class="text-box"
             contenteditable="true"
             style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; "
             @focus="${() => {
@@ -977,7 +994,9 @@ deleteTile(tile: RS1.TDE) {
         return html`<div id="tile${tileIndex}" class="tile" style="${styleStr}"
           @click="${(e: Event) => {
             e.stopPropagation();
-            this.handleClick(tile)
+            if (isClick) {
+              this.handleClickAction(tile)
+            }
           }
         }" 
           @mouseenter="${(e: Event) => {
@@ -1004,7 +1023,9 @@ deleteTile(tile: RS1.TDE) {
           }}"
           @dblclick="${(e: Event) => { 
             e.stopPropagation();
-            this.handleDoubleClick(tile)
+            if (isDblClick) {
+              this.handleDoubleClick(tile)
+            }
           }
         }"
           @format-text="${(e: CustomEvent) => { 
@@ -1028,9 +1049,12 @@ deleteTile(tile: RS1.TDE) {
           ` : ''}
         </div>`;
       case 'button': 
-        return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}" @click="${(e: Event) => {
+        return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}"
+         @click="${(e: Event) => {
           // e.stopPropagation();
-          this.handleClick(tile)
+          if (isClick) {
+            this.handleClickAction(tile)
+          }
         }}" type="${tile.aList?.getVID('type')?.Desc}" value="${tile.aList?.getVID('value')?.Desc}" class="button" style="${styleStr}">${innerContentHTML}</button>`;
     }
   }
@@ -1197,11 +1221,9 @@ export class TileListRenderer extends LitElement {
     });
     this.addEventListener('text-box-interaction', () => {
       this.isInteractingwithTextBox = true;
-      console.log('focus event')
     });
     this.addEventListener('text-box-interaction-over', () => {
       this.isInteractingwithTextBox = false;
-      console.log('focus event')
     });
   }
 
