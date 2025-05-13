@@ -24,6 +24,7 @@ class TileDefBuilder {
   static readonly ImageCarouselTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Carousel\ta|name:ImageCarousel|function:Carousel|event:Swipe|\ts|\t'));
   static readonly InputTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Input\ta|name:Input|function:Input|input-required:|input-type:|input-maxlength:|input-min:|input-max:|input-pattern:|input-step:|input-placeholder:|input-title:|input-readonly:|input-disabled:|input-autocomplete:|input-autofocus:|input-multiple:|input-novalidate:|\ts|\t'));
   static readonly VideoPlayerTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Video\ta|name:VideoPlayer|function:VideoPlayer|video-src:|video-type:|video-controls:true|video-autoplay:false|video-loop:false|video-muted:false|\ts|\t'));
+  static readonly ColorPickerTDE = this.listMerge(this.MasterTDE, new RS1.TDE('ColorPicker\ta|name:ColorPicker|color:|color-picker-type:|color-picker-format:|color-picker-opacity:|color-picker-alpha:|color-picker-presets:|color-picker-palette:|color-picker-swatches:|color-picker-opacity-type:|color-picker-opacity-format:|color-picker-opacity-presets:|color-picker-opacity-palette:|color-picker-opacity-swatches:|\ts|\t'));
 
   static listMerge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
     const style = A.sList?.copy() as RS1.qList;
@@ -70,14 +71,13 @@ class TileDefBuilder {
 
   static newTDEInstance = (tile:RS1.TDE) => {
 
-      switch(tile.TList?.listName.replace(/^\s+/, '')) {
+      switch(tile.tileID?.tname) {
         case 'T':
           this.listMerge(this.MasterTDE, tile);
           break;
 
         case 'Btn':
           this.listMerge(this.ButtonTDE, tile);
-        
           break;
 
         case 'RndBtn':
@@ -98,6 +98,14 @@ class TileDefBuilder {
 
         case 'Video':
           this.listMerge(this.VideoPlayerTDE, tile);
+          break;
+
+        case 'ColorPicker':
+          this.listMerge(this.ColorPickerTDE, tile);
+          break;
+
+        default:
+          console.warn('No tile type found');
           break;
       }
   }
@@ -436,26 +444,6 @@ private setupTileInteractions(tile: RS1.TDE) {
     const action = tile.aList?.descByName('clickAction');
 
     switch (action) {
-      case 'TextSave':
-        const parent = tile.parent;
-        const parentTile = this.TList.tiles[parent];
-        const parentInnerVID = parentTile.aList?.getVID('inner');
-        const textPreviewVID = parentTile.aList?.getVID('textPreview');
-
-        if (parentInnerVID) {
-          parentInnerVID.Desc = this._textEditContent;
-          parentTile.aList?.setVID(parentInnerVID);
-        }
-  
-        if (textPreviewVID) {
-          textPreviewVID.Desc = 'true';
-          parentTile.aList?.setVID(textPreviewVID);
-        }
-  
-        this._isTextPreview = true;
-        break;
-
-
         case 'Bold':
           this.applyTextFormatting(tile, 'bold');
           break;
@@ -702,7 +690,7 @@ deleteTile(tile: RS1.TDE) {
     let currentTile = tile;
 
     while (currentTile) {
-      if (currentTile.TList?.listName.replace(/^\s+/, '') === tileType) {
+      if (currentTile.tileID?.tname === tileType) {
         return currentTile;
       }
       currentTile = this.TList.tiles[currentTile.parent];
@@ -722,15 +710,23 @@ deleteTile(tile: RS1.TDE) {
     else {
       console.warn('No text box found');
     }
-    
+  }
+
+  private getTileDeleteButton(tile: RS1.TDE) {
+    return html`
+      <button class="delete-button" 
+        style="position: absolute; top: 10px; right: 10px; opacity: 0; transition: opacity 0.3s; z-index: 10; display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
+        @click="${() => this.deleteTile(tile)}">
+        Delete
+      </button>
+    `;
   }
 
   renderDivs(tile: RS1.TDE): any {
     const innerContent = tile.aList?.descByName('inner') || '';
     const elementType = tile.aList?.descByName('element');
-    const tileFunction = tile.aList?.descByName('function');
+    const tileType = tile.tileID?.tname;
     const parentTile = this.TList.tiles[tile.parent];
-    // const isText = tile.aList?.descByName('text');
     const isInnerEdit = tile.aList?.descByName('innerEdit') === 'true';
     const displayVID = tile.sList?.getVID('display');
     const istextPreview = tile.aList?.descByName('textPreview') === 'true';
@@ -847,25 +843,8 @@ deleteTile(tile: RS1.TDE) {
 
     const innerContentHTML = isInnerEdit ? innerContentHTMLEditable() : unsafeHTML(innerContent);
 
-    switch (tileFunction) {
-        case 'TextSave':
-          const isParentTextPreview = parentTile?.aList?.descByName('textPreview') === 'true';
-          if (isParentTextPreview && this._isTextPreview) {
-            if (displayVID) {
-              displayVID.Desc = 'none'
-              tile.sList?.setVID(displayVID);
-              
-            }
-          }
-          else if (!isParentTextPreview && !this._isTextPreview) {
-            if (displayVID) {
-              displayVID.Desc = 'flex'
-              tile.sList?.setVID(displayVID);
-            }
-          }
-          break;
-
-        case 'TextBox':
+    switch (tileType) {
+        case 'Txt':
           childrenHtml = html`
             <div
             class="text-box"
@@ -886,20 +865,18 @@ deleteTile(tile: RS1.TDE) {
             </div> `;
           break;
           
-        case 'Carousel':
-          const tileIndexCarousel = this.TList.tiles.indexOf(tile);
-          childrenHtml = html`
-            <image-carousel
-              id="tile${tileIndexCarousel}"
-              class="tile"
-              style="position: relative; ${styleStr}"
-              .tileIndex="${tileIndexCarousel}"
-              .canDelete="${tileIndexCarousel !== 1}"
-              @delete-tile="${() => this.deleteTile(tile)}">
-            </image-carousel>          
-          `;
-          return childrenHtml;
-          break;
+          case 'Carousel':
+            const tileIndexCarousel = this.TList.tiles.indexOf(tile);
+            childrenHtml = html`
+              <image-carousel
+                id="carousel-content-${tileIndexCarousel}"
+                class="tile-content-carousel"
+                style="position: relative;"
+                .tileIndex="${tileIndexCarousel}"
+              >
+              </image-carousel>          
+            `;
+            break;
 
         case 'Input':
           // const submitButton = new RS1.TDE('Btn\ta|name:Submit|element:button|inner:Submit|type:submit|\ts|width:70px|height:30px|background:#1e1e1e|color:white|\t')
@@ -928,7 +905,7 @@ deleteTile(tile: RS1.TDE) {
           <color-picker></color-picker>`
           break;
 
-        case 'VideoPlayer':
+        case 'Video':
           const videoSrc = tile.aList?.descByName('video-src') || '';
           const videoType = tile.aList?.descByName('video-type') || 'video/mp4';
           const videoControls = tile.aList?.descByName('video-controls') === 'true';
@@ -950,12 +927,12 @@ deleteTile(tile: RS1.TDE) {
 
     }
 
-     styleStr = tile.sList?.toVIDList(";");
+     styleStr = tile.sList?.toVIDList(";") ?? "";
 
     switch (elementType) {
       case 'div':
         const isBgImage = tile.aList?.descByName('BgImage');
-        const bgControls = (this.editMode) ? html`
+        const bgControlsHTML = (this.editMode) ? html`
           <div class="background-controls" style="position: absolute; opacity:0; top: 50px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 11;">
             <input
               type="file"
@@ -1002,24 +979,36 @@ deleteTile(tile: RS1.TDE) {
           @mouseenter="${(e: Event) => {
             e.stopPropagation();
             this.handleHover(tile, true);
-            const button = (e.currentTarget as HTMLElement).querySelector(':scope > .delete-button');
-            if (button) {
-              if (!this.editMode) (button as HTMLElement).style.opacity = '1';
-              else (button as HTMLButtonElement).disabled = true
+            const hostElement = e.currentTarget as HTMLElement;
+
+            const deleteBtn = hostElement.querySelector('.delete-button');
+            if (deleteBtn) {
+              if (!this.editMode) {
+                (deleteBtn as HTMLElement).style.opacity = '1';
+                (deleteBtn as HTMLButtonElement).disabled = false;
+              } else {
+                (deleteBtn as HTMLElement).style.opacity = '0'; 
+                (deleteBtn as HTMLButtonElement).disabled = true;
+              }
             }
-            const bgControlsElement = (e.currentTarget as HTMLElement).querySelector(':scope > .background-controls');
-            if (bgControlsElement) {
-              if (this.editMode) (bgControlsElement as HTMLElement).style.opacity = '1';
-              else (bgControlsElement as HTMLButtonElement).disabled = true
+            const bgControlsElement = hostElement.querySelector('.background-controls');
+            if (bgControlsElement && this.editMode) {
+              (bgControlsElement as HTMLElement).style.opacity = '1';
             }
           }}"
           @mouseleave="${(e: Event) => {
             e.stopPropagation();
             this.handleHover(tile, false);
-            const button = (e.currentTarget as HTMLElement).querySelector(':scope > .delete-button');
-            if (button) (button as HTMLElement).style.opacity = '0';
-            const bgControlsElement = (e.currentTarget as HTMLElement).querySelector(':scope > .background-controls');
-            if (bgControlsElement) (bgControlsElement as HTMLElement).style.opacity = '0';
+            const hostElement = e.currentTarget as HTMLElement;
+
+            const deleteBtn = hostElement.querySelector('.delete-button');
+            if (deleteBtn) {
+              (deleteBtn as HTMLElement).style.opacity = '0';
+            }
+            const bgControlsElement = hostElement.querySelector('.background-controls');
+            if (bgControlsElement && !this._isEditBg) {
+              (bgControlsElement as HTMLElement).style.opacity = '0';
+            }
           }}"
           @dblclick="${(e: Event) => { 
             e.stopPropagation();
@@ -1037,16 +1026,11 @@ deleteTile(tile: RS1.TDE) {
             }
           }
         }">
-          ${innerContentHTML}${childrenHtml}
-          ${isBgImage ==='true' ? html`${bgControls}${bgController}` : nothing}
+          ${innerContentHTML}
+          ${childrenHtml} 
+          ${isBgImage ==='true' ? html`${bgControlsHTML}${bgController}` : nothing}
            <slot></slot>
-          ${tileIndex !== 1 ? html`
-            <button class="delete-button" 
-              style="position: absolute; top: 10px; right: 10px; opacity: 0; transition: opacity 0.3s; z-index: 10; display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
-              @click="${() => this.deleteTile(tile)}">
-              Delete
-            </button>
-          ` : ''}
+          ${tileIndex !== 1 ? this.getTileDeleteButton(tile) : ''}
         </div>`;
       case 'button': 
         return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}"
@@ -1234,12 +1218,10 @@ export class ImageCarousel extends LitElement {
   declare images: string[];
   declare splide: Splide;
   declare tileIndex: number;
-  declare canDelete: boolean;
 
   static properties = {
     images: { type: Array },
     tileIndex: { type: Number },
-    canDelete: { type: Boolean }
   };
 
   static styles = css`
@@ -1277,7 +1259,7 @@ export class ImageCarousel extends LitElement {
 
   .controls {
     position: absolute;
-    top: 10px;
+    top: 45px;
     right: 10px;
     opacity: 0; 
     transition: opacity 0.3s; 
@@ -1291,7 +1273,7 @@ export class ImageCarousel extends LitElement {
     opacity: 1;
   }
 
-  .upload-button, .delete-button, .delete-tile-button {
+  .upload-button, .delete-image-button, .delete-tile-button {
     display: inline-block;
     border: none;
     border-radius: 5px;
@@ -1315,7 +1297,6 @@ export class ImageCarousel extends LitElement {
     super();
     this.images = [];
     this.tileIndex = -1;
-    this.canDelete = true;
   }
 
   firstUpdated() {
@@ -1373,13 +1354,6 @@ export class ImageCarousel extends LitElement {
       }
     }
   }
-  
-  deleteTile() {
-    this.dispatchEvent(new CustomEvent('delete-tile', {
-      bubbles: true,
-      composed: true
-    }));
-  }
 
   handlePointerDown() {
     this.addEventListener('pointerdown', (e) => {
@@ -1396,12 +1370,9 @@ export class ImageCarousel extends LitElement {
     return html`
       <div class="carousel-container">
         <div class="controls">
-          <label for="imageUpload" class="upload-button">Upload</label>
+          <label for="imageUpload-${this.tileIndex}" class="upload-button">Upload</label>
           ${this.images.length > 0
-            ? html`<button class="delete-button" @click="${this.deleteCurrentImage}">Delete Image</button>`
-            : ''}
-          ${this.canDelete
-            ? html`<button class="delete-tile-button" @click="${this.deleteTile}">Delete</button>`
+            ? html`<button class="delete-image-button" @click="${this.deleteCurrentImage}">Delete Image</button>`
             : ''}
         </div>
         ${this.images.length > 0
@@ -1423,7 +1394,7 @@ export class ImageCarousel extends LitElement {
           : html``}
         <input
           type="file"
-          id="imageUpload"
+          id="imageUpload-${this.tileIndex}"
           accept="image/*"
           @change="${this.handleFileUpload}"
           multiple
@@ -1534,7 +1505,7 @@ export class VideoPlayerElement extends LitElement {
     }
     .controls {
       position: absolute;
-      top: 10px;
+      top: 45px;
       right: 10px;
       opacity: 0;
       transition: opacity 0.3s;
@@ -1588,6 +1559,10 @@ export class VideoPlayerElement extends LitElement {
   private initializePlayer() {
     this.mediaController = this.shadowRoot?.querySelector('media-controller');
     this.videoElement = this.shadowRoot!.querySelector('video');
+    const fileInput = this.shadowRoot?.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput && !fileInput.id) {
+        fileInput.id = `video-upload-${Math.random().toString(36).substring(2,9)}`;
+    }
     console.log('vidautoplay: ', this.autoplay)
   }
 

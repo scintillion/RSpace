@@ -114,35 +114,33 @@
 
 	let TileStrings1: string[] = [
 		'TS4:TileStrings Desc4',
-		'T\ta|name:Full|\ts|display:flex|touch-action:none|position:relative|width:200vw|height:100vh|\t',
+		'T\ta|name:Full|drag:true|\ts|display:flex|position:relative|width:200vw|height:100vh|\t',
 		' T\ta|name:Base|\ts|width:200vw|height:10vh|display:flex|flex-direction:row|\t',
 		'  T\ta|name:Top|drag:true|clickAction:VillaLink|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Top|drag:true|\ts|display:flex|align-items:left|padding-left:20px|background:magenta|height:10vh|width:190vw|background-image:url("")|transform:translate(0px, 0px)|\t',
 		' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
 		'  T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-		'   Txt\ta|name:Left|drag:true|hold:true|textPreview:true|innerEdit:true|inner:<h2>inner text</h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
-		'    TxtBtn\ta|name:Button|inner:Save|function:TextSave|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
+		'   T\ta|name:Left|drag:true|hold:true|textPreview:true|innerEdit:true|inner:<h2>inner text</h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'    RndBtn\ta|name:Button|inner:Alert|clickAction:Alert|alertContent:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
 		'  T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
 		'   T\ta|name:Middle|drag:true|innerEdit:true|textPreview:true|BgImage:true|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|postion:relative|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
 		'   T\ta|name:Right|drag:true|hold:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
-		'    Txt\ta|name:TextBox|function:TextBox|\ts|background:inherit|\t',
+		'    Txt\ta|name:TextBox|\ts|background:inherit|\t',
 		'     T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|padding:5px|\t',
 		'      Btn\ta|name:TextBold|inner:B|clickAction:Bold|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|\t',
 		'      Btn\ta|name:TextBold|inner:I|clickAction:Italic|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|\t',
 		'      Btn\ta|name:TextBold|inner:U|clickAction:Underline|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
-		'      T\ta|name:ColorPicker|function:ColorPicker|\ts|background:transparent|\t',
-		'  T\ta|name:Base|\ts|display:flex|flex-direction:row|\t',
-		'   Carousel\ta|name:Carousel|pan:true|\ts|background:beige|height:90vh|width:50vw|background-image:url("")|\t',
-		'  T\ta|name:Base|\ts|\t',
-		'   Video\ta|name:VideoPlayer|function:VideoPlayer|video-src:|video-type:video/mp4|video-controls:true|video-autoplay:true|video-loop:true|video-muted:true|\ts|width:50vw|height:90vh|background:blue|\t'
+		'      ColorPicker\ta|name:ColorPicker|\ts|background:transparent|\t',
+		'  T\ta|name:Base|\ts|height:90vh|width:50vw|\t',
+		'   Carousel\ta|name:Carousel|pan:true|drag:true|\ts|background:beige|background-image:url("")|height:90vh|width:50vw|transform:translate(0px, 0px)|\t',
+		'  T\ta|name:Base|\ts|height:90vh|width:50vw|\t',
+		'   Video\ta|name:VideoPlayer|video-src:|video-type:video/mp4|video-controls:true|video-autoplay:true|video-loop:true|video-muted:true|drag:true|\ts|background:blue|height:90vh|width:50vw|transform:translate(0px, 0px)|\t'
 		
 	];
-
 	// free-form movement
 	// let TileStrings1: string[] = [
-  	// 	'T\ta|name:root|\ts|height:500px|width:500px|background:rgba(0, 128, 0, 0.3)|position:relative|\t',
+  	// 	'T\ta|name:root|drag:true|\ts|height:500px|width:500px|background:rgba(0, 128, 0, 0.3)|position:absolute|top:0|left:0|transform:translate(0px, 0px)|\t',
   	// 	' T\ta|name:tile1|drag:true|\ts|height:100px|width:100px|background:blue|position:absolute|top:100px|left:200px|transform:translate(0px, 0px)|\t',
   	// 	' T\ta|name:tile2|drag:true|\ts|height:100px|width:100px|background:orange|position:absolute|top:250px|left:200px||transform:translate(0px, 0px)|\t',
 	// ];
