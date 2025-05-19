@@ -1,4 +1,4 @@
-import { LitElement, html, nothing, type PropertyValueMap, css, type PropertyValues } from 'lit';
+import { LitElement, html, nothing, type PropertyValueMap, css, type PropertyValues, type TemplateResult } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
@@ -17,7 +17,7 @@ type BackgroundImageState = {
 };
 
 class TileDefBuilder {
-  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|function:|element:div|alert:|image:|BgImage:|drag:|dragAxis:xy|resize:true|click:true|clickAction:|dblclick:|dblclickAction:|hold:|holdAction:|swipe:|swipeAction:|hover:true|hoverAction:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|\t');
+  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|innerEdit:false|function:|element:div|alert:|image:|BgImage:|drag:|dragAxis:xy|resize:true|click:true|clickAction:|dblclick:|dblclickAction:|hold:|holdAction:|swipe:|swipeAction:|hover:true|hoverAction:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|border-radius:0px|border:none|border-color:transparent|border-width:0px|border-style:solid|box-shadow:none|box-sizing:border-box|cursor:default|\t');
   static readonly ButtonTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Btn\ta|name:Button|element:button|type:|value:|\ts|cursor:pointer|\t'))
   static readonly RoundButtonTDE = this.listMerge(this.ButtonTDE, new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t'));
   static readonly InnerTextTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Txt\ta|name:TextEdit|text:true|textPreview:true|innerEdit:true|\ts|\t'));
@@ -722,330 +722,388 @@ deleteTile(tile: RS1.TDE) {
     `;
   }
 
-  renderDivs(tile: RS1.TDE): any {
-    const innerContent = tile.aList?.descByName('inner') || '';
-    const elementType = tile.aList?.descByName('element');
+  private renderInnerContentEditable(tile: RS1.TDE, innerContent: string, istextPreview: boolean, textPreviewVID: any): any {
+    if (!istextPreview) {
+      return html`
+      <div
+      id="text-edit"
+      contenteditable="true"
+      placeholder="Enter text here"
+      @input="${(e: Event) => { 
+        this._textEditContent = (e.target as HTMLDivElement).textContent || '';
+      }}"
+      style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
+      ${(innerContent)} 
+      </div> 
+        <button class="system-button" 
+          style="border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
+          @click="${() => {
+            const parentInnerVID = tile.aList?.getVID('inner');
+            const textPreviewVID = tile.aList?.getVID('textPreview'); 
+    
+            if (parentInnerVID) {
+              parentInnerVID.Desc = this._textEditContent;
+              tile.aList?.setVID(parentInnerVID);
+            }
+      
+            if (textPreviewVID) {
+              textPreviewVID.Desc = 'true';
+              tile.aList?.setVID(textPreviewVID);
+            }
+      
+            this._isTextPreview = true;
+
+          }}">
+          Save
+        </button>
+      `;
+    }
+
+    else if (istextPreview) {
+      return html`
+        <div
+        id="text-edit2"
+        contenteditable="false" 
+        @click="${() =>  {
+          if (this.editMode && textPreviewVID) { 
+            textPreviewVID.Desc = "false";
+            tile.aList?.setVID(textPreviewVID);
+            this._isTextPreview = false;
+          }}}"
+        style="background: transparent; border: none; color: white;">
+        ${unsafeHTML(innerContent)}
+        </div>
+      `;
+    }
+    return html``; 
+  }
+
+  private renderDivWrapper(
+    tile: RS1.TDE,
+    innerContentHTML: any, 
+    embeddedComponent: any, 
+    styleStr: string,
+    tileIndex: number,
+    isClick?: boolean,
+    isDblClick?: boolean
+  ): any {
+    const isBgImage = tile.aList?.descByName('BgImage') === 'true';
+    const bgControlsHTML = (this.editMode && isBgImage) ? html`
+      <div class="background-controls" style="position: absolute; opacity:0; top: 50px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 11;">
+        <input type="file" id="bg-file-upload-${tileIndex}" style="display: none;" accept="image/*" @change=${(e: Event) => this.handleBackgroundImageUpload(e, tile)}/>
+        ${this._isEditBg ? html`
+          ${this._backgroundImageState.url ? html`
+            <button class="system-button" style="display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.triggerBgImageUpload(tile)}>Replace</button>
+            <button class="system-button" style="display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.handleRemoveBackgroundImage(tile)}>Remove</button>
+            <button class="system-button" style="display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => {this.updateBackgroundStyles(tile); this._isEditBg = false}}>Done</button>
+          ` : html`
+            <button class="system-button" style="display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.triggerBgImageUpload(tile)}>Upload</button>
+            <button class="system-button" style="display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => {this.updateBackgroundStyles(tile); this._isEditBg = false}}>Done</button>
+          `}
+        ` : html`
+          <button class="system-button" style="display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 100px; height: 30px; background: #1e1e1e;" @click=${() => this._isEditBg = true}>Background</button>
+        `}
+      </div>
+    ` : '';
+    const bgControllerInteractive = (this.editMode && isBgImage && this._backgroundImageState.url && this._isEditBg) ? html`
+      <div class="bg-controller" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 5; background-color: rgba(255, 255, 255, 0.1);"></div>
+      <div class="resize-handle" style="position: absolute; bottom: 10px; right: 10px; width: 12px; height: 12px; background-color: #3498db; border: 2px solid white; border-radius: 50%; z-index: 15; cursor: se-resize;"></div>
+    ` : '';
+
+    return html`<div id="tile${tileIndex}" class="tile" style="${styleStr}"
+      @click="${(e: Event) => {
+        e.stopPropagation();
+        if (isClick) { this.handleClickAction(tile); }
+      }}"
+      @mouseenter="${(e: Event) => {
+        e.stopPropagation();
+        this.handleHover(tile, true);
+        const hostElement = e.currentTarget as HTMLElement;
+        const deleteBtn = hostElement.querySelector('.delete-button');
+        if (deleteBtn) {
+          if (!this.editMode) {
+            (deleteBtn as HTMLElement).style.opacity = '1';
+            (deleteBtn as HTMLButtonElement).disabled = false;
+          } else {
+            (deleteBtn as HTMLElement).style.opacity = '0';
+            (deleteBtn as HTMLButtonElement).disabled = true;
+          }
+        }
+        const bgControlsElement = hostElement.querySelector('.background-controls');
+        if (bgControlsElement && this.editMode) {
+          (bgControlsElement as HTMLElement).style.opacity = '1';
+        }
+      }}"
+      @mouseleave="${(e: Event) => {
+        e.stopPropagation();
+        this.handleHover(tile, false);
+        const hostElement = e.currentTarget as HTMLElement;
+        const deleteBtn = hostElement.querySelector('.delete-button');
+        if (deleteBtn) { (deleteBtn as HTMLElement).style.opacity = '0'; }
+        const bgControlsElement = hostElement.querySelector('.background-controls');
+        if (bgControlsElement && !this._isEditBg) {
+          (bgControlsElement as HTMLElement).style.opacity = '0';
+        }
+      }}"
+      @dblclick="${(e: Event) => { 
+        e.stopPropagation();
+        if (isDblClick) { this.handleDoubleClick(tile); }
+      }}"
+      @format-text="${(e: CustomEvent) => { 
+        const targetTextBox = this.shadowRoot?.getElementById('text-box') as HTMLDivElement | null;
+        if (targetTextBox) {
+          const command = e.detail.command;
+          document.execCommand(command, false);
+          e.stopPropagation(); 
+        }
+      }}">
+      ${innerContentHTML}
+      ${embeddedComponent}
+      <slot></slot> 
+      ${tileIndex !== 1 ? this.getTileDeleteButton(tile) : ''}
+      ${isBgImage ? html`${bgControlsHTML}${bgControllerInteractive}` : nothing}
+    </div>`;
+  }
+
+  private renderButtonElement(
+    tile: RS1.TDE, 
+    innerText: any, 
+    styleStr: string, 
+    tileIndex: number, 
+    isClick: boolean
+  ): any {
+    return html`
+    <button id="tile${tileIndex}" 
+      class="button" 
+      style="${styleStr}"
+      @click="${(e: Event) => {
+        if (isClick) { this.handleClickAction(tile); }
+      }}" 
+      type="${tile.aList?.getVID('type')?.Desc}" 
+      value="${tile.aList?.getVID('value')?.Desc}">
+      ${innerText}
+    </button>`;
+  }
+
+  private renderTextBoxElement(tile: RS1.TDE): any {
+    return html`
+      <div
+      class="text-box"
+      contenteditable="true"
+      style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; "
+      @focus="${() => {
+        this.dispatchEvent(new CustomEvent('text-box-interaction', {
+          bubbles: true,
+          composed: true,
+        }))
+      }}"
+      @blur="${() => {
+        this.dispatchEvent(new CustomEvent('text-box-interaction-over', {
+          bubbles: true,
+          composed: true,
+        }))
+      }}">
+      </div> `;
+  }
+
+  private renderCarouselElement(tile: RS1.TDE): any {
+    const tileIndexCarousel = this.TList.tiles.indexOf(tile);
+    return html`
+      <image-carousel
+        id="carousel-content-${tileIndexCarousel}"
+        class="tile-content-carousel"
+        .tileIndex="${tileIndexCarousel}"
+      >
+      </image-carousel>          
+    `;
+  }
+
+  private renderInputElement(tile: RS1.TDE): any {
+    const submitButtonTDE = TileDefBuilder.modifyTDE(TileDefBuilder.ButtonTDE, {
+      attributes: {
+        name: 'Submit',
+        inner: 'Submit',
+        type: 'submit',
+      },
+      styles: {
+        width: '70px',
+        height: '30px',
+        background: '#1e1e1e',
+        color: 'white'
+      }
+    });
+    return html`
+    <form style="display: flex; background: transparent;">
+      <input 
+        type="${tile.aList?.getVID('input-type')?.Desc}" 
+        placeholder="${tile.aList?.getVID('input-placeholder')?.Desc}" 
+        ${tile.aList?.getVID('input-required')?.Desc === 'true' ? 'required' : '' } 
+        minlength="${tile.aList?.getVID('input-minlength')?.Desc}" 
+        maxlength="${tile.aList?.getVID('input-maxlength')?.Desc}">
+      </input>
+      ${this.renderTDE(submitButtonTDE)}
+    </form> `;
+  }
+
+  private renderColorPickerElement(tile: RS1.TDE): any {
+    return html`
+    <color-picker></color-picker>`;
+  }
+
+  private renderVideoPlayerElement(tile: RS1.TDE): any {
+    const videoSrc = tile.aList?.descByName('video-src') || '';
+    const videoType = tile.aList?.descByName('video-type') || 'video/mp4';
+    const videoControls = tile.aList?.descByName('video-controls') === 'true';
+    const videoAutoplay = tile.aList?.descByName('video-autoplay') === 'true';
+    const videoLoop = tile.aList?.descByName('video-loop') === 'true';
+    const videoMuted = tile.aList?.descByName('video-muted') === 'true';
+
+    return html`
+      <video-player
+        .src=${videoSrc}
+        .type=${videoType}
+        ?controls=${videoControls}
+        ?autoplay=${videoAutoplay}
+        ?loop=${videoLoop}
+        ?muted=${videoMuted}
+      ></video-player>
+    `;
+  }
+
+  renderTDE(tile: RS1.TDE): any {
     const tileType = tile.tileID?.tname;
-    const parentTile = this.TList.tiles[tile.parent];
-    const isInnerEdit = tile.aList?.descByName('innerEdit') === 'true';
-    const displayVID = tile.sList?.getVID('display');
-    const istextPreview = tile.aList?.descByName('textPreview') === 'true';
-    const textPreviewVID = tile.aList?.getVID('textPreview');
-    let styleStr = tile.sList?.toVIDList(";");
-    let childrenHtml = html``;
+    const innerContent = tile.aList?.descByName('inner') || '';
     const tileIndex = this.TList.tiles.indexOf(tile);
+    const styleStr = tile.sList?.toVIDList(";") ?? "";
+    const isClick = tile.aList?.descByName('click') === 'true';
+    const isDblClick = tile.aList?.descByName('dblclick') === 'true';
 
     const currentBgUrl = tile.sList?.descByName('background-image');
     const currentBgPos = tile.sList?.descByName('background-position'); 
     const currentBgSize = tile.sList?.descByName('background-size'); 
 
-    const isClick = tile.aList?.descByName('click') === 'true';
-    const isDblClick = tile.aList?.descByName('dblclick') === 'true';
-    
-    
     if (currentBgUrl && currentBgUrl !== 'url("")') {
-         let posX = 50;
-         let posY = 50;
-         let size = 100;
-         
-         if (currentBgPos) {
-           const posValues = currentBgPos.trim().split(' ');
-           if (posValues.length >= 2) {
-             const xPos = posValues[0];
-             const yPos = posValues[1];
-             
-             if (xPos.endsWith('%')) {
-               posX = parseFloat(xPos);
-             }
-             if (yPos.endsWith('%')) {
-               posY = parseFloat(yPos);
-             }
-           }
-         }
-         
-         if (currentBgSize && currentBgSize.endsWith('%')) {
-           size = parseFloat(currentBgSize);
-         } else if (currentBgSize === 'cover') {
-           size = 100;
-         }
-         
-         this._backgroundImageState = { 
-           url: currentBgUrl, 
-           position: currentBgPos,
-           size: size,
-           posX: posX, 
-           posY: posY 
-         };
+      let posX = 50; let posY = 50; let size = 100;
+      if (currentBgPos) {
+        const posValues = currentBgPos.trim().split(' ');
+        if (posValues.length >= 2) {
+          const xPos = posValues[0]; const yPos = posValues[1];
+          if (xPos.endsWith('%')) posX = parseFloat(xPos);
+          if (yPos.endsWith('%')) posY = parseFloat(yPos);
+        }
       }
-
-
-    const innerContentHTMLEditable = () => {
-          if (!istextPreview) {
-            return html`
-            <div
-            id="text-edit"
-            contenteditable="true"
-            placeholder="Enter text here"
-            @input="${(e: Event) => {
-              console.log('inputx' + innerContent) 
-              this._textEditContent = (e.target as HTMLDivElement).textContent || '';
-            }}"
-            style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
-            ${(innerContent)}
-            </div> 
-             <button class="system-button" 
-                style="border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
-                @click="${() => {
-                  const parentInnerVID = tile.aList?.getVID('inner');
-                  const textPreviewVID = tile.aList?.getVID('textPreview');
-          
-                  if (parentInnerVID) {
-                    parentInnerVID.Desc = this._textEditContent;
-                    tile.aList?.setVID(parentInnerVID);
-                  }
-            
-                  if (textPreviewVID) {
-                    textPreviewVID.Desc = 'true';
-                    tile.aList?.setVID(textPreviewVID);
-                  }
-            
-                  this._isTextPreview = true;
-                
-                }}">
-                Save
-              </button>
-         `;
-          }
-
-          else if (istextPreview) {
-            return html`
-              <div
-              id="text-edit2"
-              contenteditable="false" 
-              @click="${() =>  {
-                if (this.editMode) {
-                 textPreviewVID.Desc = "false";
-              tile.aList?.setVID(textPreviewVID);
-              this._isTextPreview = false;}}}"
-              style="background: transparent; border: none; color: white;">
-              ${unsafeHTML(innerContent)}
-              </div>
-             
-              
-            `;
-          }
-          if (this.editMode) {
-               textPreviewVID.Desc = "true";
-              tile.aList?.setVID(textPreviewVID);
-              this._isTextPreview = true;
-          } 
-      }
-
-    const innerContentHTML = isInnerEdit ? innerContentHTMLEditable() : unsafeHTML(innerContent);
-
-    switch (tileType) {
-        case 'Txt':
-          childrenHtml = html`
-            <div
-            class="text-box"
-            contenteditable="true"
-            style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; "
-            @focus="${() => {
-              this.dispatchEvent(new CustomEvent('text-box-interaction', {
-                bubbles: true,
-                composed: true,
-              }))
-            }}"
-            @blur="${() => {
-              this.dispatchEvent(new CustomEvent('text-box-interaction-over', {
-                bubbles: true,
-                composed: true,
-              }))
-            }}">
-            </div> `;
-          break;
-          
-          case 'Carousel':
-            const tileIndexCarousel = this.TList.tiles.indexOf(tile);
-            childrenHtml = html`
-              <image-carousel
-                id="carousel-content-${tileIndexCarousel}"
-                class="tile-content-carousel"
-                style="position: relative;"
-                .tileIndex="${tileIndexCarousel}"
-              >
-              </image-carousel>          
-            `;
-            break;
-
-        case 'Input':
-          // const submitButton = new RS1.TDE('Btn\ta|name:Submit|element:button|inner:Submit|type:submit|\ts|width:70px|height:30px|background:#1e1e1e|color:white|\t')
-          const submitButton = TileDefBuilder.modifyTDE(TileDefBuilder.ButtonTDE, {
-            attributes: {
-              name: 'Submit',
-              inner: 'Submit',
-              type: 'submit',
-            },
-            styles: {
-              width: '70px',
-              height: '30px',
-              background: '#1e1e1e',
-              color: 'white'
-            }
-          })
-          childrenHtml = html`
-          <form style="display: flex; background: transparent;">
-            <input type="${tile.aList?.getVID('input-type')?.Desc}" placeholder="${tile.aList?.getVID('input-placeholder')?.Desc}" ${tile.aList?.getVID('input-required')?.Desc === 'true' ? 'required' : '' } minlength="${tile.aList?.getVID('input-minlength')?.Desc}" maxlength="${tile.aList?.getVID('input-maxlength')?.Desc}"></input>
-            ${this.renderDivs(submitButton)}
-          </form> `; 
-          break;
-
-        case 'ColorPicker':
-          childrenHtml = html`
-          <color-picker></color-picker>`
-          break;
-
-        case 'Video':
-          const videoSrc = tile.aList?.descByName('video-src') || '';
-          const videoType = tile.aList?.descByName('video-type') || 'video/mp4';
-          const videoControls = tile.aList?.descByName('video-controls') === 'true';
-          const videoAutoplay = tile.aList?.descByName('video-autoplay') === 'true';
-          const videoLoop = tile.aList?.descByName('video-loop') === 'true';
-          const videoMuted = tile.aList?.descByName('video-muted') === 'true';
-
-          childrenHtml = html`
-            <video-player
-              .src=${videoSrc}
-              .type=${videoType}
-              ?controls=${videoControls}
-              ?autoplay=${videoAutoplay}
-              ?loop=${videoLoop}
-              ?muted=${videoMuted}
-            ></video-player>
-          `;
-          break;
-
+      if (currentBgSize && currentBgSize.endsWith('%')) size = parseFloat(currentBgSize);
+      else if (currentBgSize === 'cover') size = 100;
+      this._backgroundImageState = { url: currentBgUrl, position: currentBgPos, size: size, posX: posX, posY: posY };
+    } 
+    else {
+      this._backgroundImageState = { url: null, position: 'center center', size: 100, posX: 50, posY: 50 }; 
     }
 
-     styleStr = tile.sList?.toVIDList(";") ?? "";
+    const isInnerEdit = tile.aList?.descByName('innerEdit') === 'true';
+    const istextPreview = tile.aList?.descByName('textPreview') === 'true';
+    const textPreviewVID = tile.aList?.getVID('textPreview');
+    const innerContentHTML = isInnerEdit ? this.renderInnerContentEditable(tile, innerContent, istextPreview, textPreviewVID as any) : unsafeHTML(innerContent);
 
-    switch (elementType) {
-      case 'div':
-        const isBgImage = tile.aList?.descByName('BgImage');
-        const bgControlsHTML = (this.editMode) ? html`
-          <div class="background-controls" style="position: absolute; opacity:0; top: 50px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 11;">
-            <input
-              type="file"
-              id="bg-file-upload-${tileIndex}"
-              style="display: none;"
-              accept="image/*"
-              @change=${(e: Event) => this.handleBackgroundImageUpload(e, tile)}
-            />
-            ${this._isEditBg ? html`
-              ${this._backgroundImageState.url ? html`
-                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.triggerBgImageUpload(tile)}>Replace</button>
-                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.handleRemoveBackgroundImage(tile)}>Remove</button>
-                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => {this.updateBackgroundStyles(tile); this._isEditBg = false}}>Done</button>
-              ` : html`
-                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.triggerBgImageUpload(tile)}>Upload</button>
-                <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => {this.updateBackgroundStyles(tile); this._isEditBg = false}}>Done</button>
-              `}
-            ` : html`
-              <button class="system-button" style=" display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 100px; height: 30px; background: #1e1e1e;" @click=${() => this._isEditBg = true}>Background</button>
-            `}
-            
-          </div>
-        ` : '';
+    switch (tileType) {
+        case 'T':
+          return this.renderDivWrapper(
+            tile,
+            innerContentHTML, 
+            nothing,                  
+            styleStr,
+            tileIndex,
+            isClick,
+            isDblClick
+          );
 
-        const bgController = (this.editMode && this._backgroundImageState.url && this._isEditBg) ? html`
-          <div 
-            class="bg-controller" 
-            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 5; background-color: rgba(255, 255, 255, 0.1);"
-          ></div>
-          <div 
-            class="resize-handle" 
-            style="position: absolute; bottom: 10px; right: 10px; width: 12px; height: 12px; background-color: #3498db; border: 2px solid white; border-radius: 50%; z-index: 15; cursor: se-resize;"
-          ></div>
-        ` : '';
+        case 'Btn':
+        case 'RndBtn':
+          return this.renderButtonElement(
+            tile,
+            innerContentHTML,
+            styleStr,
+            tileIndex,
+            isClick
+          );
 
-        return html`<div id="tile${tileIndex}" class="tile" style="${styleStr}"
-          @click="${(e: Event) => {
-            e.stopPropagation();
-            if (isClick) {
-              this.handleClickAction(tile)
-            }
-          }
-        }" 
-          @mouseenter="${(e: Event) => {
-            e.stopPropagation();
-            this.handleHover(tile, true);
-            const hostElement = e.currentTarget as HTMLElement;
+        case 'Carousel':
+          const carouselHTML = this.renderCarouselElement(tile);
+          return this.renderDivWrapper(
+            tile,
+            nothing,        
+            carouselHTML,   
+            styleStr,
+            tileIndex,
+            isClick,
+            isDblClick
+          );
 
-            const deleteBtn = hostElement.querySelector('.delete-button');
-            if (deleteBtn) {
-              if (!this.editMode) {
-                (deleteBtn as HTMLElement).style.opacity = '1';
-                (deleteBtn as HTMLButtonElement).disabled = false;
-              } else {
-                (deleteBtn as HTMLElement).style.opacity = '0'; 
-                (deleteBtn as HTMLButtonElement).disabled = true;
-              }
-            }
-            const bgControlsElement = hostElement.querySelector('.background-controls');
-            if (bgControlsElement && this.editMode) {
-              (bgControlsElement as HTMLElement).style.opacity = '1';
-            }
-          }}"
-          @mouseleave="${(e: Event) => {
-            e.stopPropagation();
-            this.handleHover(tile, false);
-            const hostElement = e.currentTarget as HTMLElement;
+        case 'Video':
+          const videoHTML = this.renderVideoPlayerElement(tile);
+          return this.renderDivWrapper(
+            tile,
+            nothing,
+            videoHTML,
+            styleStr,
+            tileIndex,
+            isClick,
+            isDblClick
+          );
 
-            const deleteBtn = hostElement.querySelector('.delete-button');
-            if (deleteBtn) {
-              (deleteBtn as HTMLElement).style.opacity = '0';
-            }
-            const bgControlsElement = hostElement.querySelector('.background-controls');
-            if (bgControlsElement && !this._isEditBg) {
-              (bgControlsElement as HTMLElement).style.opacity = '0';
-            }
-          }}"
-          @dblclick="${(e: Event) => { 
-            e.stopPropagation();
-            if (isDblClick) {
-              this.handleDoubleClick(tile)
-            }
-          }
-        }"
-          @format-text="${(e: CustomEvent) => { 
-            const targetTextBox = this.shadowRoot?.getElementById('text-box') as HTMLDivElement | null;
-            if (targetTextBox) {
-              const command = e.detail.command;
-              document.execCommand(command, false);
-              e.stopPropagation(); 
-            }
-          }
-        }">
-          ${innerContentHTML}
-          ${childrenHtml} 
-          ${isBgImage ==='true' ? html`${bgControlsHTML}${bgController}` : nothing}
-           <slot></slot>
-          ${tileIndex !== 1 ? this.getTileDeleteButton(tile) : ''}
-        </div>`;
-      case 'button': 
-        return childrenHtml = html`<button id="tile${this.TList.tiles.indexOf(tile)}"
-         @click="${(e: Event) => {
-          // e.stopPropagation();
-          if (isClick) {
-            this.handleClickAction(tile)
-          }
-        }}" type="${tile.aList?.getVID('type')?.Desc}" value="${tile.aList?.getVID('value')?.Desc}" class="button" style="${styleStr}">${innerContentHTML}</button>`;
+        case 'Txt':
+          const textHTML = this.renderTextBoxElement(tile);
+          return this.renderDivWrapper(
+            tile,
+            nothing,
+            textHTML,
+            styleStr,
+            tileIndex,
+            isClick,
+            isDblClick
+          );
+
+        case 'Input':
+          const inputHTML = this.renderInputElement(tile);
+          return this.renderDivWrapper(
+            tile,
+            nothing,
+            inputHTML,
+            styleStr,
+            tileIndex,
+            isClick,
+            isDblClick
+          );
+
+        case 'ColorPicker':
+          const colorPickerHTML = this.renderColorPickerElement(tile);
+          return this.renderDivWrapper(
+            tile,
+            nothing,
+            colorPickerHTML,
+            styleStr,
+            tileIndex,
+            isClick,
+            isDblClick
+          );
+
+        default:
+          console.warn('tileType not found: ' + tileType + '. Rendering a basic div.');
+          return this.renderDivWrapper(
+            tile,
+            innerContentHTML,
+            nothing,
+            styleStr,
+            tileIndex,
+            isClick,
+            isDblClick
+          );
     }
   }
 
   render() {
     return html`
-      ${this.renderDivs(this.tile)}
+      ${this.renderTDE(this.tile)}
     `;
   }
 
