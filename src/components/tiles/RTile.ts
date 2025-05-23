@@ -25,6 +25,8 @@ class TileDefBuilder {
   static readonly InputTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Input\ta|name:Input|function:Input|input-required:|input-type:|input-maxlength:|input-min:|input-max:|input-pattern:|input-step:|input-placeholder:|input-title:|input-readonly:|input-disabled:|input-autocomplete:|input-autofocus:|input-multiple:|input-novalidate:|\ts|\t'));
   static readonly VideoPlayerTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Video\ta|name:VideoPlayer|function:VideoPlayer|video-src:|video-type:|video-controls:true|video-autoplay:false|video-loop:false|video-muted:false|\ts|\t'));
   static readonly ColorPickerTDE = this.listMerge(this.MasterTDE, new RS1.TDE('ColorPicker\ta|name:ColorPicker|color:|color-picker-type:|color-picker-format:|color-picker-opacity:|color-picker-alpha:|color-picker-presets:|color-picker-palette:|color-picker-swatches:|color-picker-opacity-type:|color-picker-opacity-format:|color-picker-opacity-presets:|color-picker-opacity-palette:|color-picker-opacity-swatches:|\ts|\t'));
+  static readonly IframeTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Iframe\ta|name:Iframe|iframe-src:|iframe-title:|iframe-sandbox:allow-same-origin allow-scripts allow-popups allow-forms|iframe-loading:lazy|iframe-referrerpolicy:no-referrer|iframe-allow:|iframe-width:|iframe-height:|iframe-scrolling:auto|\ts|\t'));
+  static readonly TimerTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Timer\ta|name:Timer|function:Timer|timer-duration:300|timer-mode:countdown|timer-sound:true|\ts|\t'));
 
   static listMerge(A: RS1.TDE, B: RS1.TDE): RS1.TDE {
     const style = A.sList?.copy() as RS1.qList;
@@ -102,6 +104,14 @@ class TileDefBuilder {
 
         case 'ColorPicker':
           this.listMerge(this.ColorPickerTDE, tile);
+          break;
+
+        case 'Iframe':
+          this.listMerge(this.IframeTDE, tile);
+          break;
+
+        case 'Timer':
+          this.listMerge(this.TimerTDE, tile);
           break;
 
         default:
@@ -223,6 +233,8 @@ export class RTile extends LitElement {
       if (bgController) {interact(bgController).unset()};
       if (resizeHandle) interact(resizeHandle).unset();
     }
+    
+    this.removeTimer(this.tile);
   }
 
   shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
@@ -230,17 +242,18 @@ export class RTile extends LitElement {
     return super.shouldUpdate(changedProperties);
   }
 
-  setupDraggable(tile: RS1.TDE, axis?:string) {
+  private setupDraggable(tile: RS1.TDE, axis?:string) {
     const element = this.tileElement;
    
     if (element) {
+      element.style.touchAction = 'none';
       let x = 0;
       let y = 0;
       interact(element)
         .draggable({
           inertia: true,
           startAxis: (axis === 'x' || axis === 'y') ? axis : 'xy',
-          // lockAxis: undefined,
+          lockAxis: (axis === 'x' || axis === 'y') ? axis : 'xy',
           modifiers: [
             interact.modifiers.restrictRect({
               // restriction: 'parent',
@@ -272,7 +285,7 @@ export class RTile extends LitElement {
     }
   }
 
-  setupResizable(tile: RS1.TDE) {
+  private setupResizable(tile: RS1.TDE) {
     const element = this.tileElement;
     
     if (element) {
@@ -312,7 +325,7 @@ export class RTile extends LitElement {
     }
   }
 
-  updateTilePosition(tile: RS1.TDE, element: HTMLElement,x:number,y:number) {
+  private updateTilePosition(tile: RS1.TDE, element: HTMLElement,x:number,y:number) {
     const translateVID = tile.sList?.getVID('transform');
     const positionVID = tile.sList?.getVID('position');
   
@@ -325,7 +338,7 @@ export class RTile extends LitElement {
     }
   }
 
-  updateTileSize(tile: RS1.TDE, width: number, height: number) {
+  private updateTileSize(tile: RS1.TDE, width: number, height: number) {
     const widthVID = tile.sList?.getVID('width');
     const heightVID = tile.sList?.getVID('height');
 
@@ -338,7 +351,7 @@ export class RTile extends LitElement {
     }
   }
 
-  handleSwipe(target:HTMLElement, options?:Object) {
+  private handleSwipe(target:HTMLElement, options?:Object) {
     const defaults = {
         minSwipeDistance: 60,  
         maxSwipeTime: 500,    
@@ -440,7 +453,7 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 }
 
-  handleClickAction(tile: RS1.TDE) {
+  private handleClickAction(tile: RS1.TDE) {
     const action = tile.aList?.descByName('clickAction');
 
     switch (action) {
@@ -482,9 +495,9 @@ private setupTileInteractions(tile: RS1.TDE) {
           );
           break;
     }
-}
+  }
 
-deleteTile(tile: RS1.TDE) {
+  private deleteTile(tile: RS1.TDE) {
   const tileIndex = this.TList.tiles.indexOf(tile);
   this.TList.tiles.splice(tileIndex, 1);
   this.TList.Links();
@@ -729,18 +742,18 @@ deleteTile(tile: RS1.TDE) {
       id="text-edit"
       contenteditable="true"
       placeholder="Enter text here"
-      @input="${(e: Event) => { 
+      @input="${(e: Event) => {
         this._textEditContent = (e.target as HTMLDivElement).textContent || '';
       }}"
       style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; ">
-      ${(innerContent)} 
+      ${(innerContent)}
       </div> 
         <button class="system-button" 
           style="border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
           @click="${() => {
             const parentInnerVID = tile.aList?.getVID('inner');
-            const textPreviewVID = tile.aList?.getVID('textPreview'); 
-    
+            const textPreviewVID = tile.aList?.getVID('textPreview');
+
             if (parentInnerVID) {
               parentInnerVID.Desc = this._textEditContent;
               tile.aList?.setVID(parentInnerVID);
@@ -752,11 +765,11 @@ deleteTile(tile: RS1.TDE) {
             }
       
             this._isTextPreview = true;
-
+          
           }}">
           Save
         </button>
-      `;
+    `;
     }
 
     else if (istextPreview) {
@@ -765,11 +778,11 @@ deleteTile(tile: RS1.TDE) {
         id="text-edit2"
         contenteditable="false" 
         @click="${() =>  {
-          if (this.editMode && textPreviewVID) { 
+    if (this.editMode && textPreviewVID) { 
             textPreviewVID.Desc = "false";
-            tile.aList?.setVID(textPreviewVID);
-            this._isTextPreview = false;
-          }}}"
+        tile.aList?.setVID(textPreviewVID);
+      this._isTextPreview = false;
+    }}}"
         style="background: transparent; border: none; color: white;">
         ${unsafeHTML(innerContent)}
         </div>
@@ -905,7 +918,7 @@ deleteTile(tile: RS1.TDE) {
       }}">
       </div> `;
   }
-
+  
   private renderCarouselElement(tile: RS1.TDE): any {
     const tileIndexCarousel = this.TList.tiles.indexOf(tile);
     return html`
@@ -942,7 +955,7 @@ deleteTile(tile: RS1.TDE) {
         maxlength="${tile.aList?.getVID('input-maxlength')?.Desc}">
       </input>
       ${this.renderTDE(submitButtonTDE)}
-    </form> `;
+    </form> `; 
   }
 
   private renderColorPickerElement(tile: RS1.TDE): any {
@@ -968,6 +981,131 @@ deleteTile(tile: RS1.TDE) {
         ?muted=${videoMuted}
       ></video-player>
     `;
+  }
+
+  private renderIframeElement(tile: RS1.TDE): any {
+    const iframeSrc = tile.aList?.descByName('iframe-src') || '';
+    const iframeTitle = tile.aList?.descByName('iframe-title') || '';
+    const iframeSandbox = tile.aList?.descByName('iframe-sandbox') || 'allow-same-origin allow-scripts allow-popups allow-forms';
+    const iframeLoading = tile.aList?.descByName('iframe-loading') || 'lazy';
+    const iframeReferrerPolicy = tile.aList?.descByName('iframe-referrerpolicy') || 'no-referrer';
+    const iframeAllow = tile.aList?.descByName('iframe-allow') || '';
+    const iframeWidth = tile.aList?.descByName('iframe-width') || '100%';
+    const iframeHeight = tile.aList?.descByName('iframe-height') || '100%';
+    const iframeScrolling = tile.aList?.descByName('iframe-scrolling') || 'auto';
+
+    return html`
+      <div class="iframe-container" style="width: 100%; height: 100%; position: relative;">
+        <div class="controls" style="position: absolute; top: 45px; right: 10px; opacity: 0; transition: opacity 0.3s; z-index: 10; display: flex; gap: 10px;">
+          <button class="system-button" style="display: inline-block; border: none; border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;" @click=${() => this.handleIframeReload(tile)}>Reload</button>
+        </div>
+        <iframe
+          src="${iframeSrc}"
+          title="${iframeTitle}"
+          sandbox="${iframeSandbox}"
+          loading="${iframeLoading}"
+          referrerpolicy="${iframeReferrerPolicy}"
+          allow="${iframeAllow}"
+          style="width: ${iframeWidth}; height: ${iframeHeight}; border: none;"
+          scrolling="${iframeScrolling}"
+        ></iframe>
+      </div>
+    `;
+  }
+
+  private handleIframeReload(tile: RS1.TDE) {
+    const iframe = this.shadowRoot?.querySelector('iframe');
+    if (iframe) {
+      iframe.src = iframe.src;
+    }
+  }
+
+  private renderTimerElement(tile: RS1.TDE): any {
+    const timerDuration = parseInt(tile.aList?.descByName('timer-duration') || '300');
+    const timerMode = tile.aList?.descByName('timer-mode') || 'countdown';
+    const timerSound = tile.aList?.descByName('timer-sound') === 'true';
+    const tileIndex = this.TList.tiles.indexOf(tile);
+    
+    if (!(window as any).rspaceTimers) {
+      (window as any).rspaceTimers = {};
+    }
+    
+    const timers = (window as any).rspaceTimers;
+    const timerId = `timer-${tileIndex}`;
+    
+    if (!timers[timerId]) {
+      timers[timerId] = {
+        currentTime: timerMode === 'countdown' ? timerDuration : 0,
+        isRunning: false,
+        intervalId: null,
+        mode: timerMode,
+        sound: timerSound
+      };
+      
+      timers[timerId].isRunning = true;
+      timers[timerId].intervalId = setInterval(() => {
+        const timer = timers[timerId];
+        if (timer.mode === 'countdown') {
+          timer.currentTime--;
+          if (timer.currentTime <= 0) {
+            timer.currentTime = 0;
+            timer.isRunning = false;
+            clearInterval(timer.intervalId);
+            timer.intervalId = null;
+            
+            if (timer.sound) {
+              try {
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.5);
+              } catch (error) {
+                console.warn('Could not play timer sound:', error);
+              }
+            }
+          }
+        } else {
+          timer.currentTime++;
+        }
+        
+        const timerDisplay = this.shadowRoot?.querySelector(`#timer-display-${tileIndex}`);
+        if (timerDisplay) {
+          const minutes = Math.floor(timer.currentTime / 60);
+          const seconds = timer.currentTime % 60;
+          const displayTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          timerDisplay.textContent = displayTime;
+        }
+      }, 1000);
+    }
+    
+    const minutes = Math.floor(timers[timerId].currentTime / 60);
+    const seconds = timers[timerId].currentTime % 60;
+    const displayTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    return html`
+      <div id="timer-display-${tileIndex}" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-family: 'Courier New', monospace; font-size: 2rem; font-weight: bold; color: white;">
+        ${displayTime}
+      </div>
+    `;
+  }
+
+  private removeTimer(tile: RS1.TDE) {
+    const tileIndex = this.TList.tiles.indexOf(tile);
+    const timerId = `timer-${tileIndex}`;
+    const timers = (window as any).rspaceTimers;
+    if (timers && timers[timerId]) {
+      clearInterval(timers[timerId].intervalId);
+    }
+    delete timers[timerId];
   }
 
   renderTDE(tile: RS1.TDE): any {
@@ -1051,6 +1189,18 @@ deleteTile(tile: RS1.TDE) {
             isDblClick
           );
 
+        case 'Iframe':
+          const iframeHTML = this.renderIframeElement(tile);
+          return this.renderDivWrapper(
+            tile,
+            nothing,
+            iframeHTML,
+            styleStr,
+            tileIndex,
+            isClick,
+            isDblClick
+          );
+
         case 'Txt':
           const textHTML = this.renderTextBoxElement(tile);
           return this.renderDivWrapper(
@@ -1086,6 +1236,9 @@ deleteTile(tile: RS1.TDE) {
             isClick,
             isDblClick
           );
+
+        case 'Timer':
+          return this.renderTimerElement(tile);
 
         default:
           console.warn('tileType not found: ' + tileType + '. Rendering a basic div.');
@@ -1148,7 +1301,7 @@ export class TileListRenderer extends LitElement {
   declare showListEditor: boolean;
   private isInteractingWithCarousel = false;
   private isInteractingwithTextBox = false
-
+  
   static properties = {
     TList: { type: Object },
     showEditorPanel: { type: Boolean },
@@ -1169,9 +1322,9 @@ export class TileListRenderer extends LitElement {
       width: 100%;
       height: 100%;
   }
-  .container {
+  #main-container {
       position: relative;
-      overflow: auto;
+      /* overflow: auto; */
       touch-action: pan-x pan-y;
       scrollbar-width: none;
   }`
@@ -1211,6 +1364,49 @@ export class TileListRenderer extends LitElement {
     `;
   }
 
+  private handleBackgroundPan() {
+    const element = this.shadowRoot?.getElementById('main-container');
+    let xPos = 0;
+    let yPos = 0;
+    if (element) {
+      interact(element).draggable({
+        listeners: {
+          move: event => {
+            if (this.editMode) return; 
+          
+            if (this.isInteractingWithCarousel) {
+              event.interaction.stop();
+              this.isInteractingWithCarousel = false;
+              return;
+            }
+            if (this.isInteractingwithTextBox) {
+              event.interaction.stop();
+              return;
+            }
+          
+            xPos += event.dx;
+            yPos += event.dy;
+            element.style.transform = `translate(${xPos}px, ${yPos}px)`;
+          }
+        },
+        modifiers: [
+            interact.modifiers.restrict({
+                restriction: 'parent',
+                endOnly: true
+            })
+        ],
+        inertia: true,
+        // startAxis: this._panAxis as 'x' | 'y' | 'xy',
+        lockAxis: 'start'
+      });
+
+      interact(element).styleCursor(false);
+    }
+    else {
+      console.warn('main-container not found')
+    }
+  }
+
   private handleModeChange(e: CustomEvent) {
     if (typeof e.detail.editMode === 'boolean') {
       this.editMode = e.detail.editMode;
@@ -1243,7 +1439,7 @@ export class TileListRenderer extends LitElement {
     }
 
     return html`
-      <div class="container">
+      <div id="main-container">
         ${topLevelTiles.map(tile => this.renderTileAndChildren(tile))}
       </div>
       <tile-editor-panel
@@ -1255,6 +1451,10 @@ export class TileListRenderer extends LitElement {
       >
       </tile-editor-panel>
     `;
+  }
+
+  protected firstUpdated(): void {
+    this.handleBackgroundPan();
   }
 
   protected updated(_changedProperties: PropertyValues): void {
