@@ -8,109 +8,6 @@
 	import QEditor from '../../components/tiles/QEditor.svelte';
 	import { onMount } from 'svelte';
    
-	// const TileStrings: string[] = [
-	// 	'T\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
-	// 	' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
-	// 	' T\ta|name:Bottom|\ts|display:flex|row:1|background:none|align-items:center|justify-content:space-evenly|\t',
-	// 	'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|column:1|gap:5|align-items:center|justify-content:center|\t',
-	// 	'   RndBtn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|width:110|height:50|background:#1e1e1e|color:white|\t',
-	// 	'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|\t',
-	// 	'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
-	// ];
-
-	// let TileStrings: string[] = ([
-	// 	'TS4:TileStrings Desc4',
-	// 	'T\ta|name:Full|\ts|display:flex|\t',
-	// 	' T\ta|name:Top|pan:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|\t',
-	// 	' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
-	// 	'  T\ta|name:Left|pan:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|gap:5px|background-image:url("")|\t',
-	// 	'   RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-	// 	'  T\ta|name:Middle|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|\t',
-	// 	'   ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 	'  T\ta|name:Right|inner:<h2>Enter text</h2> <i>use html tags for formatting</i>|text:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|\t',
-	// 	'   TxtBtn\ta|name:Button|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// ]);
-
-	// let TileStrings: string[] = [
-	// 	'TS4:TileStrings Desc4',
-	// 	'T\ta|name:Full|drag:true|\ts|display:flex|\t',
-	// 	' T\ta|name:Base|\ts|width:100vw|height:10vh|\t',
-	// 	'  T\ta|name:Top|pan:true|\ts|background:magenta|height:10vh|width:100vw|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	' T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
-	// 	'  T\ta|name:Base|\ts|width:20vw|height:90vh\t',
-	// 	'   T\ta|name:Left|pan:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'    RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-	// 	'  T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
-	// 	'   T\ta|name:Middle|pan:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|transform:translate(0px, 0px)|\t',
-	// 	'    Btn\ta|name:EditButton|inner:Edit|toggle:true|\ts|width:70px|height:30px|display:none|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
-	// 	'    T\ta|name:image-container|pan:false|image:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|display:flex|width:100%|height:100%|background-image:url("")|background-size:cover|background:cyan|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
-	// 	'     ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 	'  T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-	// 	'   Txt\ta|name:Right|pan:true|inner:<h2>Enter text</h2> <i>use html tags for formatting</i>|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'    TxtBtn\ta|name:Button|inner:save|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// ];
-
-
-	// let TileStrings1: string[] = [
-	// 	'TS4:TileStrings Desc4',
-	// 	'T\ta|name:Full|\ts|display:flex|\t',
-	// 	' T\ta|name:Full|\ts|display:flex|\t',
-	// 	'  T\ta|name:Base|\ts|width:100vw|height:10vh|display:flex|flex-direction:row|\t',
-	// 	'   T\ta|name:Top|drag:true|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'   T\ta|name:Top|drag:true|\ts|background:magenta|height:10vh|width:90vw|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'  T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
-	// 	'   T\ta|name:Base|\ts|width:20vw|height:90vh\t',
-	// 	'    Txt\ta|name:Left|drag:true|text:true|textPreview:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 	'     RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-	// 	'   T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
-	// 	'    T\ta|name:Middle|drag:true|text:true|textPreview:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|transform:translate(0px, 0px)|\t',
-	// 	'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 	'     Btn\ta|name:EditButton|inner:Edit|toggle:true|\ts|width:70px|height:30px|display:none|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
-	// 	'     T\ta|name:image-container|drag:false|text:true|textPreview:true|image:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|display:flex|width:100%|height:100%|background-image:url("")|background-size:cover|background:cyan|background-position:center|position:absolute|transform:translate(0px, 0px)|\t',
-	// 	'      TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 	'      ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 	'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-	// 	'    Txt\ta|name:Right|drag:true|textPreview:true|inner:click to add text|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'     T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|\t',
-	// 	'      Btn\ta|name:TextBold|inner:B|textFormat:true|textBold:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|display:none|\t',
-	// 	'      Btn\ta|name:TextBold|inner:I|textFormat:true|textItalic:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|display:none|\t',
-	// 	'      Btn\ta|name:TextBold|inner:U|textFormat:true|textUnderline:true|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|display:none|\t',
-	// 	'     TxtBtn\ta|name:Button|inner:Save|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 		];
-
-	// let TileStrings1: string[] = [
-	// 	'TS4:TileStrings Desc4',
-	// 	'T\ta|name:Full|\ts|display:flex|touch-action:none|\t',
-	// 	' T\ta|name:Full|\ts|display:flex|\t',
-	// 	'  T\ta|name:Base|\ts|width:200vw|height:10vh|display:flex|flex-direction:row|\t',
-	// 	'   T\ta|name:Top|drag:true|link:Tile2|inner:link to villa2|\ts|background:blue|display:flex|height:10vh|width:10vw|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'   T\ta|name:Top|drag:true|inner: <h1><i>click and drag for more >>></i></h1>|\ts|display:flex|align-items:left|padding-left:20px|background:magenta|height:10vh|width:190vw|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'  T\ta|name:Bottom|\ts|display:flex|flex-direction:row|background:none|justify-content:space-evenly|background-image:url("")|\t',
-	// 	'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-	// 	'    Txt\ta|name:Left|drag:true|hold:true|textPreview:true|innerEdit:true|inner:<h1>I am the left side</h1> <h2><i>Click button for alert!</i></h2>|\ts|background:orange|width:20vw|height:90vh|display:flex|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'     TxtBtn\ta|name:Button|inner:Save|function:TextSave|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 	'     RndBtn\ta|name:Button|inner:Alert|alert:hello|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|\t',
-	// 	'   T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
-	// 	'    T\ta|name:Middle|drag:true|innerEdit:true|textPreview:true|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|postion:relative|transform:translate(0px, 0px)|\t',
-	// 	// '     Btn\ta|name:EditButton|inner:Edit|function:EditToggle|toggle:true|\ts|width:70px|height:30px|display:none|background:#1e1e1e|color:white|z-index:1|position:absolute|top:0|right:0|border-radius:8px|\t',
-	// 	// '     T\ta|name:image-container|function:Image|drag:false|innerEdit:true|textPreview:true|inner:<h1>I am the middle</h1> <h2>click to upload image</h2>|\ts|display:flex|width:100%|height:100%|background-image:url("")|background-size:cover|background:cyan|border-style:none|background-position:center|position:absolute|top:0|right:0|bottom:0|left:0|transform:translate(0px, 0px)|\t',
-	// 	// '      Btn\ta|name:Button|inner:Save|function:TextSave|\ts|display:flex|width:70px|height:30px|margin-top:5px|background:#1e1e1e|color:white|border-radius:8px|\t',
-	// 	// '      ImgBtn\ta|name:Button|\ts|display:flex|width:70px|height:30px|background:#1e1e1e|color:white|border-radius:8px|top:0|right:100px|position:absolute|z-index:1|\t',
-	// 	'   T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-	// 	'    T\ta|name:Right|drag:true|hold:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
-	// 	'     T\ta|name:TextBox|function:TextBox|\ts|background:inherit|\t',
-	// 	'      T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|padding:5px|\t',
-	// 	'       Btn\ta|name:TextBold|inner:B|function:Bold|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|\t',
-	// 	'       Btn\ta|name:TextBold|inner:I|function:Italic|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|\t',
-	// 	'       Btn\ta|name:TextBold|inner:U|function:Underline|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
-	// 	'       T\ta|name:ColorPicker|function:ColorPicker|\ts|background:transparent|\t',
-	// 	'   T\ta|name:Base|\ts|display:flex|flex-direction:row|\t',
-	// 	'    Carousel\ta|name:Carousel|pan:true|\ts|background:beige|height:90vh|width:50vw|background-image:url("")|\t',
-	// 	'   T\ta|name:Base|\ts|\t',
-	// 	'    Video\ta|name:VideoPlayer|function:VideoPlayer|video-src:|video-type:video/mp4|video-controls:true|video-autoplay:true|video-loop:true|video-muted:true|\ts|width:50vw|height:90vh|background:blue|\t'
-		
-	// ];
 
 	let TileStrings1: string[] = [
 		'TS4:TileStrings Desc4',
@@ -125,25 +22,20 @@
 		'  T\ta|name:Base|\ts|width:60vw|height:90vh|\t',
 		'   T\ta|name:Middle|drag:true|innerEdit:true|textPreview:true|BgImage:true|\ts|background:cyan|display:flex|width:60vw|height:90vh|background-image:url("")|overflow:hidden|postion:relative|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Base|\ts|width:20vw|height:90vh|\t',
-		'   T\ta|name:Right|drag:true|hold:true|\ts|background:green|display:flex|width:20vw|height:90vh|background-image:url("")|transform:translate(0px, 0px)|\t',
-		'    Txt\ta|name:TextBox|\ts|background:inherit|\t',
+		'   T\ta|name:Right|drag:true|hold:true|\ts|background:green|display:flex|width:20vw|height:45vh|background-image:url("")|transform:translate(0px, 0px)|\t',
+		'    Txt\ta|name:SenderTile|drag:true|hold:true|targetTile:ReceiverTile|nugDataType:greetingCommand|nugPayloadQL:messageContent:Hello ReceiverDirect from SenderTile!|extraInfo:This is a direct send.|timestamp:' + Date.now() + '|\ts|background:inherit|\t',
 		'     T\ta|name:Base|\ts|display:flex|flex-direction:row|background:transparent|gap:5px|padding:5px|\t',
 		'      Btn\ta|name:TextBold|inner:B|clickAction:Bold|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-weight:bold|border-radius:8px|\t',
 		'      Btn\ta|name:TextBold|inner:I|clickAction:Italic|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|font-style:italic|border-radius:8px|\t',
 		'      Btn\ta|name:TextBold|inner:U|clickAction:Underline|\ts|display:flex|width:30px|height:30px|background:#D1D5DB|color:black|text-decoration:underline|border-radius:8px|\t',
 		'      ColorPicker\ta|name:ColorPicker|\ts|background:transparent|\t',
+		'   T\ta|name:ReceiverTile|drag:true|hold:true|\ts|background:red|display:flex|width:20vw|height:45vh|background-image:url("")|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Base|\ts|height:90vh|width:50vw|\t',
 		'   Carousel\ta|name:Carousel|pan:true|drag:true|\ts|background:beige|background-image:url("")|height:90vh|width:50vw|transform:translate(0px, 0px)|\t',
 		'  T\ta|name:Base|\ts|height:90vh|width:50vw|\t',
 		'   Video\ta|name:VideoPlayer|video-src:|video-type:video/mp4|video-controls:true|video-autoplay:true|video-loop:true|video-muted:true|drag:true|\ts|background:blue|height:90vh|width:50vw|transform:translate(0px, 0px)|\t'
 		
 	];
-	// free-form movement
-	// let TileStrings1: string[] = [
-  	// 	'T\ta|name:root|drag:true|\ts|height:500px|width:500px|background:rgba(0, 128, 0, 0.3)|position:absolute|top:0|left:0|transform:translate(0px, 0px)|\t',
-  	// 	' T\ta|name:tile1|drag:true|\ts|height:100px|width:100px|background:blue|position:absolute|top:100px|left:200px|transform:translate(0px, 0px)|\t',
-  	// 	' T\ta|name:tile2|drag:true|\ts|height:100px|width:100px|background:orange|position:absolute|top:250px|left:200px||transform:translate(0px, 0px)|\t',
-	// ];
 
 	let TileStrings2: string[] = [
 		'TS4:TileStrings Desc4',
@@ -152,12 +44,6 @@
 		'  T\ta|name:tile|drag:true|clickAction:VillaLink|link:Tile1|inner:link to villa1|\ts|display:flex|height:10vh|width:10vw|background:orange|\t',
 	]
 
-	// let VillaTiles: string[] = $state([
-	// 	'MagicTile1,10,10,35,30',
-    //     'MagicTile2,10,60,35,30',
-    //     'MagicTile3,60,10,35,30',
-    //     'MagicTile4,60,60,35,30'
-	// ]);
 
 	let VillaTiles: string[] = $state([
 		'MagicTile1,10,10,20,20',
@@ -439,7 +325,7 @@ function Edit(tile: RS1.TDE) {
 	<villa-plotter tileList={VillaTiles}></villa-plotter>
 	{:else}
 		
-		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} ontileLink={tileLink} TList={List} showPlot={showPlot} ontile-deleted={handleTileDelete}></tile-list-renderer>
+		<tile-list-renderer _panToggle = {isPanToggle} _panAxis = {panAxis} ontileLink={tileLink} TList={List} showPlot={showPlot}></tile-list-renderer>
 	{/if}
 {/if}
 

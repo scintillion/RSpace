@@ -7,6 +7,7 @@ import panzoom from 'panzoom';
 import { text } from '@sveltejs/kit';
 import Splide from '@splidejs/splide';
 import {MediaController} from 'media-chrome';
+import { tileComm, type TileMessage } from '../../stores/tileDataStore.js';
 
 type BackgroundImageState = {
   url: string | null;
@@ -17,7 +18,7 @@ type BackgroundImageState = {
 };
 
 class TileDefBuilder {
-  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|innerEdit:false|function:|element:div|alert:|image:|BgImage:|drag:|dragAxis:xy|resize:true|click:true|clickAction:|dblclick:|dblclickAction:|hold:|holdAction:|swipe:|swipeAction:|hover:true|hoverAction:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|border-radius:0px|border:none|border-color:transparent|border-width:0px|border-style:solid|box-shadow:none|box-sizing:border-box|cursor:default|\t');
+  static readonly MasterTDE = new RS1.TDE('T\ta|name:T|inner:|innerEdit:false|function:|element:div|alert:|image:|BgImage:|drag:|dragAxis:xy|resize:true|click:true|clickAction:|dblclick:|dblclickAction:|hold:|holdAction:|swipe:|swipeAction:|hover:true|hoverAction:|\ts|scale:|position:|top:|left:|width:|height:|display:block|flex-direction:column|align-items:center|justify-content:center|background:black|background-image:url("")|background-position:center center|background-repeat:no-repeat|background-size:cover|border-radius:0px|border:none|border-color:transparent|border-width:0px|border-style:solid|box-shadow:none|box-sizing:border-box|cursor:default|\t'); 
   static readonly ButtonTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Btn\ta|name:Button|element:button|type:|value:|\ts|cursor:pointer|\t'))
   static readonly RoundButtonTDE = this.listMerge(this.ButtonTDE, new RS1.TDE('RndBtn\ta|name:RoundButton|\ts|border-radius:25px|\t'));
   static readonly InnerTextTDE = this.listMerge(this.MasterTDE, new RS1.TDE('Txt\ta|name:TextEdit|text:true|textPreview:true|innerEdit:true|\ts|\t'));
@@ -140,19 +141,21 @@ export class RTile extends LitElement {
   private declare _isEditBg: boolean;
   private _bgControlsInitialized: boolean = false;
 
+  private _unsubscribeMessageStore: (() => void) | null = null;
+
   static properties = {
     editMode: { type: Boolean },
     _panAxis: { type: String },
     TList: { type: Object },
     _isTextPreview: { type: Boolean },
     _backgroundImageState: { type: Object },
-     _isEditBg: { type: Boolean },
+    _isEditBg: { type: Boolean },
   };
 
   constructor() {
     super();
-    this.tileElement = null,
-    this.tileId = '',
+    this.tileElement = null;
+    this.tileId = '';
     this.editMode = false;
     this._panAxis = 'x';
     this._isTextPreview = true;
@@ -164,6 +167,8 @@ export class RTile extends LitElement {
       posY: 50  
     };
     this._isEditBg = false;
+    this._bgControlsInitialized = false;
+    this._unsubscribeMessageStore = null;
   }
   
   firstUpdated(changedProperties: PropertyValueMap<any>): void {
@@ -178,6 +183,7 @@ export class RTile extends LitElement {
     }
    
     this.setupTileInteractions(this.tile);
+    this.setupMessaging();
   }
 
   updated(changedProperties: PropertyValueMap<any>): void {
@@ -235,6 +241,7 @@ export class RTile extends LitElement {
     }
     
     this.removeTimer(this.tile);
+    this.cleanupMessaging();
   }
 
   shouldUpdate(changedProperties: PropertyValueMap<any>): boolean {
@@ -904,6 +911,9 @@ private setupTileInteractions(tile: RS1.TDE) {
       class="text-box"
       contenteditable="true"
       style="background: white; border: none; color: black; resize: both; overflow: auto; min-height: 50px; min-width: 150px; cursor: text ; "
+      @input="${(e: Event) => {
+        this._textEditContent = (e.target as HTMLDivElement).textContent || '';
+      }}"
       @focus="${() => {
         this.dispatchEvent(new CustomEvent('text-box-interaction', {
           bubbles: true,
@@ -916,7 +926,27 @@ private setupTileInteractions(tile: RS1.TDE) {
           composed: true,
         }))
       }}">
-      </div> `;
+      </div>
+       <button class="system-button"
+            title="Sends the current text as a message. Requires 'targetTile' attribute to be set on this tile."
+            style="border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: auto; padding: 5px 10px; height: 30px; background: #007bff;"
+            @click="${() => this.sendCurrentTextAsMessage()}">
+            Send Message
+          </button>
+          <input type="file" 
+            id="file-upload-${this.getTileId()}" 
+            style="display: none;" 
+            @change="${(e: Event) => this.handleFileUploadForSending(e)}"
+            accept="image/*,video/*,*/*">
+          <button class="system-button"
+            title="Send a file, image, or video to the target tile. Requires 'targetTile' attribute to be set."
+            style="border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: auto; padding: 5px 10px; height: 30px; background: #28a745;"
+            @click="${() => {
+              const fileInput = this.shadowRoot?.getElementById(`file-upload-${this.getTileId()}`) as HTMLInputElement;
+              if (fileInput) fileInput.click();
+            }}">
+            Send File
+          </button> `;
   }
   
   private renderCarouselElement(tile: RS1.TDE): any {
@@ -1104,8 +1134,8 @@ private setupTileInteractions(tile: RS1.TDE) {
     const timers = (window as any).rspaceTimers;
     if (timers && timers[timerId]) {
       clearInterval(timers[timerId].intervalId);
+      delete timers[timerId];
     }
-    delete timers[timerId];
   }
 
   renderTDE(tile: RS1.TDE): any {
@@ -1290,6 +1320,188 @@ private setupTileInteractions(tile: RS1.TDE) {
     console.log('Long press detected on tile:', tile.aList?.descByName('name'));
   }
 
+  private setupMessaging() {
+    const tileId = this.getTileId();
+    this._unsubscribeMessageStore = tileComm.subscribe(tileId, (message: TileMessage | null) => {
+      if (message) {
+        console.log(`Tile ${tileId} received data from ${message.from}:`, message.nug.l.to$);
+        this.handleIncomingMessage(message);
+      }
+    });
+  }
+
+  private cleanupMessaging() {
+    if (this._unsubscribeMessageStore) {
+      this._unsubscribeMessageStore();
+      this._unsubscribeMessageStore = null;
+    }
+  }
+
+  private getTileId(): string {
+    const tileName = this.tile.aList?.getVID('name')?.Desc;
+    if (tileName) return tileName;
+    
+    const tileIndex = this.TList.tiles.indexOf(this.tile);
+    return `tile-${tileIndex}`;
+  }
+
+  private handleIncomingMessage(message: TileMessage) {
+    const messageType = message.nug.l.descByName('messageType');
+    
+    if (messageType === 'textMessage') {
+      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.descByName('textContent')}`;
+      if (textContent) {
+        console.log(`RTile ${this.getTileId()}: Updating text content with: ${textContent}`);
+        this.updateTextContent(textContent);
+      }
+    } else if (messageType === 'media') {
+      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.descByName('mediaType')}`;
+      this.updateTextContent(textContent);
+      this.handleMediaMessage(message);
+    } else if (messageType === 'file') {
+      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.descByName('fileName')}`;
+      this.updateTextContent(textContent);
+      this.handleFileMessage(message);
+    } else {
+      console.log(`RTile ${this.getTileId()}: Received data with unknown message type: ${messageType}`);
+    }
+  }
+
+  private handleMediaMessage(message: TileMessage) {
+    const mediaType = message.nug.l.descByName('mediaType');
+    const mediaField = message.nug.getField('mediaData');
+    
+    if (mediaField && mediaField.AB) {
+      console.log(`RTile ${this.getTileId()}: Received ${mediaType} media from ${message.from}`);
+    }
+  }
+
+  private handleFileMessage(message: TileMessage) {
+    const fileName = message.nug.l.descByName('fileName');
+    const fileSize = message.nug.l.descByName('fileSize');
+    const fileField = message.nug.getField('fileContent');
+    
+    if (fileField && fileField.AB) {
+      console.log(`RTile ${this.getTileId()}: Received file ${fileName} (${fileSize} bytes) from ${message.from}`);
+    }
+  }
+
+  private sendMediaMessage(targetTileId: string, mediaType: string, mediaBuffer: ArrayBuffer, metadata: any = {}) {
+    const nug = new RS1.Nug('');
+    
+    nug.l.set('messageType', 'media');
+    nug.l.set('mediaType', mediaType);
+    nug.l.set('senderTile', this.getTileId());
+    
+    Object.entries(metadata).forEach(([key, value]) => {
+      nug.l.set(key, String(value));
+    });
+    
+    const mediaField = new RS1.PackField('mediaData', mediaBuffer);
+    nug.addField(mediaField);
+    
+    console.log(`Tile ${this.getTileId()}: Sending ${mediaType} media to ${targetTileId}`);
+    this.sendDataToTile(targetTileId, nug);
+  }
+
+  private sendFileMessage(targetTileId: string, fileName: string, fileBuffer: ArrayBuffer) {
+    const nug = new RS1.Nug('');
+    
+    nug.l.set('messageType', 'file');
+    nug.l.set('fileName', fileName);
+    nug.l.set('fileSize', fileBuffer.byteLength.toString());
+    nug.l.set('senderTile', this.getTileId());
+    
+    const fileField = new RS1.PackField('fileContent', fileBuffer);
+    nug.addField(fileField);
+    
+    console.log(`Tile ${this.getTileId()}: Sending file ${fileName} to ${targetTileId}`);
+    this.sendDataToTile(targetTileId, nug);
+  }
+
+  private handleFileUploadForSending(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    
+    if (file) {
+      const targetTileId = this.tile.aList?.descByName('targetTile');
+      if (!targetTileId) {
+        alert('Target tile not specified. Set the "targetTile" attribute on this tile.');
+        return;
+      }
+      
+      console.log(`RTile ${this.getTileId()}: Uploading ${file.name} (${file.size} bytes)...`);
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        
+        if (file.type.startsWith('image/')) {
+          this.sendMediaMessage(targetTileId, 'image', arrayBuffer, {
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size
+          });
+        } else if (file.type.startsWith('video/')) {
+          this.sendMediaMessage(targetTileId, 'video', arrayBuffer, {
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size
+          });
+        } else {
+          this.sendFileMessage(targetTileId, file.name, arrayBuffer);
+        }
+        
+        // Reset the input
+        input.value = '';
+        console.log(`RTile ${this.getTileId()}: File ${file.name} sent successfully`);
+      };
+      
+      reader.onerror = () => {
+        console.error(`RTile ${this.getTileId()}: Error reading file ${file.name}`);
+        alert('Error reading file. Please try again.');
+      };
+      
+      reader.readAsArrayBuffer(file);
+    }
+  }
+
+  private updateTextContent(content: string) {
+    const innerVID = this.tile.aList?.getVID('inner');
+    if (innerVID) {
+      innerVID.Desc = content;
+      this.tile.aList?.setVID(innerVID);
+      this.requestUpdate();
+    }
+  }
+
+  private sendDataToTile(targetTileId: string, nug: RS1.Nug) {
+    const senderId = this.getTileId();
+    console.log(`Tile ${senderId}: Sending nug to ${targetTileId}:`, nug.l.to$);
+    tileComm.sendNug(senderId, targetTileId, nug);
+  }
+
+  private sendCurrentTextAsMessage() {
+    const currentText = this._textEditContent;
+    if (!currentText.trim()) {
+      alert('Cannot send an empty message.');
+      return;
+    }
+
+    const targetTileId = this.tile.aList?.descByName('targetTile');
+    if (!targetTileId) {
+      alert('Target tile not specified. Set the "targetTile" attribute on this tile.');
+      return;
+    }
+    
+    const nug = new RS1.Nug('');
+    nug.l.set('textContent', currentText);
+    nug.l.set('senderTile', this.getTileId());
+    nug.l.set('messageType', 'textMessage');
+    
+    console.log(`Tile ${this.getTileId()}: Sending text message to ${targetTileId}: "${currentText}"`);
+    this.sendDataToTile(targetTileId, nug);
+  }
 }
 
 @customElement ('tile-list-renderer')
