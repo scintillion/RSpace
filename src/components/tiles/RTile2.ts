@@ -1,6 +1,7 @@
 import { LitElement, css, html, type PropertyValues, type ReactiveController, type TemplateResult } from 'lit';
 import { customElement} from 'lit/decorators.js';
 import { RS1 } from '$lib/RSsvelte.svelte';
+import interact from 'interactjs';
 
 type Data =  'text' | 'number' | 'image' | 'video' | 'audio' | 'file' | 'json' | 'buffer' | 'any';
 type Display =  'div' | 'button' | 'text' | 'image' | 'video' | 'canvas' | 'input' | 'custom';
@@ -28,9 +29,14 @@ interface InputPortInterface {
     required: boolean;
 }
 
-interface TileInteraction {
-  type: string;
-  action: string;
+interface BaseInteractionInterface {
+  enabled: boolean;
+  action?: () => void;
+  set(action: () => void): void;
+  enable(): void;
+  disable(): void;
+  setup(element: HTMLElement): void;
+  remove(element: HTMLElement): void;
 }
 
 interface TileOutputInterface {
@@ -46,13 +52,41 @@ interface TileDisplayInterface {
 interface TileProcessorInterface {
     process(data?: RS1.Nug): any;
     setProcess(process: (data?: RS1.Nug) => any): void;
+}
+
+interface DragInteractionInterface extends BaseInteractionInterface {
+  axis: 'x' | 'y' | 'xy';
+  setAxis(axis: 'x' | 'y' | 'xy'): void;
+}
+
+interface ClickInteractionInterface extends BaseInteractionInterface {
+
+}
+
+interface SwipeInteractionInterface extends BaseInteractionInterface {
+  minDistance: number;
+  maxTime: number;
+  setOptions(options: { minDistance?: number; maxTime?: number }): void;
+}
+
+interface ResizeInteractionInterface extends BaseInteractionInterface {
+  edges: string;
+  setEdges(edges: string): void;
+}
+
+interface HoverInteractionInterface extends BaseInteractionInterface {
 
 }
 
 interface TileInteractionInterface {
-  interactions: TileInteraction[];
-  addInteraction(element: HTMLElement, interaction: TileInteraction): void;
-  removeInteraction(element: HTMLElement, interaction: TileInteraction): void;
+  drag: DragInteractionInterface;
+  click: ClickInteractionInterface;
+  swipe: SwipeInteractionInterface;
+  resize: ResizeInteractionInterface;
+  hover: HoverInteractionInterface;
+
+  setupAll(element: HTMLElement): void;
+  removeAll(element: HTMLElement): void;
 }
 
 interface TileConfig {
@@ -61,7 +95,7 @@ interface TileConfig {
     outputConfig: { outputType: string };
     displayConfig: { type: Display, styles: string };
     processorConfig: { process: (data?: RS1.Nug) => any };
-    interactionConfig: { interactions: TileInteraction[] };
+    interactionConfig: { interactions: BaseInteractionInterface[] };
   }
 
 class TileConfigBuilder {
@@ -93,7 +127,7 @@ class MagicTile implements TileInterface {
         this.output = new TileOutput();
         this.display = new TileDisplay(config.displayConfig);
         this.processor = new TileProcessor(config.processorConfig);
-        this.interaction = new TileInteraction(config.interactionConfig);
+        this.interaction = new TileInteraction();
         this.host = host;
     }
 }
@@ -204,22 +238,154 @@ class MagicTile implements TileInterface {
     }
   }
 
-  class TileInteraction implements TileInteractionInterface {
-    interactions: TileInteraction[] = [];
-
-    constructor(config: {interactions: TileInteraction[]}) {
-      this.interactions = config.interactions;
+  abstract class BaseInteraction implements BaseInteractionInterface {
+    enabled: boolean = false;
+    action?: () => void;
+    protected interactInstance: any = null;
+    
+    set(action: () => void): void {
+      this.action = action;
     }
-
-    addInteraction(element: HTMLElement, interaction: TileInteraction): void {
-      this.interactions.push(interaction);
+    
+    enable(): void {
+      this.enabled = true;
     }
+    
+    disable(): void {
+      this.enabled = false;
+      this.remove();
+    }
+    
+    abstract setup(element: HTMLElement): void;
+    
+    remove(element?: HTMLElement): void {
+      if (this.interactInstance) {
+        this.interactInstance.unset();
+        this.interactInstance = null;
+      }
+      this.action = undefined;
+    }
+  }
 
-    removeInteraction(element: HTMLElement, interaction: TileInteraction): void {
-      this.interactions = this.interactions.filter(i => i !== interaction);
+  class DragInteraction extends BaseInteraction implements DragInteractionInterface {
+    axis: 'x' | 'y' | 'xy' = 'xy';
+    
+    setAxis(axis: 'x' | 'y' | 'xy'): void {
+      this.axis = axis;
+    }
+    
+    setup(element: HTMLElement): void {
+      if (!this.enabled) return;
+      
+      let x = 0, y = 0;
+      this.interactInstance = interact(element).draggable({
+        startAxis: this.axis,
+        lockAxis: this.axis,
+        listeners: {
+          move: (event) => {
+            x += event.dx;
+            y += event.dy;
+            element.style.transform = `translate(${x}px, ${y}px)`;
+          },
+          end: () => {
+            if (this.action) this.action();
+          }
+        }
+      });
     }
   }
   
+  class ClickInteraction extends BaseInteraction implements ClickInteractionInterface {
+    setup(element: HTMLElement): void {
+      if (!this.enabled) return;
+      
+      element.addEventListener('click', () => {
+        if (this.action) this.action();
+      });
+    }
+  }
+  
+  class SwipeInteraction extends BaseInteraction implements SwipeInteractionInterface {
+    minDistance: number = 60;
+    maxTime: number = 500;
+    
+    setOptions(options: { minDistance?: number; maxTime?: number }): void {
+      if (options.minDistance) this.minDistance = options.minDistance;
+      if (options.maxTime) this.maxTime = options.maxTime;
+    }
+    
+    setup(element: HTMLElement): void {
+     
+    }
+  }
+
+  class ResizeInteraction extends BaseInteraction implements ResizeInteractionInterface {
+    edges: string = 'all';
+
+    setEdges(edges: string): void {
+      this.edges = edges;
+    }
+
+    setup(element: HTMLElement): void {
+      if (!this.enabled) return;
+      
+      this.interactInstance = interact(element).resizable({
+        edges: this.edges as any,
+        listeners: {
+          move: (event) => {
+            element.style.width = `${event.rect.width}px`;
+            element.style.height = `${event.rect.height}px`;
+          }
+        }
+      });
+    }
+  }
+
+  class HoverInteraction extends BaseInteraction implements HoverInteractionInterface {
+    setup(element: HTMLElement): void {
+      element.addEventListener('mouseenter', () => {
+        if (this.action) this.action();
+      });
+
+      element.addEventListener('mouseleave', () => {
+        if (this.action) this.action();
+      });
+    }
+  }   
+
+
+  class TileInteraction implements TileInteractionInterface {
+    drag: DragInteractionInterface;
+    click: ClickInteractionInterface;
+    swipe: SwipeInteractionInterface;
+    resize: ResizeInteractionInterface;
+    hover: HoverInteractionInterface;
+
+    constructor() {
+      this.drag = new DragInteraction();
+      this.click = new ClickInteraction();
+      this.swipe = new SwipeInteraction();
+      this.resize = new ResizeInteraction();
+      this.hover = new HoverInteraction();
+    }
+
+    setupAll(element: HTMLElement): void {  
+      this.drag.setup(element);
+      this.click.setup(element);
+      this.swipe.setup(element);
+      this.resize.setup(element);
+      this.hover.setup(element);
+    }
+
+    removeAll(element: HTMLElement): void {
+      this.drag.remove(element);
+      this.click.remove(element);
+      this.swipe.remove(element);
+      this.resize.remove(element);
+      this.hover.remove(element);
+    }
+  }
+
 
 @customElement('r-tile')
 export class RTile extends LitElement {
@@ -253,4 +419,5 @@ export class RTile extends LitElement {
     `;
   }
 }
+
 
