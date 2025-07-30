@@ -17,6 +17,7 @@ interface TileInterface {
 
 interface TileInputInterface {
     ports: Map<string, InputPortInterface>;
+    onReceive: (data: RS1.Nug, portName: string) => void;
     receive(data: RS1.Nug, portName: string): void;
     addInputPort(portName: string, type: Data[], required?: boolean): void;
     removeInputPort(portName: string): void;
@@ -46,6 +47,7 @@ interface TileOutputInterface {
 interface TileDisplayInterface {
     type: Display;
     styles: string;
+    update(data: any): void;
     render(data: any): TemplateResult;
   }
 
@@ -129,11 +131,20 @@ class MagicTile implements TileInterface {
         this.processor = new TileProcessor(config.processorConfig);
         this.interaction = new TileInteraction();
         this.host = host;
+
+        this.input.onReceive = this.handleInputData.bind(this);
     }
+
+    private handleInputData(data: RS1.Nug, portName: string): void {
+        const processedData = this.processor.process(data);
+        this.display.update(processedData);
+    }
+
 }
 
   class TileInput implements TileInputInterface {
     public ports: Map<string, InputPortInterface> = new Map();
+    public onReceive: (data: RS1.Nug, portName: string) => void = () => {}; 
 
     constructor(config: {inputPorts: InputPortInterface[]}) {
         for (const port of config.inputPorts) {
@@ -144,8 +155,34 @@ class MagicTile implements TileInterface {
             this.ports.set('default', { type: ['any'], required: false, currentData: null });
         }
     }
+    
     receive(data: RS1.Nug, portName: string): void {
+        const port = this.ports.get(portName);
+        if (!port) {
+            console.warn(`TileInput: Port '${portName}' not found`);
+            return;
+        }
 
+        if (!this.isValidInputType(data, port.type)) {
+            console.warn(`TileInput: Invalid input type for port '${portName}'`);
+            return;
+        }
+
+        port.currentData = data;
+        this.onReceive(data, portName);
+    }
+
+    private isValidInputType(data: RS1.Nug, allowedTypes: Data[]): boolean {
+        if (allowedTypes.includes('any')) {
+            return true;
+        }
+
+        const detectedType = this.detectDataType(data);
+        return allowedTypes.includes(detectedType);
+    }
+
+    private detectDataType(data: RS1.Nug): Data {
+        return data._type.toLowerCase() as Data;
     }
 
     addInputPort(portName: string, type: Data[], required?: boolean): void {
