@@ -4,12 +4,14 @@ import { RS1 } from '$lib/RSsvelte.svelte';
 import interact from 'interactjs';
 
 type Data =  'text' | 'number' | 'image' | 'video' | 'audio' | 'file' | 'json' | 'buffer' | 'any';
-type Display =  'div' | 'button' | 'text' | 'image' | 'video' | 'canvas' | 'input' | 'custom';
+type Element = 'div' | 'button' ;
+type Display = 'text' | 'image' | 'video' | 'canvas' | 'input' | 'html' ;
 
 interface TileInterface {
     id: string;
     input: TileInputInterface;
     output: TileOutputInterface;
+    element: TileElementInterface;
     display: TileDisplayInterface;
     processor: TileProcessorInterface;
     interaction: TileInteractionInterface;
@@ -44,12 +46,18 @@ interface TileOutputInterface {
     send(data: RS1.Nug): void;
 }
 
+interface TileElementInterface {
+    type: Element;
+    styles: string;
+    render(content: TemplateResult): TemplateResult;
+}
+
 interface TileDisplayInterface {
     type: Display;
     styles: string;
     update(data: any): void;
     render(data: any): TemplateResult;
-  }
+}
 
 interface TileProcessorInterface {
     process(data?: RS1.Nug): any;
@@ -95,10 +103,11 @@ interface TileConfig {
     id: string;
     inputConfig: { inputPorts: InputPortInterface[]};
     outputConfig: { outputType: string };
+    elementConfig: { type: Element, styles: string };
     displayConfig: { type: Display, styles: string };
     processorConfig: { process: (data?: RS1.Nug) => any };
     interactionConfig: { interactions: BaseInteractionInterface[] };
-  }
+}
 
 class TileConfigBuilder {
     static fromTDE(tde: RS1.TDE, id: string): TileConfig {
@@ -106,6 +115,7 @@ class TileConfigBuilder {
             id: id,
             inputConfig: { inputPorts: [{type: ['any'], currentData: null, required: false}] },
             outputConfig: { outputType: tde.aList?.descByName('outputType') || 'any' },
+            elementConfig: { type: tde.aList?.descByName('elementType') as Element || 'div', styles: tde.sList?.toVIDList(";") ?? "" },
             displayConfig: { type: tde.aList?.descByName('displayType') as Display || 'text', styles: tde.sList?.toVIDList(";") ?? "" },
             processorConfig: { process: (data?: RS1.Nug) => data },
             interactionConfig: { interactions: [] },
@@ -117,16 +127,19 @@ class MagicTile implements TileInterface {
     id: string;
     input: TileInputInterface;
     output: TileOutputInterface;
+    element: TileElementInterface;
     display: TileDisplayInterface;
     processor: TileProcessorInterface;
     interaction: TileInteractionInterface;
     
     private host: RTile
+    private currentData: any = null;
 
     constructor(host: RTile, config: TileConfig) {
         this.id = config.id;
         this.input = new TileInput(config.inputConfig);
         this.output = new TileOutput();
+        this.element = new TileElement(config.elementConfig);
         this.display = new TileDisplay(config.displayConfig);
         this.processor = new TileProcessor(config.processorConfig);
         this.interaction = new TileInteraction();
@@ -137,7 +150,12 @@ class MagicTile implements TileInterface {
 
     private handleInputData(data: RS1.Nug, portName: string): void {
         const processedData = this.processor.process(data);
+        this.currentData = processedData;
         this.display.update(processedData);
+    }
+
+    getCurrentData(): any {
+        return this.currentData;
     }
 
 }
@@ -210,6 +228,29 @@ class MagicTile implements TileInterface {
     }
   }
 
+  class TileElement implements TileElementInterface {
+    type: Element;
+    styles: string;
+  
+    constructor(config: { type: Element, styles: string }) {
+      this.type = config.type;
+      this.styles = config.styles;
+    }
+  
+    render(content: TemplateResult): TemplateResult {
+      switch (this.type) {
+        case 'div':
+          return html`<div style="${this.styles}">${content}<slot></slot></div>`;
+
+        case 'button':
+          return html`<button style="${this.styles}">${content}<slot></slot></button>`;
+ 
+        default:
+          return html`<div style="${this.styles}">${content}<slot></slot></div>`;
+      }
+    }
+  }
+
   class TileDisplay implements TileDisplayInterface {
     type: Display;
     styles: string;
@@ -220,7 +261,7 @@ class MagicTile implements TileInterface {
       this.type = config.type;
       this.styles = config.styles;
     }
-  
+
     update(data: RS1.Nug): void {
       this.currentData = data;
       if (this.onUpdate) this.onUpdate(data);
@@ -228,12 +269,6 @@ class MagicTile implements TileInterface {
   
     render(data: RS1.Nug): TemplateResult {
       switch (this.type) {
-        case 'div':
-          return html`<div></div>`;
-
-        case 'button':
-          return html`<button></button>`;
-
         case 'text':
           return html`<div class="text-display"></div>`;
         
@@ -245,7 +280,7 @@ class MagicTile implements TileInterface {
         
         case 'canvas':
           return html`<canvas id="tile-canvas"></canvas>`;
-        
+
         case 'input':
           return html`<input type="text" .value="" />`;
         
@@ -447,12 +482,69 @@ export class RTile extends LitElement {
   }
 
   render() {
+    if (!this.tile) {
+      return html`<div>No tile data</div>`;
+    }
+
+    const data = this.tile.getCurrentData();
+    const displayContent = this.tile.display.render(data);
+    return this.tile.element.render(displayContent);
+  }
+}
+
+@customElement('tile-list-renderer')
+export class TileListRenderer extends LitElement {
+  declare TList: RS1.TileList;
+  
+  static properties = {
+    TList: { type: Object },
+  };
+
+  constructor() {
+    super();
+  }
+
+  private renderTileAndChildren(tile: RS1.TDE): TemplateResult {
+    if (!tile) {
+      return html``;
+    }
+
+    console.log('Rendering tile:', tile.tileID?.ToString() || 'no-id', 'level:', tile.level);
+
+    const childElements = []; 
+    let currentChildIndex = tile.first; 
+
+    while (currentChildIndex > 0 && currentChildIndex < this.TList.tiles.length) {
+      const childTile = this.TList.tiles[currentChildIndex]; 
+      if (childTile) {
+        childElements.push(this.renderTileAndChildren(childTile));
+        currentChildIndex = childTile.next; 
+      } else {
+        break;
+      }
+    }
+
     return html`
-      <div class="tile-container"
-           style=${this.tile?.display.styles}
-        ${this.tile?.display.render(this.tile?.processor.process())}
-        <slot></slot>
-      </div>
+      <r-tile .TDE=${tile}>
+        ${childElements}
+      </r-tile>
+    `;
+  }
+
+  render(): TemplateResult {
+    if (!this.TList || !this.TList.tiles) {
+      return html`<div>No TileList or tiles found</div>`;
+    }
+
+    
+    const topLevelTiles = this.TList.tiles.filter(tile => tile && !tile.parent);
+
+    if (topLevelTiles.length === 0) {
+      return html`<div>No top-level tiles found</div>`;
+    }
+
+    return html`
+      ${topLevelTiles.map(tile => this.renderTileAndChildren(tile))}
     `;
   }
 }
