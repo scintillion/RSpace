@@ -341,19 +341,38 @@ class MagicTile implements TileInterface {
 
   class DragInteraction extends BaseInteraction implements DragInteractionInterface {
     axis: 'x' | 'y' | 'xy' = 'xy';
+    private restrictionTarget: string | HTMLElement | any = 'parent';
     
     setAxis(axis: 'x' | 'y' | 'xy'): void {
       this.axis = axis;
+    }
+    
+    setRestriction(target: string | HTMLElement | any): void {
+      this.restrictionTarget = target;
     }
     
     setup(element: HTMLElement): void {
       if (!this.enabled) return;
       
       let x = 0, y = 0;
+      
       this.interactInstance = interact(element).draggable({
         startAxis: this.axis,
         lockAxis: this.axis,
+        modifiers: [
+          interact.modifiers.restrictRect({
+            restriction: this.restrictionTarget,
+            endOnly: true
+          })
+        ],
+        inertia: true,
         listeners: {
+          start: (event) => {
+            const transform = window.getComputedStyle(element).getPropertyValue('transform');
+            const matrix = new DOMMatrix(transform);
+            x = matrix.m41;
+            y = matrix.m42;
+          },
           move: (event) => {
             x += event.dx;
             y += event.dy;
@@ -393,20 +412,55 @@ class MagicTile implements TileInterface {
 
   class ResizeInteraction extends BaseInteraction implements ResizeInteractionInterface {
     edges: string = 'all';
+    private restrictionTarget: string | HTMLElement | any = 'parent';
 
     setEdges(edges: string): void {
       this.edges = edges;
     }
 
+    setRestriction(target: string | HTMLElement | any): void {
+      this.restrictionTarget = target;
+    }
+
     setup(element: HTMLElement): void {
       if (!this.enabled) return;
       
-      this.interactInstance = interact(element).resizable({
-        edges: this.edges as any,
+      let x = 0;
+      let y = 0;
+      let width = element.offsetWidth;
+      let height = element.offsetHeight;
+      
+      interact(element)
+      .resizable({
+        edges: { left: true, right: true, bottom: true, top: true },
+        modifiers: [
+          interact.modifiers.restrictSize({
+            min: { width: 50, height: 50 }
+          }),
+          interact.modifiers.restrictRect({
+            restriction: this.restrictionTarget,
+            endOnly: true
+          })
+        ],
         listeners: {
           move: (event) => {
-            element.style.width = `${event.rect.width}px`;
-            element.style.height = `${event.rect.height}px`;
+            const currentTransform = new DOMMatrix(element.style.transform);
+            const currentX = currentTransform.m41;
+            const currentY = currentTransform.m42;
+    
+            x = currentX + event.deltaRect.left;
+            y = currentY + event.deltaRect.top;
+            width = event.rect.width;
+            height = event.rect.height;
+    
+            Object.assign(element.style, {
+              width: `${width}px`,
+              height: `${height}px`,
+              transform: `translate(${x}px, ${y}px)`
+            });
+          },
+          end: (event) => {
+            if (this.action) this.action();
           }
         }
       });
@@ -459,7 +513,7 @@ class MagicTile implements TileInterface {
   }
 
 
-@customElement('r-tile')
+@customElement('rel-tile')
 export class RTile extends LitElement {
   declare TDE: RS1.TDE;
   
@@ -481,6 +535,85 @@ export class RTile extends LitElement {
     }
   }
 
+  protected firstUpdated() {
+    if (this.tile && this.shadowRoot && this.TDE) {
+      const tileElement = this.shadowRoot.querySelector('div, button') as HTMLElement;
+      if (tileElement) {
+        const isDragEnabled = this.TDE.aList?.descByName('drag') === 'true';
+        const dragAxis = this.TDE.aList?.descByName('dragAxis') as 'x' | 'y' | 'xy' || 'xy';
+
+        const isResizeEnabled = this.TDE.aList?.descByName('resize') === 'true';
+        const resizeEdges = this.TDE.aList?.descByName('resizeEdges') || 'all';
+        
+        if (isDragEnabled) {
+          this.tile.interaction.drag.enable();
+          this.tile.interaction.drag.setAxis(dragAxis);
+          
+          this.setupDragRestriction(tileElement);
+        }
+
+        if (isResizeEnabled) {
+          this.tile.interaction.resize.enable();
+          this.tile.interaction.resize.setEdges(resizeEdges);
+          
+          this.setupResizeRestriction(tileElement);
+        }
+        
+        this.tile.interaction.setupAll(tileElement);
+      }
+    }
+  }
+  
+  private setupDragRestriction(element: HTMLElement) {
+    let restrictionTarget: string | HTMLElement = 'parent'; 
+    
+    if (this.TDE.parent !== undefined && this.TDE.parent !== -1) {
+      let currentElement = this.parentElement;
+      
+      while (currentElement) {
+        if (currentElement instanceof RTile) {
+          const parentRTile = currentElement as RTile;
+          const parentTileElement = parentRTile.shadowRoot?.querySelector('div, button') as HTMLElement;
+          
+          if (parentTileElement) {
+            restrictionTarget = parentTileElement;
+            break;
+          }
+        }
+        currentElement = currentElement.parentElement;
+      }
+      
+      if (restrictionTarget === 'parent') {
+        console.warn(`Tile '${this.TDE.aList?.descByName('name')}' has a TList parent, but couldn't find parent RTile element. Using default restriction.`);
+      }
+    }
+    
+    (this.tile!.interaction.drag as any).setRestriction(restrictionTarget);
+  }
+
+  private setupResizeRestriction(element: HTMLElement) {
+    let restrictionTarget: string | HTMLElement = 'parent';
+    
+    if (this.TDE.parent !== undefined && this.TDE.parent !== -1) {
+      let currentElement = this.parentElement;
+      
+      while (currentElement) {
+        if (currentElement instanceof RTile) {
+          const parentRTile = currentElement as RTile;
+          const parentTileElement = parentRTile.shadowRoot?.querySelector('div, button') as HTMLElement;
+          
+          if (parentTileElement) {
+            restrictionTarget = parentTileElement;
+            break;
+          }
+        }
+        currentElement = currentElement.parentElement;
+      }
+    }
+    
+    (this.tile!.interaction.resize as any).setRestriction(restrictionTarget);
+  }
+
   render() {
     if (!this.tile) {
       return html`<div>No tile data</div>`;
@@ -492,7 +625,7 @@ export class RTile extends LitElement {
   }
 }
 
-@customElement('tile-list-renderer')
+@customElement('tilelist-renderer')
 export class TileListRenderer extends LitElement {
   declare TList: RS1.TileList;
   
@@ -525,9 +658,9 @@ export class TileListRenderer extends LitElement {
     }
 
     return html`
-      <r-tile .TDE=${tile}>
+      <rel-tile .TDE=${tile}>
         ${childElements}
-      </r-tile>
+      </rel-tile>
     `;
   }
 
