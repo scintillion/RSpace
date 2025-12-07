@@ -7090,7 +7090,7 @@ export namespace RS1 {
 								break;
 							case 'Buffer' :
 								Type = tAB;
-								let TBuf = (D as Int8Array).slice(0);
+								let TBuf = (D as unknown as Int8Array).slice(0);
 								D = this.setAB (ABfromArray (TBuf));
 								break;
 							default :
@@ -7814,7 +7814,7 @@ export namespace RS1 {
 							break;
 						case 'Buffer' :
 							Type = tAB;
-							let TBuf = (D as Int8Array).slice(0);
+							let TBuf = (D as unknown as  Int8Array).slice(0);
 							D = this.setAB (ABfromArray (TBuf));
 							break;
 						default :
