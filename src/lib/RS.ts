@@ -7034,7 +7034,7 @@ export namespace RS1 {
 
 			switch (this._type) {
 				case tNum : AB = this._AB1 = num2ab (this._data as number); break;
-				case tStr : AB = this._AB1 = str2ab (this._data as string); break;
+				case tStr : AB = this._AB1 = str2ab (this._data as string).buffer; break;
 				case tAB :  AB = (this._data as ArrayBuffer).slice (0);
 					// console.log ('  toAB ' + this._name + '[=' + AB.byteLength.toString ());
 					return AB;
@@ -7048,7 +7048,7 @@ export namespace RS1 {
 					break;
 
 				case tPack : AB = this.Pack.bufOut (); break;
-				case tList : AB = str2ab ((this._data as vList).x.toStr); break;
+				case tList : AB = str2ab ((this._data as vList).x.toStr).buffer; break;
 				default : AB = NILAB; this._error = 'toArray Error, Type =' + this._type + '.';
 			}
 
@@ -7762,7 +7762,7 @@ export namespace RS1 {
 
 			switch (this._type) {
 				case tNum : AB = this._AB1 = num2ab (this._data as number); break;
-				case tStr : AB = this._AB1 = str2ab (this._data as string); break;
+				case tStr : AB = this._AB1 = str2ab (this._data as string).buffer; break;
 				case tAB :  AB = (this._data as ArrayBuffer).slice (0);
 					// console.log ('  toAB ' + this._name + '[=' + AB.byteLength.toString ());
 					return AB;
@@ -7776,7 +7776,7 @@ export namespace RS1 {
 					break;
 
 				case tPack : AB = this.Pack.bufOut (); break;
-				case tList : AB = str2ab ((this._data as vList).x.toStr); break;
+				case tList : AB = str2ab ((this._data as vList).x.toStr).buffer; break;
 				default : AB = NILAB; this.Set ('Error','toArray Error, Type =' + this._type + '.');
 			}
 
@@ -8580,7 +8580,7 @@ export namespace RS1 {
 			let Num;
 
 			let PBuf = BA.slice (0,PBytes);
-			let Prefix = ab2str (PBuf);
+			let Prefix = ab2str (PBuf.buffer);
 
 			let NPos = 4;
 			let Type = '';
