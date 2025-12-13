@@ -1,5 +1,5 @@
 // import { loadConfigFromFile } from "vite";
-import TextEditHandler from "../components/TileComponents/TextEditHandler.svelte";
+// import TextEditHandler from "../components/TileComponents/TextEditHandler.svelte";
 
 export namespace RS1 {
 	export const StrEnd='\x1f', StrEndCode=0x1f;

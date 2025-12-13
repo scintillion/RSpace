@@ -103,14 +103,15 @@ export async function InitClient () {
 		' T\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
 		' T\ta|name:Bottom|\ts|display:flex|row:1|background:none|align-items:center|justify-content:space-evenly|\t',
 		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|column:1|gap:5|align-items:center|justify-content:center|\t',
-		'   RndBtn\ta|name:Button|inner:Click|redirect:https://moocode.lol/|\ts|width:110|height:50|background:#1e1e1e|color:white|\t',
+		'   RndBtn\ta|name:Button|inner:Click|redirect:msn.com/|\ts|width:110|height:50|background:#1e1e1e|color:white|\t',
 		'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|\t',
 		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	];
 
+    console.log ('READING TileStrings');
     let A = new RS1.RSr (TileStrings);
     console.log ('A.to$=' + A.to$);
-    let B = A.copy;
+    let B = A.copy ();
     console.log ('B.to$=' + B.to$);
 
     console.log ('Prebubble = ' + Q.to$);
@@ -121,9 +122,11 @@ export async function InitClient () {
 
     let RList = new RS1.rList (TileStrings);
     console.log ('RList =\n' + RList.info);
+    let SS = RList.to$;
     console.log ('toStr =  ' + '\nRList.toStr=\n' + RList.to$+ '!');
+    console.log ('RList.EXPAND=\n' + RList.expand);
     if (RList.Tree)
-    console.log ('RList.TREE!!\n' + RList.Tree.expand);
+        console.log ('RList.TREE!!\n' + RList.Tree.expand);
     let ABC:RS1.RSD = RList;
         console.log ('RList.RSD.constructor=' + ABC.constructor.name);
 
