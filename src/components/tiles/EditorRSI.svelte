@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { RSIEditor } from '$lib/RSIEditor';
 	// import { RS1 } from '$lib/RS';
-	import { RS1 } from '$lib/RSsvelte.svelte';
+	import { RS1 } from '$lib/RS';
 	
 	let { modalContent, RSI, onSave } = $props<{
 		modalContent: HTMLElement,

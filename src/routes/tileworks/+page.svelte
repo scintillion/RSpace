@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { mount, unmount } from 'svelte';
 	import { Plotter } from '$lib/Plotter';
-	import { RS1 } from '$lib/RSsvelte.svelte';
+	import { RS1 } from '$lib/RS';
 	import { TileListRenderer } from '../../components/tiles/RTile'
 	import { VillaPlotter } from '../../components/tiles/VillaPlotter'
 	import Editor from '../../components/tiles/Editor.svelte';

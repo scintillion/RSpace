@@ -1,5 +1,5 @@
 import { writable, type Writable } from 'svelte/store';
-import { RS1 } from '$lib/RSsvelte.svelte';
+import { RS1 } from '$lib/RS';
 
 export interface TileMessage {
   from: string;

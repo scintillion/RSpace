@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { RS1 } from '$lib/RSsvelte.svelte';
+  import { RS1 } from '$lib/RS';
   import '../../components/tiles/RTile2.js';
 
   let tileListRenderer: any;

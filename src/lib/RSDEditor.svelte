@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { RS1 } from './RSsvelte.svelte';
+	import { RS1 } from './RS';
 	import RSIEditor from '../components/tiles/EditorRSI.svelte';
 	import RSDEditor from './RSDEditor.svelte';
 	import { mount } from 'svelte';

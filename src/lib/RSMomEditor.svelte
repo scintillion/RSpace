@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { RS1 } from './RSsvelte.svelte';
+    import { RS1 } from './RS';
 	import RSIEditor from '../components/tiles/EditorRSI.svelte';
 	import RSDEditor from './RSDEditor.svelte';
 	import { mount } from 'svelte';
@@ -11,7 +11,7 @@
 	let selectedKid: Types = $state() ;
 	let step = $state('Home');
 	let RSD: RS1.RSD = $state(new RS1.RSD());
-	let currentRSMom = RSMom;
+	let currentRSMom : RS1.RSMom;
 	let newlyaddedKid: HTMLButtonElement;
 
 	type Types = RS1.RSD | undefined;
@@ -80,7 +80,6 @@
 			// 		// });
 			// 	}
     		// }
-			
 			if (selectedKid)  {
 				const modalContent = document.getElementById('editor');
 				console.log('Edit' + selectedKid?.Desc)
@@ -93,8 +92,7 @@
 						target: modalContent,
 						props: {
 							RSD: list,
-							currentRSMom: currentRSMom,
-						}
+							currentRSMom: currentRSMom	}
 					}));
 				}
 				}

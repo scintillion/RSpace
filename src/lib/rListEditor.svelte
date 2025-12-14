@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { RS1 } from './RSsvelte.svelte';
+    import { RS1 } from './RS';
 	import QEditor from '../components/tiles/QEditor.svelte';
 	import RListEditor from './rListEditor.svelte';
 	import { mount } from 'svelte';
@@ -13,7 +13,7 @@
 
 	type Types = RS1.RSD | undefined;
 
-	function selectKid(kid:Types | undefined) {
+	function selectKid(kid:Types) {
 		console.log('select!')
 		if (kid?.Mom) {
 			step = 'edit';
@@ -27,7 +27,7 @@
 		let newrList = new RS1.rList();
 		
 		if (kid instanceof RS1.qList) {
-			newqList = kid.copy;
+			newqList = kid.copy ();
 			RSK.add(newqList);
 		}
 		else if (kid instanceof RS1.rList) {
@@ -119,7 +119,7 @@
 
 </script>
 
-{#snippet selectBox(kid)}
+{#snippet selectBox(kid : RS1.RSD)}
 	<button onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
 		<span>{kid?.Name} </span>
 	</button>

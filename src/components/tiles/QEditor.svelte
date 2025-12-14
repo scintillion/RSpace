@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { QEditor } from '$lib/qListEditor';
-	import { RS1 } from '$lib/RSsvelte.svelte';
+	import { RS1 } from '$lib/RS';
 	import { createEventDispatcher } from 'svelte';
 	
 	let CLString = $state('');

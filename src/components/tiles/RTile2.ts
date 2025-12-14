@@ -1,6 +1,6 @@
 import { LitElement, css, html, type PropertyValues, type ReactiveController, type TemplateResult } from 'lit';
 import { customElement} from 'lit/decorators.js';
-import { RS1 } from '$lib/RSsvelte.svelte';
+import { RS1 } from '$lib/RS';
 import interact from 'interactjs';
 
 type Data =  'text' | 'number' | 'image' | 'video' | 'audio' | 'file' | 'json' | 'buffer' | 'any';

@@ -1,5 +1,5 @@
 // import { RS1 } from '$lib/RS';
-import { RS1 } from '$lib/RSsvelte.svelte'; 
+import { RS1 } from '$lib/RS'; 
 import { Editor_TC, QEditor_TC } from '../components/tiles';
 
 export class QEditor {

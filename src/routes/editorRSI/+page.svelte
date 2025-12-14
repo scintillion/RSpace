@@ -1,7 +1,7 @@
 <script lang="ts">
     import RSIEditor from '../../components/tiles/EditorRSI.svelte';
     // import { RS1 } from '../../lib/RS';
-    import { RS1 } from '../../lib/RSsvelte.svelte';
+    import { RS1 } from '../../lib/RS';
     import { mount } from 'svelte';
 
 	let CLString =

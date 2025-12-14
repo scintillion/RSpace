@@ -1,6 +1,6 @@
 import { LitElement, html, nothing, type PropertyValueMap, css, type PropertyValues, type TemplateResult } from 'lit';
 import { customElement, property} from 'lit/decorators.js';
-import { RS1 } from '$lib/RSsvelte.svelte';
+import { RS1 } from '$lib/RS';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import interact from 'interactjs';
 import panzoom from 'panzoom';
