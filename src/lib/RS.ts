@@ -6279,8 +6279,10 @@ export namespace RS1 {
 			let Strs, List;
 			console.log ('TileList (' + Str1 as string + ')');
 
-			if ((typeof Str1) === 'string')
-				Strs = strToStrings (Str1 as string);
+			if ((typeof Str1) === 'string') {
+				if (Str1 as string)
+					Strs = strToStrings (Str1 as string);
+			}
 			else if (Array.isArray (Str1))
 				Strs = Str1 as string[];
 			else List = Str1 as rList;

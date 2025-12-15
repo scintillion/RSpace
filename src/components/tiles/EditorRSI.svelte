@@ -5,7 +5,7 @@
 	
 	let { modalContent, RSI, onSave } = $props<{
 		modalContent: HTMLElement,
-		RSI: RS1.RSI
+		rsi: RS1.RSI,
 		onSave: (editedRSI: RS1.RSI) => void
 	}>();
 

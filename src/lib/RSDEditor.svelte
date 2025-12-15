@@ -34,11 +34,11 @@
 		let newRSr = new RS1.RSr();
 			
 		if (kid instanceof RS1.RSI) {
-			newRSI = kid.copy;
+			newRSI = kid.copy ();
 			RSK?.add(newRSI);
 		}
 		else if (kid instanceof RS1.RSr) {
-			newRSr = kid.copy;
+			newRSr =  kid.copy ();
 			RSK?.add(newRSr);
 		}
 		else {
@@ -167,7 +167,7 @@
 
 </script>
 
-{#snippet selectBox(kid)}
+{#snippet selectBox(kid : Types)}
 	<button onclick={() => selectKid(kid)} class:selected={kid === selectedKid} >
 		<span>{kid?.info} </span>
 	</button>

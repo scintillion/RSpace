@@ -31,7 +31,7 @@
 			RSK.add(newqList);
 		}
 		else if (kid instanceof RS1.rList) {
-			newrList = kid.copy;
+			newrList =  kid.copy ();
 			RSK.add(newrList);
 		}
 		else {
