@@ -362,6 +362,8 @@ export namespace RS1 {
 			return Str;
 		}
 
+		get to$$ () : string [] { return []; }
+
 		PBsToBuf (PBs:PB[],RSDName='') {
 			let pStrs = new Array<string> (PBs.length + 1), count = 0, cName = this.cName;
 			if (cName === RSDName)
@@ -3395,6 +3397,16 @@ export namespace RS1 {
 			 return this.qstr ? 1 : 0;
 		} 
 
+		get to$$ () : string [] {
+			let Strs:string[] = [];
+
+			for (const kid of this._k._kids)
+				if (kid && kid !== NILRSD)
+					Strs.push (kid.to$);
+			
+			return Strs;
+		}
+
 		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
 
 		get clear () {
@@ -3589,6 +3601,9 @@ export namespace RS1 {
 		protected r : RSr|undefined = new RSr ();
 		get R () : RSr|undefined { return this.r;}
 		set R (r:RSr) { this.r = r; }
+		get to$$ () : string [] {
+			return this.r ? this.r.to$$ : [];
+		}
 	}
 
 	export class Bead extends RSR {
@@ -3786,6 +3801,16 @@ export namespace RS1 {
 			if (k)
 				return k.bubble (nameOrList as string|RSD,dir);
 			return false;
+		}
+
+		get to$$ (): string[] {
+			let Strs:string[] = [];
+
+			for (const kid of this._k._kids)
+				if (kid && kid !== NILRSD)	
+					Strs.push (kid.to$);
+			
+			return Strs;
 		}
 	}
 
@@ -6275,7 +6300,7 @@ export namespace RS1 {
 	export class TileList  {
 		tiles:TDE[];
 
-		constructor(Str1: string[] | string | rList) {
+		constructor(Str1: string[] | string | rList | RSr | RSR = '') {
 			let Strs, List;
 			console.log ('TileList (' + Str1 as string + ')');
 
@@ -6285,7 +6310,18 @@ export namespace RS1 {
 			}
 			else if (Array.isArray (Str1))
 				Strs = Str1 as string[];
-			else List = Str1 as rList;
+			{
+				if (Str1 instanceof rList) 
+					List = Str1 as rList;
+				else if (Str1 instanceof RSr) {
+					let R = Str1 as RSr;
+					Strs = R.to$$;
+				}
+				else if (Str1 instanceof RSR) {
+					let R = Str1 as RSR;
+					Strs = R.to$$;
+				}
+			}
 
 			if (Strs)
 				List = new rList (Strs);
