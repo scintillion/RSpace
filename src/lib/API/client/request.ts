@@ -130,9 +130,9 @@ export async function InitClient () {
     let ABC:RS1.RSD = RList;
         console.log ('RList.RSD.constructor=' + ABC.constructor.name);
 
-    // let  TList = new RS1.TileList(TileStrings); // remove temporarily
-    // console.log ('TList.ToString = \n' + TList.ToString ());
-
+    console.log ('Preparing TileList');
+    let  TList = new RS1.TileList(RList); // remove temporarily
+    console.log ('TList.ToString = \n' + TList.toStr);
     
 	let L = new RS1.qList ('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
 }

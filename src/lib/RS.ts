@@ -365,7 +365,7 @@ export namespace RS1 {
 		get to$$ () : string [] { return []; }
 
 		PBsToBuf (PBs:PB[],RSDName='') {
-			let pStrs = new Array<string> (PBs.length + 1), count = 0, cName = this.cName;
+			let pStrs = new Array<string> (PBs.length + 1), count = 0, cName = this.cl;
 			if (cName === RSDName)
 				cName = '';
 			// else if (RSDName = '')
@@ -401,7 +401,7 @@ export namespace RS1 {
 			
 			let k = this.K, x = this.X, p = this.P, q = this.Q, r = this.R;
 
-			let cName = this.cName, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
+			let cName = this.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
 			if (!RSDName)
 				RSDName = cName;
 			else if (cName === RSDName)
@@ -497,7 +497,7 @@ export namespace RS1 {
 					return '';
 			}
 
-			let cName = this.cName;
+			let cName = this.cl;
 			if (cName  &&  (cName !== RSDName))
 				cName = '[' + cName + ']';
 			else cName = '';
@@ -586,7 +586,7 @@ export namespace RS1 {
 
 		get NILchk () { return false; }
 
-		get cName () { return 'RSD'; }
+		get cl () { return 'RSD'; }
 
 		Get (s:string) {
 			let i = this.I;
@@ -649,7 +649,7 @@ export namespace RS1 {
 			if (this.Desc)
 				lines += ':' + this.Desc;
 				
-			lines += '[' + this.cName;
+			lines += '[' + this.cl;
 				
 			if (this.Type)
 				lines += ' T=' + this.Type;
@@ -852,6 +852,8 @@ export namespace RS1 {
 		_preFormat:string|undefined;
 		_me : RSD;
 
+		get cl () { return 'RSK'; }
+
 		constructor (me : RSD) {
 			this._me = me;
 		}
@@ -1020,6 +1022,8 @@ export namespace RS1 {
 	export class RSMom extends RSD {
 		_k:RSK;
 
+		get cl () { return 'RSMom'; }
+
 		constructor () {
 			super ();
 			this._k = new RSK (this);
@@ -1037,6 +1041,8 @@ export namespace RS1 {
 	export class RSLeaf extends RSD {
 		D : RSD;
 		level = 0; prev=0; first=0; parent=0; next=0; count=0; fam=0; last = 0;
+
+		get cl () { return 'RSLeaf'; }
 
 		constructor (D:RSD,level=0) {
 			super ();
@@ -1056,6 +1062,8 @@ export namespace RS1 {
 	}
 
 	export class RSTree extends RSMom {
+		get cl () { return 'RSTree'; }
+
 		get Leafs () {
 			let count = 0, Items:RSLeaf[]=[], k = this._k;
 			for (const K of k._kids)
@@ -1866,6 +1874,9 @@ export namespace RS1 {
 	export class xList extends RSD {
 		protected qstr='';
 
+		get cl () { return 'xList'; }
+
+
 		get delim () { return '|'; }
 		protected namedescstr (start=0) {
 			let end = this.qstr.indexOf ('|',start);
@@ -2001,6 +2012,8 @@ export namespace RS1 {
 
 
 	export class RSI extends xList {	// RSI is the NEW qList!!
+		get cl () { return 'RSI'; }
+
 		get I () : RSI|undefined { return this; }
 		set I (newI : RSI) { this.qstr = newI.qstr; }
 
@@ -2403,6 +2416,8 @@ export namespace RS1 {
 		RSDName='';
 		dims='';
 
+		get cl () { return 'RSF'; }
+
 		get clear () {
 			this.name='';
 			this.prefix='';
@@ -2485,7 +2500,7 @@ export namespace RS1 {
 				case tRSD :
 					let rsd = this.data as RSD, rPrefix = rsd.toPrefix (RSDName);
 					
-					cName = rsd.cName;
+					cName = rsd.cl;
 					bbi = rsd._bbi;
 					if (!RSDName  ||  (cName !== RSDName))
 						arrStr = '[' + cName + ']';
@@ -2522,7 +2537,7 @@ export namespace RS1 {
 							else dims += ' 0';
 
 							if (!cName)
-								cName = r.cName;
+								cName = r.cl;
 						}
 					arrStr = '[' + RSDArrayCh + RSDName + dims + ']';
 					bbi = newBuf (nBytes);
@@ -2808,6 +2823,7 @@ export namespace RS1 {
 
 
 	export class RSQ extends RSI {
+		get cl () { return 'RSQ'; }
 		protected q : RSI|undefined = new RSI ();
 		get Q () : RSI|undefined { return this.q; }
 		set Q (q:RSI) { this.q = q; }
@@ -2998,6 +3014,8 @@ export namespace RS1 {
 	
 
 	export class qList extends xList {
+		get cl () { return 'qList'; }
+
 		fromStr (Str:string|string[]='|') {
 			if ((typeof Str) === 'string') {
 				let S = Str as string;
@@ -3383,6 +3401,8 @@ export namespace RS1 {
 	}
 
 	export class RSr extends xList {
+		get cl () { return 'RSr'; }
+
 		_k:RSK = new RSK (this);
 		get K () { return this._k; }
 
@@ -3508,12 +3528,12 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L !== NILqList)  &&  (L.cName === 'qList')) ? L as qList : undefined;
+			return (L  &&  (L !== NILqList)  &&  (L.cl === 'qList')) ? L as qList : undefined;
 		} 
 
 		rListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L.cName === 'rList')) ? L as RSr : undefined;
+			return (L  &&  (L.cl === 'rList')) ? L as RSr : undefined;
 		} 
 
 		get to$ () {
@@ -3598,6 +3618,8 @@ export namespace RS1 {
 	export const NILRSr = new RSr ();
 
 	export class RSR extends RSI {
+		get cl () { return 'RSR'; }
+
 		protected r : RSr|undefined = new RSr ();
 		get R () : RSr|undefined { return this.r;}
 		set R (r:RSr) { this.r = r; }
@@ -3607,6 +3629,8 @@ export namespace RS1 {
 	}
 
 	export class Bead extends RSR {
+		get cl () { return 'Bead'; }
+
 		_k:RSK = new RSK (this);
 		get K () { return this._k; }
 
@@ -3631,6 +3655,8 @@ export namespace RS1 {
 
 	export class rList extends xList {
 		_k:RSK = new RSK (this);
+
+		get cl () { return 'rList'; }
 
 		get K () { return this._k; }
 
@@ -3726,12 +3752,12 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L !== NILqList)  &&  (L.cName === 'qList')) ? L as qList : NILqList;
+			return (L  &&  (L !== NILqList)  &&  (L.cl === 'qList')) ? L as qList : NILqList;
 		} 
 
 		rListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L !== NILrList)  &&  (L.cName === 'rList')) ? L as rList : NILrList;
+			return (L  &&  (L !== NILrList)  &&  (L.cl === 'rList')) ? L as rList : NILrList;
 		} 
 
 		get toS () {
@@ -3894,6 +3920,8 @@ export namespace RS1 {
 		LG = this.addStr('Lg:Language|En:English|Es:Espanol|Cn:Chinese|');
 		CY = this.addStr('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
 		Test = this.addStr('Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|');
+
+		get cl () { return 'rLOL'; }
 	}
 
 	export const rLoL = new rLOL ();
@@ -4273,7 +4301,9 @@ export namespace RS1 {
 			this.DataType = DType;
 			this.Buffer = Buf;
 		}
+		get cl () { return 'NameData'; }
 	}
+
 	export class NameBuffer {
 		Name: string;
 		Type: string;
@@ -4413,6 +4443,8 @@ export namespace RS1 {
 		Data: any;
 
 		NameBufs: NameBuffer[] | undefined;
+
+		get cl () { return 'RSData'; }
 
 		PostLoad (P : BufPack) {}
 
@@ -4593,6 +4625,8 @@ export namespace RS1 {
 
 		cName='';
 		dType='';
+
+		get cl () { return 'SpecInfo'; }
 
 		constructor (Data : SpecArgs) {
 			if (typeof (Data) === 'string')
@@ -4787,7 +4821,7 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  L !== NILqList  &&  L.cName === 'qList') ? L as qList : NILqList;
+			return (L  &&  L !== NILqList  &&  L.cl === 'qList') ? L as qList : NILqList;
 		}
 
 		constructor(Str: string|rList) {
@@ -6301,6 +6335,177 @@ export namespace RS1 {
 		tiles:TDE[];
 
 		constructor(Str1: string[] | string | rList | RSr | RSR = '') {
+			let Strs, List, Lists;
+			console.log ('TileList (' + Str1 as string + ')');
+
+			if ((typeof Str1) === 'string') {
+				if (Str1 as string)
+					Strs = strToStrings (Str1 as string);
+			}
+			else if (Array.isArray (Str1))
+				Strs = Str1 as string[];
+
+			
+			if (Strs) {
+				List = new rList (Strs);
+				Lists = List._k._kids as ListTypes[];
+			}
+			else {
+				if (Str1 instanceof rList) 
+					List = Str1 as rList;
+				else if (Str1 instanceof RSr) {
+					let R = Str1 as RSr;
+					Strs = R.to$$;
+				}
+				else if (Str1 instanceof RSR) {
+					let R = Str1 as RSR;
+					Strs = R.to$$;
+				}
+			}
+
+
+			if (!List) {
+				throw 'NIL TileList!';
+				this.tiles = [];
+				return;
+			}
+
+			let i = 0, Lists = List._k._kids as ListTypes[];
+			this.tiles = Array(Lists.length + 1);
+			for (const L of Lists)
+				if (L) this.tiles[++i] = new TDE (L as rList);
+
+			this.tiles.length = i + 1;
+			this.Links();
+
+			console.log ('**** TileList.Links, Str = \n' + this.toStr);
+		}
+
+		Links() {
+			// calculate relations   for the TDEs
+			let Tiles: TDE[] = this.tiles;
+			let limit = Tiles.length;
+
+			for (let tnum = 0; ++tnum < limit; ) {
+				// each TDE/tile
+				let i;
+
+				let me = Tiles[tnum];
+				let mylev = me.level;
+				let parentlev = mylev - 1;
+				let childlev = mylev + 1;
+				let lev;
+
+				me.first = me.next = me.parent = me.prev = 0;
+
+				for (i = tnum; --i > 0; )
+					if ((lev = Tiles[i].level) >= parentlev) {
+						if (lev == parentlev) {
+							me.parent = i;
+							break;
+						} else if (lev == mylev && !me.prev) me.prev = i;
+					}
+
+				for (i = me.last = tnum; ++i < limit; )
+					if ((lev = Tiles[i].level) >= mylev) {
+						if (lev === mylev) {
+							me.next = i;
+							break;
+						}
+						me.last = i;
+						if (i > 10) console.log('i = ' + i.toString() + ':' + i);
+						if (lev == childlev && !me.first) me.first = i; // first child
+					} else break;
+			} // for each TDE/tile
+		}
+
+		get toStr () {
+			let Tiles = this.tiles;
+			let limit = Tiles.length;
+			let Str = 'TILELIST *** TOSTR:  ' + (limit-1).toString () + ' Tiles.\n';
+
+			for (let i = 0; ++i < limit; ) {
+				let me = Tiles[i];
+
+				let NewStr = 'Tile#' + i.toString () + '.' + 
+					(me.TList ? me.TList.toS : '@NOLIST@') +
+					'\t' +
+					i.toString() +
+					'.level=' +
+					me.level.toString() +
+					' parent=' +
+					me.parent.toString() +
+					' prev=' +
+					me.prev.toString() +
+					' next=' +
+					me.next.toString() +
+					' first=' +
+					me.first.toString() +
+					' last=' +
+					me.last.toString() +
+					' #=' +
+					(me.last - i + 1).toString() +
+					' TileID=';
+
+				if (me.tileID) NewStr += me.tileID.ToString();
+				else NewStr += 'NONE';
+
+				Str += NewStr + '\n';
+
+				if (me.Lists) {
+					for (let c = 0; c < me.Lists.length; ) {
+						let List = me.Lists[c++];
+						if (List) {
+							NewStr = '\t\t List.Name=' + List.Name + '=' + List.to$;
+							Str += NewStr + '\n';
+						}
+					}
+				}
+			}
+			return Str;
+		}
+
+		toSelect(Select1: HTMLSelectElement | HTMLOListElement | HTMLUListElement | undefined) {
+			let Tiles = this.tiles;
+			let limit = Tiles.length;
+
+			let Select = Select1 as HTMLSelectElement;
+
+			Select.options.length = 0;
+
+			for (let i = 0; ++i < limit; ) {
+				let Option: HTMLOptionElement = document.createElement('option') as HTMLOptionElement;
+
+				let Tile = Tiles[i];
+				let List = Tile.TList;
+				if (Tile && List && Tile.tileID) {
+					let Str = '-----------------------------------------------------';
+					Str = Str.slice(0, Tile.level * 3);
+					Option.text = Str + i.toString() + '.' + Tile.tileID.ToString();
+					//                  Option.value = this.ToExtraStr ();
+
+					Option.setAttribute('name', 'N' + i.toString());
+					let NameStr = Option.getAttribute('name');
+					Option.style.color = 'pink';
+					let ColorStr = Option.style.color;
+					console.log('Option Name = ' + NameStr);
+					console.log('Color = ', ColorStr);
+
+					Select.options.add(Option);
+				}
+			}
+		}
+	}
+
+
+
+/*
+
+
+	export class TileList  {
+		tiles:TDE[];
+
+		constructor(Str1: string[] | string | rList | RSr | RSR = '') {
 			let Strs, List;
 			console.log ('TileList (' + Str1 as string + ')');
 
@@ -6459,6 +6664,7 @@ export namespace RS1 {
 		}
 	}
 
+*/
 	export class IOType {
 		type: number = 0;
 		subTypes: number[] | undefined;
