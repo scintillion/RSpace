@@ -6370,9 +6370,9 @@ export namespace RS1 {
 				return;
 			}
 
-			let i = 0, Lists = List._k._kids as ListTypes[];
-			this.tiles = Array(Lists.length + 1);
-			for (const L of Lists)
+			let i = 0, Ls = List._k._kids as ListTypes[];
+			this.tiles = Array(Ls.length + 1);
+			for (const L of Ls)
 				if (L) this.tiles[++i] = new TDE (L as rList);
 
 			this.tiles.length = i + 1;
