@@ -1,6 +1,7 @@
 import type { RS1 } from './RS';
 import * as components from '../components/tiles/index';
 import type { SvelteComponent } from 'svelte';
+import { mount } from 'svelte';
 
 export class Plotter {
 	container: HTMLDivElement;
@@ -12,14 +13,12 @@ export class Plotter {
 	}
 
 	public PlotTiles() {
-		console.log(this.list);
-
 		this.list.tiles.forEach((tile: RS1.TDE, index: number) => {
 			let HTMLTile = this.CreateTile(tile);
 			if (!tile.parent) {
 				this.container.innerHTML += HTMLTile;
 			} else if (tile.parent) {
-				let parent = this.container.querySelector(`#tile${tile.parent}`);
+				let parent = this.container.querySelector(`#tile-${tile.parent}`);
 				if (parent) {
 					parent.innerHTML += HTMLTile;
 				}
@@ -27,16 +26,9 @@ export class Plotter {
 		});
 	}
 
-	public RenderComponent(component: SvelteComponent, properties: object): string {
-		return this.GetHTML(component, properties);
-	}
-
 	private GetHTML(comp: any, props: object): string {
 		const div = document.createElement('div');
-		new comp({
-			target: div,
-			props: props
-		});
+		mount(comp, { target: div, props }); // new svelte 5 api for mounting a component into a div
 		return div.innerHTML;
 	}
 
@@ -44,21 +36,14 @@ export class Plotter {
 		return /^\d+$/.test(str);
 	}
 
+	private throwInvalidTile() {
+		console.error('Error: Invalid Tile')
+		return '<p>Invalid Tile</p>'
+	}
+
 	private CreateTile(tile: RS1.TDE) {
-		let BT = 'Error: Invalid Tile';
-		if (!tile.aList) {
-			return '<p>Invalid</p>';
-			throw BT;
-		}
-
-		if (!tile.sList) {
-			return '<p>Invalid</p>';
-			throw BT;
-		}
-
-		if (!tile.List) {
-			return '<p>Invalid</p>';
-			throw BT;
+		if (!tile.aList || tile.Lists.length < 1) {
+			return this.throwInvalidTile(); // throws error for invalid tile & renders html for it
 		}
 
 		let styles = ``;
@@ -84,31 +69,14 @@ export class Plotter {
 
 		let content = tile.aList?.descByName('inner') !== undefined ? tile.aList?.descByName('inner') : '';
 
-		const componentName = tile.List.Name + '_TC';
+		const componentName = "T_TC" // this is going to be a constant until we develop other tiles, uses master/magic-tile until further updates
 		const component = components[componentName as keyof typeof components];
 		let html = this.GetHTML(component, {
 			styles: styles,
-			id: `tile${index}`,
+			id: `tile-${index}`,
 			content: content,
 			...attributes
 		});
 		return html;
-	}
-}
-
-export function RenderComponent(component: any, properties: object, target?: HTMLElement): string {
-	if (target) {
-		new component({
-			target,
-			props: properties
-		});
-		return '';
-	} else {
-		const div = document.createElement('div');
-		new component({
-			target: div,
-			props: properties
-		});
-		return div.innerHTML;
 	}
 }
