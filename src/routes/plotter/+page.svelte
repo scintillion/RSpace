@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Plotter } from '$lib/Plotter';
 	import { RS1 } from '$lib/RS';
+	import T from '../../components/tiles/T.svelte';
 
 	const TileStrings: string[] = [
 		'TS3:TileStrings Desc',	
@@ -27,7 +28,9 @@
 
 <div class="tiles">
 	<!-- rendered html from plotter goes here -->
+	<T id="tile" styles="width:110;height:110;color:white;background:black;" content="tile" redirect="https://google.com"/>
 </div>
+
 
 <style>
 	.tiles {
