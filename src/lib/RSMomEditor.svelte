@@ -160,7 +160,7 @@
 
 <main>
 	<div id="editor">
-		<div>{RSD.cName}</div>
+		<div>{RSD.cl}</div>
         <div class="selectContainer">
 			<div class="content-wrapper">
 				{#if kidArray}

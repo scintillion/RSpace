@@ -144,7 +144,7 @@
 			// selectKid(parent.Mom);
             console.log('currentRSDback' + RSD.Name)
             // selectKid(RSD.Mom);
-            console.log('rsd mom' + RSD.mom?.mom?.cName)
+            console.log('rsd mom' + RSD.mom?.mom?.cl)
             edit(RSD.mom);
 
 			if (selectedKid?.K) RSK = selectedKid.K
@@ -181,7 +181,7 @@
 
 <main>
 	<div id="editor">
-        <div>{RSD.cName}</div>
+        <div>{RSD.cl}</div>
         <div class="selectContainer">
 			{#if kidArray}
 				{#each kidArray as kid}
