@@ -9,13 +9,8 @@
 		onSave: (editedRSI: RS1.RSI) => void
 	}>();
 
-	let newRSIFlag = false;
+	let newRSIFlag = $derived((RSI ? RSI.Name : "") === "");
 	
-	if (RSI.Name === '') {
-		newRSIFlag = true;
-	}
-
-
 	const TypeArray = RS1.TypeNames;
 
 	function close() {
