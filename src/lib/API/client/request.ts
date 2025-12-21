@@ -63,8 +63,8 @@ export async function InitClient () {
     console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
 
     newVID.Fmt = RS1.IFmt.create ('Range','25,75','64');
-    console.log ('aClient NewVID = "' + newVID.to$ () + '".');
-    console.log ('aClient Fmt = "' + newVID.Fmt.to$ () + '"');
+    console.log ('aClient NewVID = "' + newVID.to$ + '".');
+    console.log ('aClient Fmt = "' + newVID.Fmt.to$ + '"');
     console.log ('Fmt.TypeStr =' + newVID.Fmt.TypeStr);
 
     let F = new RS1.PackField ('Num',123);

@@ -1689,7 +1689,7 @@ export namespace RS1 {
 			this.setValue(this.Value._Str);
 		}
 
-		to$() {
+		get to$() {
 			if (this.Type)
 			return (
 				'[' + this.Ch + this.Xtra +
@@ -1778,16 +1778,16 @@ export namespace RS1 {
 			} else return this.Desc;
 		}
 
-		to$(): string {
+		get to$() {
 			if (!this.Desc || this.Name === this.Desc) return this.Name;
 
 			let RetStr = this.Name + ':';
-			if (this.Fmt) RetStr += this.Fmt.to$();
+			if (this.Fmt) RetStr += this.Fmt.to$;
 
 			return RetStr + this.Desc;
 		}
 
-		ToValueStr(): string {
+		get toValueStr() {
 			if (this.Fmt) {
 				let Val = this.Fmt.Value;
 				if (Val) {
@@ -1800,20 +1800,20 @@ export namespace RS1 {
 			return '';
 		}
 
-		ToFmtStr(): string {
+		get toFmtStr() {
 			let Fmt = this.Fmt;
 			if (Fmt) {
 				let VStr = '[' + Fmt.Ch;
 
 				if (Fmt.Num) VStr += Fmt.Num.toString();
 
-				return VStr + this.ToValueStr() + ']';
+				return VStr + this.toValueStr + ']';
 			}
 			return '';
 		}
 
-		ToExtraStr(): string {
-			return this.ToFmtStr() + this.Name + ':' + this.ID.toString();
+		get toExtraStr() {
+			return this.toFmtStr + this.Name + ':' + this.ID.toString();
 		}
 
 		ToSelect(Select: SelectArgs) {
@@ -1853,7 +1853,7 @@ export namespace RS1 {
 		}
 
 		get copy () {
-			return new vID (this.to$ (),this.List);
+			return new vID (this.to$,this.List);
 		}
 	} // class vID
 
@@ -2148,7 +2148,7 @@ export namespace RS1 {
 		}
 
 		setVID (VID:vID) {
-			let str = VID.to$ (), pos = str.indexOf(':');
+			let str = VID.to$, pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
 
@@ -3134,7 +3134,7 @@ export namespace RS1 {
 		}
 
 		setVID (VID:vID) {
-			let str = VID.to$ (), pos = str.indexOf(':');
+			let str = VID.to$, pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
 
@@ -5507,7 +5507,7 @@ export namespace RS1 {
 				//if (EndPos < Str.length - 1) {
 				// not the last element in list!
 				if (Delete) Str = Str.slice(0, Pos) + Str.slice(EndPos);
-				else Str = Str.slice(0, Pos + 1) + VID.to$() + Str.slice(EndPos);
+				else Str = Str.slice(0, Pos + 1) + VID.to$ + Str.slice(EndPos);
 
 				/*
 				} else {
@@ -5519,7 +5519,7 @@ export namespace RS1 {
 				if (Delete) return; //	ABORT, should not happen!
 
 				// VID not found, we must add to the end!
-				Str += VID.to$() + Delim;
+				Str += VID.to$ + Delim;
 			}
 
 			this.InitList(Str);

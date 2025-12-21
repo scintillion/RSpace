@@ -192,9 +192,9 @@ class DBKit {
 				let BP = new RS1.BufPack ();
 				BP.objectIn (Obj);
 				RID.ID = BP.fNum('id');
-				BP.addArgs (['.rid', RID.toStr]);
+				BP.addArgs (['.rid', RID.to$]);
 
-				console.log ('   Adding RID ' + RID.toStr + '\n' + BP.expand);
+				console.log ('   Adding RID ' + RID.to$ + '\n' + BP.expand);
 
 				let BPCopy = new RS1.BufPack ();
 				BPCopy.bufIn (BP.bufOut ());
