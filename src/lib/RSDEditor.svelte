@@ -144,8 +144,8 @@
 			// selectKid(parent.Mom);
             console.log('currentRSDback' + RSD.Name)
             // selectKid(RSD.Mom);
-            console.log('rsd mom' + RSD.mom?.mom?.cl)
-            edit(RSD.mom);
+            console.log('rsd mom' + RSD.Mom?.Mom?.cl)
+            edit(RSD.Mom);
 
 			if (selectedKid?.K) RSK = selectedKid.K
 			// kidArray = RSK._kids
@@ -206,7 +206,7 @@
 			<!-- <button id="add">Add</button> -->
 			<button id="addRSI" onclick={() => addRSI(selectedKid)}>Add RSI</button>
 			<button id="addRSr" onclick={() => addRSr()}>Add RSr</button>
-            {#if RSD.mom != currentRSMom}
+            {#if RSD.Mom != currentRSMom}
                 <button id="back" onclick={() => handleBack()}>Back</button>
             {/if}
             <button id="home" onclick={() => handleHome()}>Home</button>

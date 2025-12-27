@@ -68,7 +68,7 @@ export namespace RS1 {
 	type UBuf=Uint8Array;
 	type ABI=UBuf|ArrayBuffer|string|undefined;
 	type BBI=UBuf|undefined;
-	type RSFldData=string|string[]|number|number[]|RSPack|RSD|RSD[];	
+	type RSFldData=string|string[]|number|number[]|RSPack|RSD|RSD[]|undefined;	
 
 	export class PB {	// prefix-buffer
 		prefix='';
@@ -88,8 +88,8 @@ export namespace RS1 {
 					prefixes.push (F.toPrefix (RSDName));
 					++count;
 		
-					if (F.bbi)
-						nBytes += F.bbi.byteLength;
+					if (F._bbi)
+						nBytes += F._bbi.byteLength;
 				}
 			}
 			prefixes.push (StrEnd);
@@ -105,7 +105,7 @@ export namespace RS1 {
 			let i = 0;
 			for (const F of Fields) {
 				if (F) {
-					let bbi = F.bbi;
+					let bbi = F._bbi;
 					Bufs[i++] = bbi;
 					if (bbi  &&  bbi.byteLength) {
 						buf.set (bbi, offset);
@@ -311,10 +311,8 @@ export namespace RS1 {
 
 
 	export class RSD {
-		protected _mom : RSDT;
+		Mom : RSDT;
 		_bbi : BBI;
-		get mom () : RSDT { return this._mom; };
-		set Mom (m:RSDT) { this._mom = m; }
 
 		get notNIL () { return this !== NILRSD; }
 		get notZero () { return true; }
@@ -2410,7 +2408,7 @@ export namespace RS1 {
 		name='';
 		prefix='';
 		type='';
-		bbi:BBI;
+//		bbi:BBI;
 		data:any;
 		arr=false;
 		RSDName='';
@@ -2422,7 +2420,7 @@ export namespace RS1 {
 			this.name='';
 			this.prefix='';
 			this.type='';
-			this.bbi=undefined;
+			this._bbi=undefined;
 			this.data=undefined;
 			this.arr=false;
 			this.RSDName='';
@@ -2439,14 +2437,17 @@ export namespace RS1 {
 			this.arr = false;
 			this.dims = '';
 			this.prefix='';
-			this.bbi=undefined;
+			this._bbi=undefined;
 			this.data = data;
 			this.RSDName = conName;
+
+			if (!data) return;
 
 			let bType:string = typeof data;
 			switch (bType) {
 				case 'string' :	return this.type = tStr;
 				case 'number' : return this.type = tNum;
+				case 'undefined' : this.type=tNone; return;
 
 				case 'object' :
 					if ((bType = data.constructor.name) !== 'Array') {	// RSD
@@ -2481,7 +2482,7 @@ export namespace RS1 {
 			}
 		}
 
-		get clearPrefix () { this.bbi = undefined; this.prefix = ''; return true; }
+		get clearPrefix () { this._bbi = undefined; this.prefix = ''; return true; }
 
 		toPrefix (RSDName='') {
 			if (this.prefix)
@@ -2550,9 +2551,9 @@ export namespace RS1 {
 					break;
 			}
 
-			this.bbi = bbi;
+			this._bbi = bbi;
 			return this.prefix = this.type + arrStr + this.name + ':'+
-				(this.bbi ? this.bbi.length.toString () : '0');
+				(this._bbi ? this._bbi.length.toString () : '0');
 		}
 
 		fromPrefix (prefix:string, bbi:BBI, FieldRSD = '', offset=-1) {
@@ -2661,7 +2662,7 @@ export namespace RS1 {
 			// need to set data based on this.type, take from existing PackField Code 
 			
 
-			this.bbi = bbi;
+			this._bbi = bbi;
 		}
 	}
 
