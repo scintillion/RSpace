@@ -314,6 +314,8 @@ export namespace RS1 {
 		Mom : RSDT;
 		_bbi : BBI;
 
+		get cl () { return 'RSD'; }
+
 		get notNIL () { return this !== NILRSD; }
 		get notZero () { return true; }
 
@@ -322,6 +324,11 @@ export namespace RS1 {
 
 		get K ():RSK|undefined { return undefined; }
 		
+		get clearKids () {
+			let k = this.K
+			return k ? k.clear : false;
+		}
+
 		get P ():RSPack|undefined { return undefined; }
 		set P (p : RSPack) {} 
 
@@ -583,8 +590,6 @@ export namespace RS1 {
 		}
 
 		get NILchk () { return false; }
-
-		get cl () { return 'RSD'; }
 
 		Get (s:string) {
 			let i = this.I;
@@ -1018,20 +1023,10 @@ export namespace RS1 {
 	}
 
 	export class RSMom extends RSD {
-		_k:RSK;
-
-		get cl () { return 'RSMom'; }
-
-		constructor () {
-			super ();
-			this._k = new RSK (this);
-		}
-
+		_k : RSK = new RSK (this);
 		get K () { return this._k; }
 
-		get clear () {
-			return this._k.clear;
-		}
+		get cl () { return 'RSMom'; }
 	}
 
 	export const NILRSMom = new RSMom ();
@@ -6882,6 +6877,9 @@ export namespace RS1 {
 	//  ________________________________________________
 
 	export class RsLoL extends LoL {
+		get cl () { return 'RSLoL'; }
+
+
 		FM = this.add('FM|Num|Int|Dollar|Ord|Range|Pair|Nums|Member|Set|Str|Strs|Upper|');
 
 		/*  Input Formats, defined by~FormatStr~
@@ -7556,6 +7554,8 @@ export namespace RS1 {
 		protected _prefix='';
 		protected _dim=0;
 		protected _AB1=NILAB;
+
+		get cl () { return 'RSField'; }
 
 		getType () {
 			this.clear;
@@ -8278,6 +8278,8 @@ export namespace RS1 {
 		KidName='';
 		prefix='';
 		
+		get cl () { return 'RSPack'; }
+
 		get Fields () {
 			let k = this.K;
 			return k.List as RSF[];
