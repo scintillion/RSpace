@@ -122,22 +122,6 @@
 			onPositionUpdate={handlePositionUpdate}
 		/>
 
-		<!-- Swipe -->
-		<T
-			id="swipe-tile"
-			swipe={true}
-			styles="width: 200px; height: 200px; background: #a8edea; color: #333; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer;"
-			content="Swipe"
-		/>
-
-		<!-- Hold -->
-		<T
-			id="hold-tile"
-			hold={true}
-			styles="width: 200px; height: 200px; background: #ffecd2; color: #333; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer;"
-			content="Hold"
-		/>
-
 		<!-- Hover -->
 		<T
 			id="hover-tile"

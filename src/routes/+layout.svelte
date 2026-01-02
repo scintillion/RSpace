@@ -1,5 +1,5 @@
 <script lang="ts">
-	let title = 'Relational Spaces | v2.0';
+	let title = 'Relational Spaces';
 </script>
 
 <svelte:head>

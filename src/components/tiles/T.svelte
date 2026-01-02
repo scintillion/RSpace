@@ -7,6 +7,8 @@
 		styles?: string;
 		content?: any;
 		redirect?: string;
+		// Tile type for automatic element detection
+		tileType?: string;
 		// Click actions
 		clickAction?: 'Redirect' | 'Alert' | 'VillaLink' | 'Bold' | 'Italic' | 'Underline' | string;
 		alertContent?: string;
@@ -26,7 +28,7 @@
 		// Background image
 		bgImage?: boolean | string;
 		backgroundImage?: string;
-		// Element type
+		// Element type (optional override)
 		element?: 'div' | 'button';
 		// Event handlers
 		onTileLink?: (link: string) => void;
@@ -40,6 +42,7 @@
 		styles = '',
 		content = '',
 		redirect = '',
+		tileType = '',
 		clickAction = '',
 		alertContent = '',
 		link = '',
@@ -55,7 +58,7 @@
 		textPreview = true,
 		bgImage = false,
 		backgroundImage = '',
-		element = 'div',
+		element,
 		onTileLink,
 		onDelete,
 		onPositionUpdate,
@@ -94,8 +97,27 @@
 	const isTextPreview = $derived(typeof textPreview === 'string' ? textPreview === 'true' : textPreview);
 	const isBgImage = $derived(typeof bgImage === 'string' ? bgImage === 'true' : bgImage);
 
-	// Determine element type - button if redirect exists or element prop is button
-	const elementType = $derived(redirect || element === 'button' ? 'button' : 'div');
+	// Determine element type automatically based on tileType or props
+	// Button if: tileType is Btn/RndBtn, element prop is 'button', or redirect exists
+	const elementType = $derived(
+		element === 'button' || tileType === 'Btn' || tileType === 'RndBtn' || redirect ? 'button' : 'div'
+	);
+
+	// Add border-radius for RndBtn tiles and button default styles
+	const finalStyles = $derived.by(() => {
+		let final = styles;
+		if (tileType === 'RndBtn' && !styles.includes('border-radius')) {
+			final += 'border-radius:25px;';
+		}
+		// Add button default styles if it's a button
+		if (elementType === 'button' && !styles.includes('cursor:pointer')) {
+			final += 'cursor:pointer;';
+		}
+		if (elementType === 'button' && !styles.includes('display:flex')) {
+			final += 'display:flex;align-items:center;justify-content:center;';
+		}
+		return final;
+	});
 
 	function handleClick() {
 		if (!isClickEnabled) return;
@@ -412,7 +434,7 @@
 	<button
 		bind:this={tileElement}
 		id={id}
-		style={styles}
+		style={finalStyles}
 		onclick={handleClick}
 		ondblclick={handleDoubleClick}
 		onmouseenter={() => (isHovering = true)}
@@ -438,7 +460,7 @@
 	<div
 		bind:this={tileElement}
 		id={id}
-		style={styles}
+		style={finalStyles}
 		onclick={handleClick}
 		onkeydown={handleKeyDown}
 		ondblclick={handleDoubleClick}

@@ -1,20 +1,14 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import T from './T.svelte';
 
-	$$props.styles += 'cursor:pointer;align-items:center;justify-content:center;display:flex;';
+	interface Props {
+		[id: string]: any;
+	}
 
-	onMount(() => {
-		let tile: HTMLDivElement = document.getElementById($$props.id) as HTMLDivElement;
-		if (tile) {
-			tile.onclick = () => {
-				window.open($$props.redirect);
-			};
-		}
-	});
+	const props: Props = $props();
+	
+	// Ensure button element type and add default button styles
+	const styles = (props.styles || '') + 'cursor:pointer;align-items:center;justify-content:center;display:flex;';
 </script>
 
-<div>
-	<!-- TODO(@mtgsquad) rs-enable-click={true} -->
-	<T {...$$props} />
-</div>
+<T {...props} element="button" styles={styles} />

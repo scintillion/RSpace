@@ -1,9 +1,14 @@
 <script lang="ts">
 	import Btn from './Btn.svelte';
 
-	$$props.styles += 'border-radius:8px;';
+	interface Props {
+		[id: string]: any;
+	}
+
+	const props: Props = $props();
+	
+	// Add rounded border radius to button styles
+	const styles = (props.styles || '') + 'border-radius:25px;';
 </script>
 
-<div>
-	<Btn {...$$props} />
-</div>
+<Btn {...props} styles={styles} />

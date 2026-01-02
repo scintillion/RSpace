@@ -6,44 +6,26 @@ import { mount } from "svelte";
 export class Plotter {
   container: HTMLDivElement;
   list: RS1.TileList;
+  private mountedComponents: Map<number, any> = new Map(); // Store mounted component instances
 
   constructor(List: RS1.TileList, container: HTMLDivElement) {
     this.list = List;
     this.container = container;
   }
 
-  public PlotTiles() {
-    this.list.tiles.forEach((tile: RS1.TDE, index: number) => {
-      let HTMLTile = this.CreateTile(tile);
-      if (!tile.parent) {
-        this.container.innerHTML += HTMLTile;
-      } else if (tile.parent) {
-        let parent = this.container.querySelector(`#tile-${tile.parent}`);
-        if (parent) {
-          parent.innerHTML += HTMLTile;
-        }
-      }
-    });
-  }
-
-  private GetHTML(comp: any, props: object): string {
-    const div = document.createElement("div");
-    mount(comp, { target: div, props }); // new svelte 5 api for mounting a component into a div
-    return div.innerHTML;
+  // Directly mount component instead of converting to HTML
+  private MountComponent(comp: any, props: object, target: HTMLElement): any {
+    return mount(comp, { target, props });
   }
 
   private CheckNum(str: string) {
     return /^\d+$/.test(str);
   }
 
-  private throwInvalidTile() {
-    console.error("Error: Invalid Tile");
-    return "<p>Invalid Tile</p>";
-  }
-
-  private CreateTile(tile: RS1.TDE) {
+  private CreateTile(tile: RS1.TDE): { element: HTMLElement; index: number } | null {
     if (!tile.aList || tile.Lists.length < 1) {
-      return this.throwInvalidTile(); // throws error for invalid tile & renders html for it
+      console.error("Error: Invalid Tile");
+      return null;
     }
 
     let styles = ``;
@@ -61,25 +43,155 @@ export class Plotter {
       }
     });
 
-    const properties = tile.aList.toVIDs;
-    let attributes: any = {};
-    properties.forEach((property) => {
-      attributes[property.Name] = property.Desc;
-    });
+    // Get tile type to pass to component
+    const tileType = tile.tileID?.tname || 'T';
 
-    let content =
-      tile.aList?.descByName("inner") !== undefined
-        ? tile.aList?.descByName("inner")
-        : "";
-
-    const componentName = "T_TC"; // this is going to be a constant until we develop other tiles, uses master/magic-tile until further updates
-    const component = components[componentName as keyof typeof components];
-    let html = this.GetHTML(component, {
-      styles: styles,
+    // Map TDE attributes to component props - just translate properties, don't make decisions
+    const props: any = {
       id: `tile-${index}`,
-      content: content,
-      ...attributes,
+      styles: styles,
+      content: tile.aList?.descByName("inner") || "",
+      tileType: tileType, // Pass tile type so T.svelte can determine element type
+    };
+
+    // Click actions
+    const clickAction = tile.aList?.descByName("clickAction");
+    if (clickAction) {
+      props.clickAction = clickAction;
+    }
+
+    const redirect = tile.aList?.descByName("redirect");
+    if (redirect) {
+      props.redirect = redirect;
+    }
+
+    const alertContent = tile.aList?.descByName("alertContent");
+    if (alertContent) {
+      props.alertContent = alertContent;
+    }
+
+    const link = tile.aList?.descByName("link");
+    if (link) {
+      props.link = link;
+    }
+
+    // Interactions - convert string 'true'/'false' to boolean
+    const drag = tile.aList?.descByName("drag");
+    if (drag !== undefined && drag !== '') {
+      props.drag = drag === 'true' || String(drag).toLowerCase() === 'true';
+    }
+
+    const dragAxis = tile.aList?.descByName("dragAxis");
+    if (dragAxis) {
+      props.dragAxis = dragAxis as 'x' | 'y' | 'xy';
+    }
+
+    const resize = tile.aList?.descByName("resize");
+    if (resize !== undefined && resize !== '') {
+      props.resize = resize === 'true' || String(resize).toLowerCase() === 'true';
+    }
+
+    const swipe = tile.aList?.descByName("swipe");
+    if (swipe !== undefined && swipe !== '') {
+      props.swipe = swipe === 'true' || String(swipe).toLowerCase() === 'true';
+    }
+
+    const hold = tile.aList?.descByName("hold");
+    if (hold !== undefined && hold !== '') {
+      props.hold = hold === 'true' || String(hold).toLowerCase() === 'true';
+    }
+
+    const hover = tile.aList?.descByName("hover");
+    if (hover !== undefined && hover !== '') {
+      props.hover = hover === 'true' || String(hover).toLowerCase() === 'true';
+    }
+
+    const click = tile.aList?.descByName("click");
+    if (click !== undefined && click !== '') {
+      props.click = click === 'true' || String(click).toLowerCase() === 'true';
+    }
+
+    const dblclick = tile.aList?.descByName("dblclick");
+    if (dblclick !== undefined && dblclick !== '') {
+      props.dblclick = dblclick === 'true' || String(dblclick).toLowerCase() === 'true';
+    }
+
+    // Text editing
+    const innerEdit = tile.aList?.descByName("innerEdit");
+    if (innerEdit !== undefined && innerEdit !== '') {
+      props.innerEdit = innerEdit === 'true' || String(innerEdit).toLowerCase() === 'true';
+    }
+
+    const textPreview = tile.aList?.descByName("textPreview");
+    if (textPreview !== undefined && textPreview !== '') {
+      props.textPreview = textPreview === 'true' || String(textPreview).toLowerCase() === 'true';
+    }
+
+    // Background image
+    const bgImage = tile.aList?.descByName("BgImage");
+    if (bgImage !== undefined && bgImage !== '') {
+      props.bgImage = bgImage === 'true' || String(bgImage).toLowerCase() === 'true';
+    }
+
+    const backgroundImage = tile.sList?.descByName("background-image");
+    if (backgroundImage && backgroundImage !== 'url("")') {
+      props.backgroundImage = backgroundImage;
+    }
+
+    // Always use T_TC - it handles all tile types including buttons
+    const component = components["T_TC" as keyof typeof components];
+    
+    // Create a temporary container to mount the component
+    // Svelte will mount the component's root element as a child of this container
+    const tempContainer = document.createElement("div");
+    
+    // Mount the component directly to preserve functionality
+    const mountedComponent = this.MountComponent(component, props, tempContainer);
+    
+    // Store the mounted component for potential cleanup
+    this.mountedComponents.set(index, mountedComponent);
+    
+    // Get the actual root element that the component created (first child of tempContainer)
+    // This is the actual tile element (div or button) with the id we provided
+    const tileElement = tempContainer.firstElementChild;
+    
+    if (!tileElement || !(tileElement instanceof HTMLElement)) {
+      console.error("Failed to mount tile component");
+      return null;
+    }
+    
+    // Return the actual tile element, not the wrapper
+    return { element: tileElement, index };
+  }
+
+  public PlotTiles() {
+    this.list.tiles.forEach((tile: RS1.TDE, index: number) => {
+      const result = this.CreateTile(tile);
+      if (!result) return;
+      
+      if (!tile.parent) {
+        // Top-level tile - append to container
+        this.container.appendChild(result.element);
+      } else if (tile.parent !== undefined && tile.parent !== -1) {
+        // Child tile - find parent and append
+        let parent = this.container.querySelector(`#tile-${tile.parent}`);
+        if (parent) {
+          parent.appendChild(result.element);
+        } else {
+          // Fallback: append to container if parent not found
+          this.container.appendChild(result.element);
+        }
+      }
     });
-    return html;
+  }
+
+  // Cleanup method to destroy all mounted components
+  public destroy() {
+    this.mountedComponents.forEach((component) => {
+      if (component && typeof component.$destroy === 'function') {
+        component.$destroy();
+      }
+    });
+    this.mountedComponents.clear();
   }
 }

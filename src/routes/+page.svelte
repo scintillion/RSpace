@@ -36,6 +36,7 @@
 	<a href="/tileworks">TileWorks</a>
 	<a href="/tileworks2">TileWorks2</a>
 	<a href="/sample-tiles">Sample Tiles</a>
+	<a href="/plotter2">Plotter2</a>
 	<a href="raj">Raj</a>
 	<!-- <r-tile attrStr='QED' color="blue"/> -->
 	
