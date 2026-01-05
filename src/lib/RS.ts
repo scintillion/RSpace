@@ -308,22 +308,12 @@ export namespace RS1 {
 		}
 */
 
-	export class NameValue
-	{
-		Name : string;
-		Value : string|RSD
-		
-		constructor (Name:string,Value:string|RSD) {
-			this.Name = Name;
-			this.Value = Value;
-		}
-	}	
+
 
 	export class RSD {
 		Mom : RSDT;
 		_bbi : BBI;
 
-		get isMom () { return false; }
 		get cl () { return 'RSD'; }
 
 		get notNIL () { return this !== NILRSD; }
@@ -754,7 +744,7 @@ export namespace RS1 {
 
 		get Kids () : RSD[] {
 			let K = this.K;
-			return K ? K.Kids : [];
+			return K ? K.List : [];
 		}
 
 		get nKids () {
@@ -766,11 +756,6 @@ export namespace RS1 {
 
 
 			return '';
-		}
-
-		get NameValues () : NameValue[] {
-			let K = this.K;
-			return K ? K.NameValues : [];
 		}
 
 		copy (NewName = '') : RSD {
@@ -929,11 +914,11 @@ export namespace RS1 {
 
 		add (kid1:RSD|RSD[], replace=false) { this.Set (kid1,replace); }
 
-		get Kids () : RSD[] {
-			let Kids = this._kids, lim = Kids.length, NewKids = Array<RSD> (lim), count = 0;
+		get List () : RSD[] {
+			let Kids = this._kids, lim = Kids.length, count = 0, NewKids = Array<RSD> (lim+1);
 
 			for (const K of Kids) 
-				if (K)
+				if (K  &&  K !== NILRSD)
 					NewKids[count++] = K;
 
 			NewKids.length = count;
@@ -944,7 +929,7 @@ export namespace RS1 {
 			let Kids = this._kids, count = 0;
 
 			for (const K of Kids)
-				if (K)
+				if (K  &&  K !== NILRSD)
 					++count;
 
 			return count;
@@ -954,7 +939,7 @@ export namespace RS1 {
 			let Kids = this._kids, count = 0;
 
 			for (const K of Kids)
-				if (K) {
+				if (K  &&  K !== NILRSD) {
 					++count;
 					let k = K.K;
 					if (k)
@@ -1020,19 +1005,6 @@ export namespace RS1 {
 			return true;
 		}
 
-		get NameValues () {
-			let Kids = this._kids, NVs = Array<NameValue> (Kids.length), count = 0;
-
-			for (const K of Kids) {
-				if (K)
-					NVs[count++] = new NameValue (K.Name, K);
-			}
-
-			NVs.length = count;
-			return NVs;
-		}
-
-
 		get names () {
 			let Kids = this._kids, Names = Array<string> (Kids.length), i = 0, count = 0;
 
@@ -1052,8 +1024,6 @@ export namespace RS1 {
 
 	export class RSMom extends RSD {
 		_k : RSK = new RSK (this);
-		get isMom () { return true; }
-
 		get K () { return this._k; }
 
 		get cl () { return 'RSMom'; }
@@ -4491,7 +4461,7 @@ export namespace RS1 {
 			this.TList = List1;
 			// console.log('TDE List[' + this.List.Name + ']=' + this.List.fStr + '.');
 
-			this.Lists = List1._k.Kids as ListTypes[];
+			this.Lists = List1._k.List as ListTypes[];
 			this.aList = this.qListByName ('a');
 			this.sList = this.qListByName ('s');
 			this.vList = this.qListByName ('v');
@@ -7942,7 +7912,8 @@ export namespace RS1 {
 		get cl () { return 'RSPack'; }
 
 		get Fields () {
-			return this._k.Kids as RSF[];
+			let k = this.K;
+			return k.List as RSF[];
 		}
 
 		addField (F : RSF, replace=false) {
