@@ -1053,8 +1053,6 @@ export namespace RS1 {
 		get cl () { return 'RSMom'; }
 	}
 
-	export const NILRSMom = new RSMom ();
-
 	export class RSLeaf extends RSD {
 		D : RSD;
 		level = 0; prev=0; first=0; parent=0; next=0; count=0; fam=0; last = 0;
@@ -1499,9 +1497,6 @@ export namespace RS1 {
 		}
 
 		setXtra (Str1='') {
-			if (this === NILFmt)
-				return;
-
 			switch (this.Type) {
 				case FMMember:
 					if ((this.List = CL.List(Str1)) === NILList)
@@ -1540,9 +1535,6 @@ export namespace RS1 {
 		}
 
 		setValue(Val:string|number='') {
-			if (this === NILFmt)
-				return;
-
 			let vType = typeof (Val);
 			let ValStr = (vType === 'string') ? 
 				(Val as string) : (Val as number).toString ();
@@ -1631,9 +1623,6 @@ export namespace RS1 {
 
 
 	setType (Str : string|number) {
-		if (this === NILFmt)
-			return;
-
 		let index = 0;
 		let TypeNum = 0;
 
@@ -1718,9 +1707,7 @@ export namespace RS1 {
 			return '';
 		}
 	}
-	type IFmt0=IFmt|undefined;
-
-	export const NILFmt = new IFmt ('');
+	type IFmt0=IFmt|null;
 
 	export class vID  {
         // often abbreviated as VID
@@ -1730,7 +1717,7 @@ export namespace RS1 {
 		Name='';
 		Desc='';
 		ID=0;
-		Fmt: IFmt | undefined;
+		Fmt: IFmt | null = null;
 
 /*
 		get IDByName () {
@@ -6832,9 +6819,6 @@ export namespace RS1 {
 		protected _AB1 = NILAB;
 
 		get notNIL () {
-			 if (this === NILField) {
-				log ('NILField!'); return false;
-			}
 			return true;
 		}
 
@@ -7190,9 +7174,6 @@ export namespace RS1 {
 
 			if (this._error)
 				Str += ' ***ERROR*** ' + this._error;
-
-			if (this === NILField)
-				Str = 'NILField!';
 
 			return Str;
 		}
@@ -7922,8 +7903,6 @@ export namespace RS1 {
 		}
 	}
 
-	export const NILField = new PackField ('NIL!',NILAB);
-
 /*
 	export class RSDBuf {
 		RSDName='';
@@ -8164,9 +8143,9 @@ export namespace RS1 {
 			}
 		}
 
-		getField(Name: string): PackField {
+		getField(Name: string): PackField|null {
 			if (!Name)
-				return NILField;
+				return null;
 
 			let Fs = (Name >= '0') ? this.Ds : this.Cs;
 
@@ -8175,7 +8154,7 @@ export namespace RS1 {
 					return F;
 			}
 
-			return NILField;
+			return null;
 		}
 
 		pushField (F:PackField) {
@@ -8193,7 +8172,7 @@ export namespace RS1 {
 			let Fs = (!Name  || (Name >= '0')) ? this.Ds : this.Cs;
 
 			let Found = this.getField (Name);
-			if (Found != NILField) {
+			if (Found) {
 				let index = Fs.indexOf (Found);
 				if (index >= 0) {
 					console.log ('AddField, Replacing ' + Fs[index].desc + ' with ' + F.desc);
@@ -8208,9 +8187,13 @@ export namespace RS1 {
 			return true;	// added field
 		}
 
-		delField (F:PackField|string) {
+		delField (F:PackField|string|null) {
+			if (!F)
+				return false;
+
 			let Field = ((typeof F) === 'string') ? this.getField(F as string) : F as PackField;
-			if (Field === NILField)
+
+			if (!Field)
 				return false;
 
 			let index = this.Cs.indexOf (Field);
@@ -8293,7 +8276,7 @@ export namespace RS1 {
 					return F;
 			}
 
-			return NILField;
+			return null;
 		}
 
 		toABs1 ()
@@ -8323,52 +8306,52 @@ export namespace RS1 {
 
 		data1(Name: string): PFData {
 			let F = this.getField(Name);
-			return F !== NILField ? F.Data : NILAB;
+			return F ? F.Data : NILAB;
 		}
 
 		fData(Name: string): PFData {
 			let F = this.getField(Name);
-			return F !== NILField ? F.Data : NILAB;
+			return F  ? F.Data : NILAB;
 		}
 
 		str1(Name: string) {
 			let F = this.getField(Name);
-			return F !== NILField ? F.Str : '';
+			return F ? F.Str : '';
 		}
 
 		fStr(Name: string) {
 			let F = this.getField(Name);
-			return F !== NILField ? F.Str : '';
+			return F ? F.Str : '';
 		}
 
 		num1(Name: string) {
 			let F = this.getField(Name);
-			return F !== NILField ? F.Num : NaN;
+			return F ? F.Num : NaN;
 		}
 
 		fNum(Name: string) {
 			let F = this.getField(Name);
-			return F !== NILField ? F.Num : NaN;
+			return F ? F.Num : NaN;
 		}
 
 		list1 (Name: string) {
 			let F = this.getField(Name);
-			return F !== NILField ? F.List : NILList;
+			return F ? F.List : NILList;
 		}
 
 		fList (Name: string) {
 			let F = this.getField(Name);
-			return F !== NILField ? F.List : NILList;
+			return F ? F.List : NILList;
 		}
 
 		pack1 (Name: string) {
 			let F = this.getField(Name);
-			return F !== NILField ? F.Pack : NILPack;
+			return F ? F.Pack : NILPack;
 		}
 
 		fPack (Name: string) {
 			let F = this.getField(Name);
-			return F !== NILField ? F.Pack : NILPack;
+			return F ? F.Pack : NILPack;
 		}
 
 		get desc() {
