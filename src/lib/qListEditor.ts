@@ -30,15 +30,12 @@ export class QEditor {
 
 	constructor(
 		container: HTMLDivElement | null,
-		qList: RS1.qList,
-		rList: RS1.rList = RS1.NILrList,
-		linkedqList?: RS1.qList
-	) {
+		qList: RS1.qList,		rList: RS1.rList|null = null) {
 		// Constructor
 		this.container = container as HTMLDivElement;
 		this.qList = qList as RS1.qList;
 
-		this.rList = rList
+		this.rList = rList as RS1.rList;
 
 
 		// SelectBox
@@ -154,8 +151,8 @@ export class QEditor {
 
 			console.log(vID.Fmt?.Ch !== '');
 			
-			if (!vID.Fmt  &&  vID !== RS1.NILVID) 
-			vID.Fmt = new RS1.IFmt ('');
+			if (vID  &&  !vID.Fmt)
+				vID.Fmt = new RS1.IFmt ('');
 
 			const rawFMT = vID.Fmt as RS1.IFmt;
 			const format1: string = rawFMT.TypeStr;

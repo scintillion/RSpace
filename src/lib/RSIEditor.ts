@@ -22,7 +22,7 @@ export class RSIEditor {
 		down: HTMLButtonElement;
 	}; // HTMLElement(s)
 	private selectContainer: HTMLDivElement;
-	private rList: RS1.rList;
+	private rList: RS1.rList|null = null;
 	private formats: RS1.qList = RS1.rLoL.FT as RS1.qList; //!!
 	
 	
@@ -32,7 +32,7 @@ export class RSIEditor {
 		container: HTMLDivElement | null,
 		// qList: RS1.qList,
         RSI: RS1.RSI,
-		rList: RS1.rList = RS1.NILrList,
+		rList: RS1.rList|null = null,
 		// linkedqList?: RS1.qList 
 		onSave: (editedRSI: RS1.RSI) => void,
 		newRSIFlag: boolean
@@ -164,7 +164,7 @@ export class RSIEditor {
 
 			console.log(vID.Fmt?.Ch !== '');
 			
-			if (!vID.Fmt  &&  vID !== RS1.NILVID) 
+			if (vID  &&  !vID.Fmt)
 			vID.Fmt = new RS1.IFmt ('');
 
 			const rawFMT = vID.Fmt as RS1.IFmt;

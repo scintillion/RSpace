@@ -4,9 +4,6 @@
 export namespace RS1 {
 	export const StrEnd='\x1f', StrEndCode=0x1f;
 	export const NILAB = new ArrayBuffer (0);
-	const NILNums:number[]=[];
-	const NILStrs:string[]=[];
-	export const NILIDs:number[]=[];
 
 	const sleep=async (ms=1)=>await new Promise((r)=>setTimeout(r,ms));
 	type StoreBuffer = string | ArrayBuffer | Function | undefined;
@@ -186,8 +183,6 @@ export namespace RS1 {
 			return new Uint8Array (nBytes as number);
 		else return new Uint8Array (nBytes as ArrayBuffer);
 	}
-
-	export const NILBuf = newBuf (NILAB);
 
 	export class BBInfo {
 		prefix='';
@@ -1711,7 +1706,7 @@ export namespace RS1 {
 
 	export class vID  {
         // often abbreviated as VID
-        List=NILRSI;
+        List:vList|null = null;
 
 		Values: number[] = [];
 		Name='';
@@ -1732,7 +1727,7 @@ export namespace RS1 {
 			return v;
 		}
 
-		constructor(Str: string, List1=NILRSI) {
+		constructor(Str: string, List1:vList|null=null) {
 			if (!Str)
 				return;
 
@@ -2026,18 +2021,18 @@ export namespace RS1 {
 		getVID (name:string|number) {
 			let nPos = this.findname (name);
 			if (nPos < 0)
-				return NILVID;
+				return null;
 
 			let endPos = this.qstr.indexOf('|',nPos);
 			if (endPos >= 0)
 				return new vID (this.qstr.slice (nPos,endPos));
 
-			return NILVID;
+			return null;
 		}
 
 		getVIDFmt (name:string|number) {
 			let VID = this.getVID (name);
-			if (!VID.Fmt  &&  VID !== NILVID) 
+			if (VID  &&  !VID.Fmt) 
 				VID.Fmt = new IFmt ('');
 			return VID;
 		}
@@ -2349,8 +2344,6 @@ export namespace RS1 {
 			return str;
 		}
 	}
-
-	export const NILxList = new xList ();
 
 	export function newList (S='|') {
 		return !S  || (S.slice(-1) >=' ') ? new qList (S) : new rList(S);
@@ -3178,12 +3171,12 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L !== NILqList)  &&  (L.cl === 'qList')) ? L as qList : undefined;
+			return (L  &&  (L.cl === 'qList')) ? L as qList : null;
 		} 
 
 		rListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L.cl === 'rList')) ? L as RSr : undefined;
+			return (L  &&  (L.cl === 'rList')) ? L as RSr : null;
 		} 
 
 		get to$ () {
@@ -3232,7 +3225,7 @@ export namespace RS1 {
 			}
 
 			let Strs = Str as string[];
-			let L = NILRSr;
+			let L = null;
 			for (const S of Strs) {
 				if (!S)
 					continue;
@@ -3271,8 +3264,6 @@ export namespace RS1 {
 
 		copy (NewName='') { return new RSr (this.to$); }
 	}
-
-	export const NILRSr = new RSr ();
 
 	export class RSR extends RSI {
 		get cl () { return 'RSR'; }
@@ -3317,7 +3308,7 @@ export namespace RS1 {
 
 		get K () { return this._k; }
 
-		get NILchk () { return (this === NILrList); }
+		get NILchk () { return false; }
 
 		protected namedescstr (start=0) {
 			return this.qstr;
@@ -3409,12 +3400,12 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L !== NILqList)  &&  (L.cl === 'qList')) ? L as qList : NILqList;
+			return (L  && (L.cl === 'qList')) ? L as qList : null;
 		} 
 
 		rListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L !== NILrList)  &&  (L.cl === 'rList')) ? L as rList : NILrList;
+			return (L  && (L.cl === 'rList')) ? L as rList : null;
 		} 
 
 		get toS () {
@@ -3446,7 +3437,7 @@ export namespace RS1 {
 		}		
 
 		addStr (Str:string|string[]) {
-			if (this.NILchk) return NILqList;
+			if (this.NILchk) return null;
 
 			if ((typeof Str) === 'string') {
 				let S = Str as string, D = S.slice (-1);
@@ -3456,7 +3447,7 @@ export namespace RS1 {
 			}
 
 			let Strs = Str as string[];
-			let L = NILqList;
+			let L:qList|null = null;
 			for (const S of Strs) {
 				let D = S.slice(-1);
 				if (D === '|')
@@ -3496,8 +3487,6 @@ export namespace RS1 {
 			return Strs;
 		}
 	}
-
-	export const NILrList = new rList ();
 
 /*
 	export function listFromStr (Str:string|string[]='') {
@@ -3582,10 +3571,6 @@ export namespace RS1 {
 	}
 
 	export const rLoL = new rLOL ();
-
-	export const NILqList = new qList ('NIL|');
-	export const NILRSI = new RSI ('NIL|');
-
 
 	function NData () { return new RSData () }
 
@@ -4084,13 +4069,11 @@ export namespace RS1 {
 		}
 	}
 
-	export const NILRID = new RID ('');
-
 	export class RSData {
 		Name = '';
 		Desc = '';
 		_type = 'Data';
-		private _rID = NILRID;
+		_rID : RID|null = null;
 		_Tile = 'S';
 		Sub = '';
 		Str = '';
@@ -4111,28 +4094,29 @@ export namespace RS1 {
 
 		get size () {
 			let R = 0;
-			if (this.Name || this.Desc || this.Type  ||  (this._rID !== NILRID))
+			if (this.Name || this.Desc || this.Type  ||  (this._rID))
 				R = -1;
 
 			return R;
 		}
 
-		get ID () { return this._rID !== NILRID ? this._rID.ID : 0; }
-		get RID () { return this._rID.copy; }
+		get ID () { return this._rID ? this._rID.ID : 0; }
+		// get RID () { return this._rID.copy; }
 
 		get Tile () { return this._Tile; }
-		get Villa () { return this._rID.villa; }
+		get Villa () { return this._rID ? this._rID.villa : ''; }
 
 		private setTile (T='S') {
 			this._Tile = T;
-			this._rID.tile = T;
+			if (this._rID)
+				this._rID.tile = T;
 		}
 
 		setRID (rID1 : RID) {
 			if (this === NILData)
 				return;
 
-			if ((this._rID === NILRID) || !this._rID.ID)
+			if ((!this._rID) || !this._rID.ID)
 				this._rID = rID1;
 			}
 
@@ -4449,12 +4433,12 @@ export namespace RS1 {
 		//  TileDefElement, for defining Tiles
 		level = 0;
 		tileID: TileID | undefined;
-		TList=NILrList;
+		TList:rList|null=null;
 		Lists:ListTypes[]=[];
-		aList=NILqList;
-		sList=NILqList;
-		vList=NILqList;
-		jList=NILqList;
+		aList:qList|null=null;
+		sList:qList|null=null;
+		vList:qList|null=null;
+		jList:qList|null=null;
 
 		nLists = 0;
 		parent = 0;
@@ -4478,7 +4462,7 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  L !== NILqList  &&  L.cl === 'qList') ? L as qList : NILqList;
+			return (L  &&  L.cl === 'qList') ? L as qList : null;
 		}
 
 		constructor(Str: string|rList) {
@@ -4512,7 +4496,7 @@ export namespace RS1 {
 		}
 
 		get info () {
-			return super.info + ' List=' + this.TList.to$;
+			return super.info + ' List=' + (this.TList ? this.TList.to$ : 'TList=NIL');
 		}
 	}
 
@@ -4616,8 +4600,16 @@ export namespace RS1 {
 		}
 
 		push (D : BufPack|RSData) {
-			this.add ([(D.constructor.name === 'BufPack') ?
-				(D as BufPack).fStr ('rid') : (D as RSData).RID.to$, D]);
+			if (D.constructor.name === 'BufPack') 
+				this.add ([(D as BufPack).fStr ('rid'), D]);
+			else {
+				if ((D as RSData)._rID)
+					this.add ([((D as RSData)._rID as RID).to$, D]);
+			}
+
+
+			// this.add ([(D.constructor.name === 'BufPack') ?
+			//	(D as BufPack).fStr ('rid') : (D as RSData).RID.to$, D]);
 		}
 		
 		get toStr () {
@@ -4641,7 +4633,7 @@ export namespace RS1 {
 
 	class vListXtra {
 		vL : vList = NILList;
-		qL = NILqList;
+		qL :qList|null=null;
 
 		count=0;
 		IDs: number[] | undefined;
@@ -4804,8 +4796,8 @@ export namespace RS1 {
 		get qstr () {
 			if (this.vL !== NILList)
 				return this.vL.qstr;
-			else if (this.qL !== NILqList)
-				return this.qL.to$;
+			else if (!this.qL)
+				return 'NILList';
 			else return '|';
 		}
 
@@ -4874,7 +4866,7 @@ export namespace RS1 {
 		}
 
 		get notNIL () {
-			if ((this.vL !== NILList) ||  (this.qL !== NILqList))
+			if (this.vL ||  this.qL)
 				return true;
 
 		   log ('NILList!'); return false;
@@ -5371,7 +5363,7 @@ export namespace RS1 {
 	}
 
 	class zList extends qList {
-		// qL = NILqList;
+		// qL = null;
 
 		// _count=0;
 		// IDs: number[] | undefined;
@@ -5723,16 +5715,14 @@ export namespace RS1 {
             this.add (name,desc);
         }
 
-        getVID (name:string|number) : vID {
+        getVID (name:string|number) : vID|null {
             let nPos = this.find (name);
-            if (nPos < 0)
-                return NILVID;
-
-            let endPos = this.qstr.indexOf(this.d,nPos+1);
-            if (endPos >= 0)
-                return new vID (this.qstr.slice (nPos,endPos));
-
-            return NILVID;
+            if (nPos >= 0) {
+	            let endPos = this.qstr.indexOf(this.d,nPos+1);
+    	        if (endPos >= 0)
+	                return new vID (this.qstr.slice (nPos,endPos));
+			}
+            return null;
         }
 
         desc1 (name:string|number) {
@@ -5865,7 +5855,6 @@ export namespace RS1 {
     } // vList
 
 	export const NILList = new vList ('NIL|');
-	export const NILVID = new vID ('NIL:NIL',NILRSI);
 	export const NILvLX = new vListXtra (NILList);
 
 	export class vFast {
@@ -8692,7 +8681,7 @@ export namespace RS1 {
 	export const NILPack = new BufPack ('','NILPack');
 
 	export class Nug extends BufPack {
-		l = NILqList;
+		l : qList|null = null;
 
 		constructor (In:ArrayBuffer|string='') {
 			super ();
