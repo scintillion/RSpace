@@ -2346,7 +2346,7 @@ export namespace RS1 {
 	}
 
 	export function newList (S='|') {
-		return !S  || (S.slice(-1) >=' ') ? new qList (S) : new rList(S);
+		return !S  || (S.slice(-1) >=' ') ? new RSI (S) : new RSr(S);
 	}
 
 	export function newLists (Str:string|string[]) {
@@ -3033,59 +3033,16 @@ export namespace RS1 {
 	}
 
 	export class RSr extends xList {
-		_k:RSK;
-		InitString = 'ABC'
+		_k:RSK=new RSK(this);
 
 		get cl () { return 'RSr'; }
 		get isMom () { return true; }
 
 		get K () { return this._k; }
 
-		protected namedescstr (start=0) {
-			return this.qstr;
-		}
-		get size () {
-			for (const K of this._k._kids)
-				if (K)
-					return 1;
-
-			 return this.qstr ? 1 : 0;
-		} 
-
-		get to$$ () : string [] {
-			let Strs:string[] = [];
-
-			if (!this._k)
-				console.log ('PANIC!');	
-				
-			for (const kid of this._k._kids)
-				if (kid)
-					Strs.push (kid.to$);
-			
-			return Strs;
-		}
-
-		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
-
-		get clear () {
-			this.qstr = '';
-			this._k.clear;
-			return this.mark;
-		}
-
-		get delim () {
-			let high = 0, i, Kids = this._k._kids;
-
-			for (const L of Kids) {
-				if (L  &&  ((i = DelimList.indexOf ((L as xList).delim)) > high))
-						high = i;
-			}
-			return DelimList[high+1];
-		}
-
 		constructor (Str:RSArgs='',name='',desc='') {
 			super (Str);
-			this._k = new RSK (this);
+//			this._k = new RSK (this);
 
 			if (!this._k)
 				throw 'RSr constructor NO K!';
@@ -3163,6 +3120,48 @@ export namespace RS1 {
 				console.log ('  ND=' + ND + '.');
 			this.addStr (Strs.slice(1));	//	need to call newLists[Symbol]..
 			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
+		}
+
+		protected namedescstr (start=0) {
+			return this.qstr;
+		}
+		get size () {
+			for (const K of this._k._kids)
+				if (K)
+					return 1;
+
+			 return this.qstr ? 1 : 0;
+		} 
+
+		get to$$ () : string [] {
+			let Strs:string[] = [];
+
+			if (!this._k)
+				console.log ('PANIC!');	
+				
+			for (const kid of this._k._kids)
+				if (kid)
+					Strs.push (kid.to$);
+			
+			return Strs;
+		}
+
+		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
+
+		get clear () {
+			this.qstr = '';
+			this._k.clear;
+			return this.mark;
+		}
+
+		get delim () {
+			let high = 0, i, Kids = this._k._kids;
+
+			for (const L of Kids) {
+				if (L  &&  ((i = DelimList.indexOf ((L as xList).delim)) > high))
+						high = i;
+			}
+			return DelimList[high+1];
 		}
 
 		listByName (name:string) {
@@ -3263,6 +3262,57 @@ export namespace RS1 {
 		}
 
 		copy (NewName='') { return new RSr (this.to$); }
+
+		merge (list : xList|RSr|RSR|string, overlay=true) {
+			let rsi, rsr;
+
+			if (typeof list === 'string')
+				list = newList (list);
+
+			if (list.cl === 'RSI') {
+				rsi = list as xList;
+				overlay = false;
+			}
+			else rsr = (list.cl === 'RSr') ? list as RSr : (list as RSR).R as RSr;
+
+			if (rsi) {
+				let name = list.Name;
+				let target = this.kidGet (name);
+				if (target) {	// merge rsi with name matched RSI (kid)
+					if (target.cl === 'RSI') {
+						(target as RSI).merge (rsi);
+						return true
+					}	
+				}
+				else {
+					this.kidAdd (new RSI (rsi.to$));	// add new rsi as kid
+					return true;
+				}
+			}
+			else if (rsr) {
+				if (overlay) {
+					let rsrNV = rsr.NameValues, targetNV = this.NameValues;	
+					for (const nv of rsrNV) {						
+						let tv = this.kidGet (nv.Name);
+						if (tv) {
+
+						}
+
+					}
+				}
+				else {
+					let name = list.Name;
+					let target = this.kidGet (name);
+					if (target && target.isMom) {	// merge rsr with name matched RSr (kid)
+						(target as RSr).merge (rsr);
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+		
 	}
 
 	export class RSR extends RSI {
