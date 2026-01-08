@@ -334,15 +334,20 @@ export namespace RS1 {
 			return k ? k.clear : false;
 		}
 
+		get N () : number[]|null { return null; }
+		set N (n : number[]|null) {}
+
 		get P ():RSPack|null { return null; }
-		set P (p : RSPack) {} 
+		set P (p : RSPack) {}
 
 		get Q ():RSI|null { return null; }
-		set Q (q : RSI) { }
 
 		get R ():RSr|null { return null; }
 		set R (r : RSr) {}
 
+		get S () : string[]|null { return null; }
+		set S (s : string[]|null) {}
+		
 		get X () : RSDT { return null; }
 		set X (x : RSDT) {}
 
@@ -3369,6 +3374,11 @@ export namespace RS1 {
 		get cl () { return 'Bead'; }
 
 		_k:RSK = new RSK (this);
+		protected _s:string[] = [];
+		protected _n:number[] = [];
+		protected x : RSD|null=null;
+
+
 		get K () { return this._k; }
 
 		protected q : RSI|null = new RSI ();
@@ -3379,7 +3389,10 @@ export namespace RS1 {
 		get P () : RSPack|null { return this.p;}
 		set P (p:RSPack) { this.p = p; }
 
-		protected x : RSD|null=null;
+		get S () : string[] { return this._s; }
+
+		get N () : number[] { return this._n; }	
+
 		get X () : RSD|null { return this.x;}
 		set X (p:RSPack) { this.p = p; }
 
