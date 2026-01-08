@@ -3264,7 +3264,7 @@ export namespace RS1 {
 		copy (NewName='') { return new RSr (this.to$); }
 
 		merge (list : xList|RSr|RSR|string, overlay=true) {
-			let rsi, rsr;
+			let rsi, rsr, merged = false;
 
 			if (typeof list === 'string')
 				list = newList (list);
@@ -3291,13 +3291,19 @@ export namespace RS1 {
 			}
 			else if (rsr) {
 				if (overlay) {
-					let rsrNV = rsr.NameValues, targetNV = this.NameValues;	
+					let rsrNV = rsr.NameValues,tlist;
 					for (const nv of rsrNV) {						
-						let tv = this.kidGet (nv.Name);
-						if (tv) {
-
+						tlist = this.kidGet (nv.Name);
+						if (tlist) {
+							if (tlist.cl == 'RSr') {
+								(tlist as RSr).merge (nv.Value as RSr);
+								merged = true;
+							}
 						}
-
+						else {	// not found, must add this list
+							this.kidAdd (newList ((nv.Value as xList).to$));
+							merged = true;
+						}
 					}
 				}
 				else {
@@ -3310,11 +3316,44 @@ export namespace RS1 {
 				}
 			}
 
-			return false;
+			return merged;
+		}
+
+		replace (list : xList|RSr|RSR|string, single = true) {
+			let i=-1, xL:xList, replaced = 0;
+			
+			if (typeof list === 'string') 
+				xL = newList (list);
+			else {
+				xL = list as xList;
+				if (list.cl === 'RSR') {
+					if ((list as RSR).R)
+						xL = (list as RSR).R as xList;
+				}
+			}
+
+			let name = xL.Name;
+
+			if (single) {
+				i = this._k._names.indexOf (name);
+				if (i >= 0) {
+					this._k._kids[i] = newList (xL.to$);
+					return 1;
+				}
+				return 0;
+			}
+
+			while ((i = this._k._names.indexOf (name,i+1)) >= 0) {
+				this._k._kids[i] = newList (xL.to$);
+				++replaced;
+			}
+
+			return replaced;
 		}
 		
 	}
 
+	
 	export class RSR extends RSI {
 		get cl () { return 'RSR'; }
 
