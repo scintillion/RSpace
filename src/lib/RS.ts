@@ -65,8 +65,8 @@ export namespace RS1 {
 	type UBuf=Uint8Array;
 	type ABI=UBuf|ArrayBuffer|string|undefined;
 	type BBI=UBuf|undefined;
-	type RSFldData=string|string[]|number|number[]|RSPack|RSD|RSD[]|undefined;	
-
+	type RSFldData=string|string[]|number|number[]|RSPack|RSD|RSD[]|null;
+	
 	export class PB {	// prefix-buffer
 		prefix='';
 		bbi:BBI;
@@ -325,7 +325,6 @@ export namespace RS1 {
 		get notZero () { return true; }
 
 		get I (): xList|null { return null; }
-		set I (i : xList) {}
 
 		get K ():RSK|null { return null; }
 		
@@ -335,23 +334,25 @@ export namespace RS1 {
 		}
 
 		get N () : number[]|null { return null; }
-		set N (n : number[]|null) {}
+		set N (n : number[]) {}
 
 		get P ():RSPack|null { return null; }
 		set P (p : RSPack) {}
 
 		get Q ():RSI|null { return null; }
+		set Q (q : RSI) {}
 
 		get R ():RSr|null { return null; }
 		set R (r : RSr) {}
 
 		get S () : string[]|null { return null; }
-		set S (s : string[]|null) {}
-		
+		set S (s : string[]) {}
+
 		get X () : RSDT { return null; }
 		set X (x : RSDT) {}
 
 		get Data () : any { return null; }
+		set Data (d : any) {}
 
 		get size () { return 0; }
 
@@ -409,12 +410,12 @@ export namespace RS1 {
 			}
 		}
 
-		private toPB (RSDName = '', KidName ='') {
+		protected toPB (RSDName = '', KidName ='') {
 			let Str, bbi;
 			
 			Str = this.to$;
 			
-			let k = this.K, x = this.X, p = this.P, q = this.Q, r = this.R;
+			let k = this.K, x = this.X, p = this.P;
 
 			let cName = this.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
 			if (!RSDName)
@@ -446,28 +447,12 @@ export namespace RS1 {
 				Fields.push (field);
 			}
 
-		/*
-			if (q) {
-				field = new RSF ();
-
-				field.setData (q,'RSI');
-				field.setName ('.q');
-				Fields.push (field);
-			}
-
-			if (r) {
-				field = new RSF ();
-
-				field.setData (r,'RSR');
-				field.setName ('.r');
-				Fields.push (field);
-			}
-		*/
-
 			if (k) {
-				for (const Kid of k._kids) {
+				let Kids = k._kids;
+				for (const Kid of Kids) {
 					if (Kid) {
 						if (fldPack)
+							// need to duplicate the field, not copy it by reference
 							Fields.push ((Kid as unknown) as RSF);
 						else {
 							if (!KidName)
@@ -617,28 +602,28 @@ export namespace RS1 {
 		}
 		setStr (name:string,val:string) { this.Set (name,val); }
 
-		get Name () { return this.Get ('Name'); }
+		get Name () { return this.Get ('Name@'); }
 		set Name (N:string) {
 			this.Set ('Name',N);
 		}
 
-		get Desc () { return this.Get ('Desc'); }
+		get Desc () { return this.Get ('Desc@'); }
 		set Desc (N:string) {
 			this.Set ('Desc',N);
 		}
 
-		get Group () { return this.Get ('Group'); }
+		get Group () { return this.Get ('Group@'); }
 		set Group (N:string) {
 			this.Set ('Group',N);
 		}
 
-		get Type () { return this.Get ('Type'); }
+		get Type () { return this.Get ('Type@'); }
 		set Type (N:string) {
 			if (!this.Type)
 				this.Set ('Type',N);
 		}
 
-		get Sub () { return this.Get ('Sub'); }
+		get Sub () { return this.Get ('Sub@'); }
 		set Sub (N:string) {
 			this.Set ('Sub',N);
 		}
@@ -654,7 +639,9 @@ export namespace RS1 {
 		get indent () { return 0; }
 
 		get info () {
-			let lines = 'Name ' + this.Name;
+			let namestr = this.Name;
+
+			let lines = namestr;
 			if (this.Desc)
 				lines += ':' + this.Desc;
 				
@@ -2258,8 +2245,9 @@ export namespace RS1 {
 
 		get delim () { return '|'; }
 		protected namedescstr (start=0) {
-			let end = this.qstr.indexOf ('|',start);
-			return end >= 0 ? this.qstr.slice (start, end) : this.qstr.slice (start);
+			let end = this.qstr.indexOf (this.delim,start);
+			let str = end >= 0 ? this.qstr.slice (start, end) : this.qstr.slice (start);
+			return str;
 		}
 		get size () { return this.qstr.length > 1 ? 1 : 0; }	// not NULL list, only for qList!
 
@@ -2292,7 +2280,8 @@ export namespace RS1 {
 		}
 
 		get Name () {
-			return this.namedesc ().a.trim ();
+			let str = this.namedesc ().a.trim ();
+			return str;
 		}
 		set Name (s:string) { this.setNameOrDesc (s); }
 
@@ -2311,7 +2300,8 @@ export namespace RS1 {
 
 		get info () {
 			let str = super.info;
-			return str + '  Q' + this.indent.toString () + '=' + SafeStr (this.to$).slice (0,60);
+
+			return str + '  Q' + this.indent.toString () + '=' + SafeStr (this.to$);
 		}
 
 		setNameOrDesc (name='',ifDesc=false) {
@@ -2479,17 +2469,12 @@ export namespace RS1 {
 								conName = q.constructor.name;
 								break;
 							}
-
-						if (!conName) {
-							// consider throw!!
-							this.data = 0;
-							return this.type = tNum;
-						}
 					}
 
 					switch (conName) {
-						case tStr : case 'String' : case 'string' : return this.type = tStrs;
-						case tNum : case 'Number' : case 'number' : return this.type = tNums;
+						case '' : this.type = tStrs; data = null; return;
+						case tStr : case 'string' : return this.type = tStrs; return;
+						case tNum : case 'number' : return this.type = tNums; return;
 						default : this.RSDName = conName; return this.type = tRSDs;
 					}
 
@@ -3110,8 +3095,7 @@ export namespace RS1 {
 				return;
 			}
 
-			console.log ('-------------  rList constructor FIRST =' + first);
-			if (ND) {	// use first string as name:desc
+			if (!ND) {	// use first string as name:desc
 					let pair = new strPair ();
 					pair.fromStr (first,':');
 					if (pair.b === pair.a)
@@ -3285,7 +3269,10 @@ export namespace RS1 {
 				let target = this.kidGet (name);
 				if (target) {	// merge rsi with name matched RSI (kid)
 					if (target.cl === 'RSI') {
+						console.log ('RSI merge target = ' + (target as RSI).expand);
+						console.log ('RSI merge incoming = ' + rsi.expand);
 						(target as RSI).merge (rsi);
+						console.log ('RSI target after merge = ' + (target as RSI).expand);
 						return true
 					}	
 				}
@@ -3304,6 +3291,10 @@ export namespace RS1 {
 								(tlist as RSr).merge (nv.Value as RSr);
 								merged = true;
 							}
+							else if (tlist.cl === 'RSI') {
+								(tlist as RSI).merge (nv.Value as RSI);
+								merged = true;
+							}	
 						}
 						else {	// not found, must add this list
 							this.kidAdd (newList ((nv.Value as xList).to$));
@@ -3480,7 +3471,6 @@ export namespace RS1 {
 				return;
 			}
 
-			console.log ('-------------  rList constructor FIRST =' + first);
 			if (!ND) {	// use first string as name:desc
 					let pair = new strPair ();
 					pair.fromStr (first,':');
