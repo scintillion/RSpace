@@ -2062,8 +2062,15 @@ export namespace RS1 {
 			return count ? new qList (newRaw) : new qList ();
 		}
 
-		merge (add1 : xList|string) {
-			let addend = ((typeof add1) === 'string') ? new xList (add1 as string) : add1;
+		merge (add1 : xList|RSr|RSR|string, overlay=false) {
+			if (this.isMom)
+				return this.mergeRSr (add1,overlay);
+
+			let addend = ((typeof add1) === 'string') ? newList (add1 as string) : add1;
+			let cl = addend.cl;
+			if (cl === 'RSR' || cl === 'RSr')
+				return;	// cannot merge these types
+
 			let add = addend.splitNames, notFound = true;
 
 			for (const a of add.a)
@@ -2091,6 +2098,69 @@ export namespace RS1 {
 			}
 
 			this.fromRaw (dest.b);
+		}
+
+		mergeRSr (list : xList|RSr|RSR|string, overlay=true) {
+			let rsi, rsr, merged = false;
+
+			if (typeof list === 'string')
+				list = newList (list);
+
+			if (list.cl === 'RSI') {
+				rsi = list as xList;
+				overlay = false;
+			}
+			else rsr = (list.cl === 'RSr') ? list as RSr : (list as RSR).R as RSr;
+
+			if (rsi) {
+				let name = list.Name;
+				let target = this.kidGet (name);
+				if (target) {	// merge rsi with name matched RSI (kid)
+					if (target.cl === 'RSI') {
+						console.log ('RSI merge target = ' + (target as RSI).expand);
+						console.log ('RSI merge incoming = ' + rsi.expand);
+						(target as RSI).merge (rsi);
+						console.log ('RSI target after merge = ' + (target as RSI).expand);
+						return true
+					}	
+				}
+				else {
+					this.kidAdd (new RSI (rsi.to$));	// add new rsi as kid
+					return true;
+				}
+			}
+			else if (rsr) {
+				if (overlay) {
+					let rsrNV = rsr.NameValues,tlist;
+					for (const nv of rsrNV) {						
+						tlist = this.kidGet (nv.Name);
+						if (tlist) {
+							if (tlist.cl == 'RSr') {
+								(tlist as RSr).merge (nv.Value as RSr);
+								merged = true;
+							}
+							else if (tlist.cl === 'RSI') {
+								(tlist as RSI).merge (nv.Value as RSI);
+								merged = true;
+							}	
+						}
+						else {	// not found, must add this list
+							this.kidAdd (newList ((nv.Value as xList).to$));
+							merged = true;
+						}
+					}
+				}
+				else {
+					let name = list.Name;
+					let target = this.kidGet (name);
+					if (target && target.isMom) {	// merge rsr with name matched RSr (kid)
+						(target as RSr).merge (rsr);
+						return true;
+					}
+				}
+			}
+
+			return merged;
 		}
 
 
@@ -3252,6 +3322,7 @@ export namespace RS1 {
 
 		copy (NewName='') { return new RSr (this.to$); }
 
+/*		
 		merge (list : xList|RSr|RSR|string, overlay=true) {
 			let rsi, rsr, merged = false;
 
@@ -3314,6 +3385,7 @@ export namespace RS1 {
 
 			return merged;
 		}
+*/
 
 		replace (list : xList|RSr|RSR|string, single = true) {
 			let i=-1, xL:xList, replaced = 0;
