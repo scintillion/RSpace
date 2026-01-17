@@ -108,6 +108,40 @@ export async function InitClient () {
 		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
 	];
 
+
+	let TestTileStrings: string[] = [
+        'TS2:TileStrings Desc',
+		'ABCRoot\ta|name:Full|\ts|display:flex|column:1|align-items:center|background:black|width:100vw|height:100vh|\t',
+		' DEFSubA\ta|name:Top|\ts|background:magenta|height:10vh|width:100vw|\t',
+		' DEFSubB\ta|name:Bottom|\ts|display:flex|row:1|background:none|align-items:center|justify-content:space-evenly|\t',
+		'  T\ta|name:Left|inner:I am the left side|\ts|background:orange|width:20vw|height:90vh|display:flex|column:1|gap:5|align-items:center|justify-content:center|\t',
+		'   RndBtn\ta|name:Button|inner:Click|redirect:msn.com/|\ts|width:110|height:50|background:#1e1e1e|color:white|\t',
+		'  T\ta|name:Middle|inner:I am the middle|\ts|background:cyan|display:flex|width:60vw|height:90vh|\t',
+		'  T\ta|name:Right|inner:I am the right side|\ts|background:yellow|width:20vw|height:90vh|\t'
+	];
+
+
+    let ABCRootStr = 'ABCRoot\ta|name:FUBAR|\ts|display:FLEX|height:100VH|\t';
+    let ABCRSI = 's|display:FLEXRSI|height:100VHabc|';
+
+    console.log ('READING TestTileStrings');
+    let targetList = new RS1.RSr (TestTileStrings);
+    let ABCRootList = new RS1.RSr (ABCRootStr);
+    let ABCRSIList = new RS1.RSI (ABCRSI);
+
+    console.log  ('targetList = ' + targetList.expand);
+    console.log  ('ABCRootList = ' + ABCRootList.expand);
+    console.log  ('ABCRSIList = ' + ABCRSIList.expand);
+    
+    ABCRootList.merge (ABCRSIList);
+    console.log  ('ABCRootList after RSIList merge = ' + ABCRootList.expand);
+    targetList.merge (ABCRootList, false);
+    
+    console.log  ('after ABCRootList merge, targetList = ' + targetList.expand);
+
+
+
+
     console.log ('READING TileStrings');
     let A = new RS1.RSr (TileStrings);
     console.log ('A.to$=' + A.to$);
