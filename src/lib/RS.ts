@@ -2197,6 +2197,26 @@ export namespace RS1 {
 			return replaced;
 		}
 
+		get toQList () {
+			let qstrs: string[] = [''], k = this.K;
+
+			if (!k)
+				return new qList ();
+
+			let Lists = k._kids;
+
+			for (const L of Lists) {
+					if (!L) continue;
+
+					let D = L.Desc, N = L.Name;
+					qstrs.push ((D && (D != N)) ? (N + ':' + D) : N);
+				}
+
+			qstrs = qstrs.sort();
+
+			return new qList(qstrs.join('|') + '|');
+		}		
+
 		bubble (name:string|number, dir=0) {
 			let start = this.findname (name);
 			if (start < 0)
@@ -3333,32 +3353,6 @@ export namespace RS1 {
 			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 		}
 
-		get toQList () {
-			let qstrs: string[] = [''], k = this.K;
-			let Lists = k._kids;
-
-			for (const L of Lists) {
-					if (!L) continue;
-
-					let D = L.Desc, N = L.Name;
-					qstrs.push ((D && (D != N)) ? (N + ':' + D) : N);
-				}
-
-			qstrs = qstrs.sort();
-
-			return new qList(qstrs.join('|') + '|');
-		}		
-
-		toSelect(Select: HTMLSelectElement) {
-			let List = this.toQList;
-
-			if (List) List.toSelect (Select);
-		}
-
-		copy (NewName='') { return new RSr (this.to$); }
-
-
-
 
 
 		// moveable functions to xList
@@ -3418,27 +3412,6 @@ export namespace RS1 {
 
 		get K () { return this._k; }
 
-		get NILchk () { return false; }
-
-		protected namedescstr (start=0) {
-			return this.qstr;
-		}
-		get size () {
-			for (const K of this._k._kids)
-				if (K)
-					return 1;
-
-			 return this.qstr ? 1 : 0;
-		}
-
-		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
-
-		get clear () {
-			this.qstr = '';
-			this._k.clear;
-			return this.mark;
-		}
-
 		constructor (Str:string|string[]|ListTypes[]='',name='',desc='') {
 			super ();
 
@@ -3493,31 +3466,8 @@ export namespace RS1 {
 			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 		}
 
-		listByName (name:string) {
-			return this._k.Get (name);
-		}
-
-		qListByName (name:string) {
-			let L = this.listByName (name);
-			return (L  && (L.cl === 'qList')) ? L as qList : null;
-		} 
-
-		rListByName (name:string) {
-			let L = this.listByName (name);
-			return (L  && (L.cl === 'rList')) ? L as rList : null;
-		} 
-
-		get toS () {
-			let D = this.delim, str = this.qstr + D, Kids = this._k._kids;
-			for (const L of Kids)
-				if (L)
-					str += L.to$ + D;
-
-			return str;
-		}
-
 		copy (NewName='') {
-			return new rList (this.toS);
+			return new rList (this.to$);
 		}
 
 		get toQList () {
@@ -3535,87 +3485,13 @@ export namespace RS1 {
 			return new qList(qstrs.join('|') + '|');
 		}		
 
-		addStr (Str:string|string[]) {
-			if (this.NILchk) return null;
-
-			if ((typeof Str) === 'string') {
-				let S = Str as string, D = S.slice (-1);
-
-				return (D === '|') ? this._k.Set (new qList (S),false) :
-					this._k.Set (new rList (S),false);
-			}
-
-			let Strs = Str as string[];
-			let L:qList|null = null;
-			for (const S of Strs) {
-				let D = S.slice(-1);
-				if (D === '|')
-					this._k.Set (new qList (S),false);
-				else if (isDelim (D)) {
-					let LStrs = S.split (D);
-					LStrs.length = LStrs.length - 1;
-					let L = new rList (LStrs);
-					if (L)
-						this._k.Set (L,false);
-				}
-			}
-
-			return L;
-		}
-
 		toSelect(Select: HTMLSelectElement) {
 			let List = this.toQList;
 
 			if (List) List.toSelect (Select);
 		}
-
-		bubbleKid (nameOrList:string|RSD,dir=0) {
-			let k = this.K;
-			if (k)
-				return k.bubble (nameOrList as string|RSD,dir);
-			return false;
-		}
-
-		get to$$ (): string[] {
-			let Strs:string[] = [];
-
-			for (const kid of this._k._kids)
-				if (kid)	
-					Strs.push (kid.to$);
-			
-			return Strs;
-		}
 	}
 
-/*
-	export function listFromStr (Str:string|string[]='') {
-		if ((typeof Str) === 'string') {
-			let S = Str as string, D = S.slice(-1);
-			if (!S || (D==='|'))
-				return new qList (S);
-
-			let Strs = S.slice(0,-1).split(D);	// [0] is name:desc string
-			return listFromStr (Strs);
-		}
-
-		// string array...[0] is name:desc
-		let count = 0, Strs = Str as string[];
-		let Lists=new Array<ListTypes> (Strs.length);
-
-		for (const S of Strs) {
-			if (!count++)
-				continue;
-
-			let L = listFromStr (S);
-			if (L)
-				Lists[count-1] = L;
-			else --count;
-		}
-
-		Lists.length = count;
-		return new rList (Lists);
-	}
-*/
 
 	export class rLOL extends rList {
 		FM = this.addStr('FM|Num|Int|Dollar|Ord|Range|Pair|Nums|Member|Set|Str|Strs|Upper|');
@@ -6173,7 +6049,7 @@ export namespace RS1 {
 				let me = Tiles[i];
 
 				let NewStr = 'Tile#' + i.toString () + '.' + 
-					(me.TList ? me.TList.toS : '@NOLIST@') +
+					(me.TList ? me.TList.to$ : '@NOLIST@') +
 					'\t' +
 					i.toString() +
 					'.level=' +
