@@ -3269,19 +3269,13 @@ export namespace RS1 {
 
 		get cl () { return 'RSr'; }
 		get isMom () { return true; }
-
 		get K () { return this._k; }
 
 		constructor (Str:RSArgs='',name='',desc='') {
 			super (Str);
-//			this._k = new RSK (this);
-
-			if (!this._k)
-				throw 'RSr constructor NO K!';
-
 
 			if (!Str)
-				return;
+				return;		// null rList
 
 			if (desc === name)
 				desc = '';
@@ -3306,8 +3300,6 @@ export namespace RS1 {
 				}
 				else aType = Str.constructor.name;
 			}
-			else if (aType === 'undefined')
-				return;
 
 			switch (aType) {
 				case 'string' :
@@ -3353,11 +3345,12 @@ export namespace RS1 {
 			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 		}
 
-
-
-		// moveable functions to xList
-
-
+		copy (NewName='') {
+			let list = new RSr (this.to$);
+			if (NewName)
+				list.Name = NewName;
+			return list;
+		}
 	}
 
 	
@@ -3409,9 +3402,83 @@ export namespace RS1 {
 		_k:RSK = new RSK (this);
 
 		get cl () { return 'rList'; }
-
 		get K () { return this._k; }
 
+		constructor (Str:RSArgs='',name='',desc='') {
+			super (Str);
+
+			if (!Str)
+				return;		// null rList
+
+			if (desc === name)
+				desc = '';
+			let ND = desc ? (name + ':' + desc) : name;
+
+			this.qstr = ND;		// default value of qstr, could be modified later...
+
+			this.mark;
+
+			let Strs:string[]=[], aType = '', array1;
+			aType = typeof Str;
+
+			if (aType === 'object') {
+				if (array1 = Array.isArray (Str)) {
+					
+					let e = Str[0], eType = typeof e;
+					if (eType === 'string')
+						aType = 'string[]';
+					else if (e instanceof xList)
+						aType = 'List[]';
+					else aType = 'RSD[]'; 
+				}
+				else aType = Str.constructor.name;
+			}
+
+			switch (aType) {
+				case 'string' :
+					array1 = true;
+					Strs = strToStrings (Str as string);
+					break;
+				case 'string[]' :
+					array1 = true;
+					Strs = Str as string[];
+					break;
+				case 'List[]' :
+					this._k.Set (Str as RSD[],false);
+					console.log ('rList ' + this.qstr + ' created: ' + this.info);
+					return;
+				default : Strs = [];
+			}
+
+			if (!Strs.length) {
+				console.log ('rList ' + this.qstr + ' created: ' + this.info);
+				return;
+			}
+
+			let first = Strs[0];
+			if (isDelim (first.slice(-1))) {
+				this.addStr (Strs);
+				console.log ('rList ' + this.qstr + ' created: ' + this.info);
+				return;
+			}
+
+			if (!ND) {	// use first string as name:desc
+					let pair = new strPair ();
+					pair.fromStr (first,':');
+					if (pair.b === pair.a)
+						pair.b = '';
+					if (pair.b)
+						ND = pair.a + ':' + pair.b;
+					else ND = pair.a;
+					this.qstr = ND;
+				}
+			if (ND)
+				console.log ('  ND=' + ND + '.');
+			this.addStr (Strs.slice(1));	//	need to call newLists[Symbol]..
+			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
+		}
+
+/*
 		constructor (Str:string|string[]|ListTypes[]='',name='',desc='') {
 			super ();
 
@@ -3465,30 +3532,13 @@ export namespace RS1 {
 			this.addStr (Strs.slice(1));	//	need to call newLists[Symbol]..
 			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 		}
+*/
 
 		copy (NewName='') {
-			return new rList (this.to$);
-		}
-
-		get toQList () {
-			let qstrs: string[] = [''], Lists = this._k._kids;
-
-			for (const L of Lists) {
-					if (!L) continue;
-
-					let D = L.Desc, N = L.Name;
-					qstrs.push ((D && (D != N)) ? (N + ':' + D) : N);
-				}
-
-			qstrs = qstrs.sort();
-
-			return new qList(qstrs.join('|') + '|');
-		}		
-
-		toSelect(Select: HTMLSelectElement) {
-			let List = this.toQList;
-
-			if (List) List.toSelect (Select);
+			let list = new rList (this.to$);
+			if (NewName)
+				list.Name = NewName;
+			return list;
 		}
 	}
 
