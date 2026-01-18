@@ -13,7 +13,7 @@ export namespace RS1 {
 	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',
 		tDisk='*',tArray='[',tArrayStr=':[]:', tStrs='$[', tNums='#[', tRSDs='+[', RSDArrayCh='!';
 
-	const DelimList='|\t\n\x0b\f\r\x0e\x0f';
+	const DelimList='|\t\n\x0b\f\r\x0e\x0f\x10\x11\x12\x13\x14\x15';
 
 	export enum CLType {
 		None,
@@ -2163,7 +2163,39 @@ export namespace RS1 {
 			return merged;
 		}
 
+		replace (list : xList|RSr|RSR|string, single = true) {
+			let i=-1, xL:xList, replaced = 0;
+			
+			if (typeof list === 'string') 
+				xL = newList (list);
+			else {
+				xL = list as xList;
+				if (list.cl === 'RSR') {
+					if ((list as RSR).R)
+						xL = (list as RSR).R as xList;
+				}
+			}
 
+			let name = xL.Name, k = this.K;
+			if (!k)
+				return 0;
+
+			if (single) {
+				i = k._names.indexOf (name);
+				if (i >= 0) {
+					k._kids[i] = newList (xL.to$);
+					return 1;
+				}
+				return 0;
+			}
+
+			while ((i = k._names.indexOf (name,i+1)) >= 0) {
+				k._kids[i] = newList (xL.to$);
+				++replaced;
+			}
+
+			return replaced;
+		}
 
 		bubble (name:string|number, dir=0) {
 			let start = this.findname (name);
@@ -2313,15 +2345,20 @@ export namespace RS1 {
 
 		get names () { return this.splitNames.a; }
 
-		get delim () { return '|'; }
-		protected namedescstr (start=0) {
-			let end = this.qstr.indexOf (this.delim,start);
-			let str = end >= 0 ? this.qstr.slice (start, end) : this.qstr.slice (start);
-			return str;
-		}
-		get size () { return this.qstr.length > 1 ? 1 : 0; }	// not NULL list, only for qList!
+		get delim() {
+			let k = this.K;
+			if (!k)
+				return '|'
 
-		get firstDelim () {	return this.qstr.indexOf('|'); }
+			let high = -1, i, Kids = k._kids;
+
+			for (const L of Kids)
+				if (L && ((i = DelimList.indexOf((L as xList).delim)) > high))
+					high = i;
+
+			// If _kids is empty, high=-1, returns DelimList[0]='\t'
+			return DelimList[high+1];
+		}
 
 		get indent () {
 			let I = new Indent (this.qstr.slice (0,99));
@@ -2408,6 +2445,121 @@ export namespace RS1 {
 				
 			return str;
 		}
+
+		protected namedescstr (start=0) {
+			if (this.isMom)
+				return this.qstr;
+
+			let end = this.qstr.indexOf (this.delim,start);
+			let str = end >= 0 ? this.qstr.slice (start, end) : this.qstr.slice (start);
+			return str;
+		}
+
+		get size () {
+			let k = this.K;
+			if (!k)
+				return 0;
+
+			for (const K of k._kids)
+				if (K)
+					return 1;
+
+			 return this.qstr.length > 1 ? 1 : 0;
+		} 
+
+		get to$$ () : string [] {
+			let Strs:string[] = [], k = this.K;
+
+			if (k) {
+				for (const kid of k._kids)
+					if (kid)
+						Strs.push (kid.to$);
+			}
+			
+			return Strs;
+		}
+
+		get firstDelim () {
+			if (this.isMom)
+				{ throw 'NO firstDelim in rList!'; return -1; }
+			return this.qstr.indexOf('|');
+		}
+
+
+
+
+
+		addStr (Str:string|string[]) {
+			let k = this.K;
+			if (!k)
+				return null;
+
+			if ((typeof Str) === 'string') {
+				let S = Str as string, D = S.slice (-1);
+
+				return (D === '|') ? k.Set (new qList (S),false) :
+					k.Set (new RSr (S),false);
+			}
+
+			let Strs = Str as string[];
+			let L = null;
+			for (const S of Strs) {
+				if (!S)
+					continue;
+
+				let D = S.slice(-1);
+				if (D === '|')
+					k.Set (new RSI (S),false);
+				else if (isDelim (D)) {
+					let LStrs = S.split (D);
+					// console.log ('LStrs.length=' + LStrs.length.toString ());
+					if (!LStrs.length)
+						continue;
+					
+					LStrs.length = LStrs.length - 1;
+					let L = new RSr (LStrs);
+					if (L)
+						k.Set (L,false);
+				}
+			}
+
+			return L;
+		}
+
+		bubbleKid (nameOrList:string|RSD,dir=0) {
+			let k = this.K;
+			if (k)
+				return k.bubble (nameOrList as string|RSD,dir);
+			return false;
+		}
+
+		get clear () {
+			this.qstr = '';
+			let k = this.K;
+			if (k)
+				k.clear;
+			return this.mark;
+		}
+
+		listByName (name:string) {
+			let k = this.K;
+			return k ? k.Get (name) : null;
+		}
+
+		qListByName (name:string) {
+			let L = this.listByName (name);
+			return (L  &&  (L.cl === 'qList')) ? L as qList : null;
+		} 
+
+		rListByName (name:string) {
+			let L = this.listByName (name);
+			return (L  &&  (L.cl === 'rList')) ? L as RSr : null;
+		} 
+
+
+
+
+
 	}
 
 	export function newList (S='|') {
@@ -3181,86 +3333,9 @@ export namespace RS1 {
 			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 		}
 
-		protected namedescstr (start=0) {
-			return this.qstr;
-		}
-		get size () {
-			for (const K of this._k._kids)
-				if (K)
-					return 1;
-
-			 return this.qstr ? 1 : 0;
-		} 
-
-		get to$$ () : string [] {
-			let Strs:string[] = [];
-
-			if (!this._k)
-				console.log ('PANIC!');	
-				
-			for (const kid of this._k._kids)
-				if (kid)
-					Strs.push (kid.to$);
-			
-			return Strs;
-		}
-
-		get firstDelim () {	throw 'NO firstDelim in rList!'; return -1; }
-
-		get clear () {
-			this.qstr = '';
-			this._k.clear;
-			return this.mark;
-		}
-
-		get delim () {
-			let high = 0, i, Kids = this._k._kids;
-
-			for (const L of Kids) {
-				if (L  &&  ((i = DelimList.indexOf ((L as xList).delim)) > high))
-						high = i;
-			}
-			return DelimList[high+1];
-		}
-
-		listByName (name:string) {
-			return this._k.Get (name);
-		}
-
-		qListByName (name:string) {
-			let L = this.listByName (name);
-			return (L  &&  (L.cl === 'qList')) ? L as qList : null;
-		} 
-
-		rListByName (name:string) {
-			let L = this.listByName (name);
-			return (L  &&  (L.cl === 'rList')) ? L as RSr : null;
-		} 
-
-		get to$ () {
-			if (!this._k)
-				return this.qstr;
-
-			let D = this.delim, str = this.qstr + D;
-			if (this._k) {
-				let Kids = this._k._kids;
-				for (const L of Kids)
-					if (L)
-						str += L.to$ + D;
-			}
-			else str += 'NOKIDS!'
-
-			return str;
-		}
-
-		/*
-		get copy () {
-			return new RSr (this.to$);
-		}
-		*/
-
 		get toQList () {
-			let qstrs: string[] = [''], Lists = this._k._kids;
+			let qstrs: string[] = [''], k = this.K;
+			let Lists = k._kids;
 
 			for (const L of Lists) {
 					if (!L) continue;
@@ -3274,151 +3349,21 @@ export namespace RS1 {
 			return new qList(qstrs.join('|') + '|');
 		}		
 
-		addStr (Str:string|string[]) {
-			if ((typeof Str) === 'string') {
-				let S = Str as string, D = S.slice (-1);
-
-				return (D === '|') ? this._k.Set (new qList (S),false) :
-					this._k.Set (new RSr (S),false);
-			}
-
-			let Strs = Str as string[];
-			let L = null;
-			for (const S of Strs) {
-				if (!S)
-					continue;
-
-				let D = S.slice(-1);
-				if (D === '|')
-					this._k.Set (new RSI (S),false);
-				else if (isDelim (D)) {
-					let LStrs = S.split (D);
-					// console.log ('LStrs.length=' + LStrs.length.toString ());
-					if (!LStrs.length)
-						continue;
-					
-					LStrs.length = LStrs.length - 1;
-					let L = new RSr (LStrs);
-					if (L)
-						this._k.Set (L,false);
-				}
-			}
-
-			return L;
-		}
-
 		toSelect(Select: HTMLSelectElement) {
 			let List = this.toQList;
 
 			if (List) List.toSelect (Select);
 		}
 
-		bubbleKid (nameOrList:string|RSD,dir=0) {
-			let k = this.K;
-			if (k)
-				return k.bubble (nameOrList as string|RSD,dir);
-			return false;
-		}
-
 		copy (NewName='') { return new RSr (this.to$); }
 
-/*		
-		merge (list : xList|RSr|RSR|string, overlay=true) {
-			let rsi, rsr, merged = false;
 
-			if (typeof list === 'string')
-				list = newList (list);
 
-			if (list.cl === 'RSI') {
-				rsi = list as xList;
-				overlay = false;
-			}
-			else rsr = (list.cl === 'RSr') ? list as RSr : (list as RSR).R as RSr;
 
-			if (rsi) {
-				let name = list.Name;
-				let target = this.kidGet (name);
-				if (target) {	// merge rsi with name matched RSI (kid)
-					if (target.cl === 'RSI') {
-						console.log ('RSI merge target = ' + (target as RSI).expand);
-						console.log ('RSI merge incoming = ' + rsi.expand);
-						(target as RSI).merge (rsi);
-						console.log ('RSI target after merge = ' + (target as RSI).expand);
-						return true
-					}	
-				}
-				else {
-					this.kidAdd (new RSI (rsi.to$));	// add new rsi as kid
-					return true;
-				}
-			}
-			else if (rsr) {
-				if (overlay) {
-					let rsrNV = rsr.NameValues,tlist;
-					for (const nv of rsrNV) {						
-						tlist = this.kidGet (nv.Name);
-						if (tlist) {
-							if (tlist.cl == 'RSr') {
-								(tlist as RSr).merge (nv.Value as RSr);
-								merged = true;
-							}
-							else if (tlist.cl === 'RSI') {
-								(tlist as RSI).merge (nv.Value as RSI);
-								merged = true;
-							}	
-						}
-						else {	// not found, must add this list
-							this.kidAdd (newList ((nv.Value as xList).to$));
-							merged = true;
-						}
-					}
-				}
-				else {
-					let name = list.Name;
-					let target = this.kidGet (name);
-					if (target && target.isMom) {	// merge rsr with name matched RSr (kid)
-						(target as RSr).merge (rsr);
-						return true;
-					}
-				}
-			}
 
-			return merged;
-		}
-*/
+		// moveable functions to xList
 
-		replace (list : xList|RSr|RSR|string, single = true) {
-			let i=-1, xL:xList, replaced = 0;
-			
-			if (typeof list === 'string') 
-				xL = newList (list);
-			else {
-				xL = list as xList;
-				if (list.cl === 'RSR') {
-					if ((list as RSR).R)
-						xL = (list as RSR).R as xList;
-				}
-			}
 
-			let name = xL.Name;
-
-			if (single) {
-				i = this._k._names.indexOf (name);
-				if (i >= 0) {
-					this._k._kids[i] = newList (xL.to$);
-					return 1;
-				}
-				return 0;
-			}
-
-			while ((i = this._k._names.indexOf (name,i+1)) >= 0) {
-				this._k._kids[i] = newList (xL.to$);
-				++replaced;
-			}
-
-			return replaced;
-		}
-		
 	}
 
 	
@@ -3492,16 +3437,6 @@ export namespace RS1 {
 			this.qstr = '';
 			this._k.clear;
 			return this.mark;
-		}
-
-		get delim () {
-			let high = 0, i, Kids = this._k._kids;
-
-			for (const L of Kids) {
-				if (L  &&  ((i = DelimList.indexOf ((L as xList).delim)) > high))
-						high = i;
-			}
-			return DelimList[high+1];
 		}
 
 		constructor (Str:string|string[]|ListTypes[]='',name='',desc='') {
