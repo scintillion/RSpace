@@ -2099,6 +2099,22 @@ export namespace RS1 {
 		// qList / FLAT functions
 		//
 
+		setFast (Args:any[]) {
+			let str = '|', len = Args.length;
+			if (len & 1)
+				throw 'setFast requires Name:Value pairs';
+
+			for (let i = 0; i < len; i+=2) {
+				let A0 = Args[i], A1 = Args[i+1];
+				str += A0.toString () + ':' + A1.toString () + '|';
+			}
+			this.merge (str);
+		}
+
+		newRef (name='') {
+			return new qList (name+':'+'@'+this.listName);
+		}
+
 		bubble (name:string|number, dir=0) {
 			let start = this.findname (name);
 			if (start < 0)
@@ -2633,26 +2649,6 @@ export namespace RS1 {
 		set I (newI : xList) { this.qstr = newI.to$; }
 
 		get cl () { return 'RSI'; }
-
-		setFast (Args:any[]) {
-			let str = '|', len = Args.length;
-			if (len & 1)
-				throw 'setFast requires Name:Value pairs';
-
-			for (let i = 0; i < len; i+=2) {
-				let A0 = Args[i], A1 = Args[i+1];
-				str += A0.toString () + ':' + A1.toString () + '|';
-			}
-			this.merge (str);
-		}
-
-		newRef (name='') {
-			return new qList (name+':'+'@'+this.listName);
-		}
-
-		get notNIL () {
-			return true;
-		}
 
 		copy (NewName='') {
 			return new RSI (this.to$);
@@ -3266,11 +3262,33 @@ export namespace RS1 {
 
 	export class qList extends xList {
 		get cl () { return 'qList'; }
+		get I () : qList|null { return this; }
+		set I (newI : qList) { this.qstr = newI.to$; }
 
 		copy (NewName='') : RSD {
 			return new qList (this.to$);
 		}
 	}
+
+
+/*
+
+	export class RSI extends xList {	// RSI is the NEW qList!!
+		get I () : xList|null { return this; }
+		set I (newI : xList) { this.qstr = newI.to$; }
+
+		get cl () { return 'RSI'; }
+
+		copy (NewName='') {
+			return new RSI (this.to$);
+		}
+	}
+
+
+
+
+*/
+
 
 
 /*
