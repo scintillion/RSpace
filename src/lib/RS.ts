@@ -790,7 +790,7 @@ export namespace RS1 {
 			case 'RSLeaf' : return new RSLeaf (x as RSD);
 			case 'RSTree' : return new RSTree (x as RSD);
 			case 'RSQ' : return new RSQ (x);
-			case 'RSr' : return new RSr (x  as string|string[]|ListTypes[]);
+			case 'RSr' : return new rList (x  as string|string[]|ListTypes[]);
 			case 'RSR' : return new RSR (x);
 			case 'Bead' : return new Bead (x);
 			// case 'rList' : return new rList (x as string|string[]|ListTypes[]);
@@ -1934,7 +1934,7 @@ export namespace RS1 {
 				let S = Str as string, D = S.slice (-1);
 
 				return (D === '|') ? k.Set (new qList (S),false) :
-					k.Set (new RSr (S),false);
+					k.Set (new rList (S),false);
 			}
 
 			let Strs = Str as string[];
@@ -1953,7 +1953,7 @@ export namespace RS1 {
 						continue;
 					
 					LStrs.length = LStrs.length - 1;
-					let L = new RSr (LStrs);
+					let L = new rList (LStrs);
 					if (L)
 						k.Set (L,false);
 				}
@@ -2485,19 +2485,20 @@ export namespace RS1 {
 		} 
 
 		mergeRSr (list : xList|RSr|RSR|string, overlay=true) {
-			let rsi, rsr, merged = false;
+			let rsi, rsr, rsd, cl, merged = false;
 
 			if (typeof list === 'string')
 				list = newList (list);
+			else cl = (rsd = list as RSD).cl;
 
-			if (list.cl === 'RSI') {
+			if (cl === 'RSI') {
 				rsi = list as xList;
 				overlay = false;
 			}
-			else rsr = (list.cl === 'RSr') ? list as RSr : (list as RSR).R as RSr;
+			else rsr = (cl === 'RSr') ? list as RSr : (list as RSR).R as RSr;
 
 			if (rsi) {
-				let name = list.Name;
+				let name = rsi.Name;
 				let target = this.kidGet (name);
 				if (target) {	// merge rsi with name matched RSI (kid)
 					if (target.cl === 'RSI') {
@@ -2535,7 +2536,7 @@ export namespace RS1 {
 					}
 				}
 				else {
-					let name = list.Name;
+					let name = rsr.Name;
 					let target = this.kidGet (name);
 					if (target && target.isMom) {	// merge rsr with name matched RSr (kid)
 						(target as RSr).merge (rsr);
@@ -2590,7 +2591,7 @@ export namespace RS1 {
 	}
 
 	export function newList (S='|') {
-		return !S  || (S.slice(-1) >=' ') ? new RSI (S) : new RSr(S);
+		return !S  || (S.slice(-1) >=' ') ? new RSI (S) : new rList (S);
 	}
 
 	export function newLists (Str:string|string[]) {
@@ -3271,6 +3272,8 @@ export namespace RS1 {
 		}
 	}
 
+
+/*
 	export class RSr extends xList {
 		_k:RSK=new RSK(this);
 
@@ -3359,12 +3362,14 @@ export namespace RS1 {
 			return list;
 		}
 	}
+*/
 
+	type RSr = rList;
 	
 	export class RSR extends RSI {
 		get cl () { return 'RSR'; }
 
-		protected r : RSr|null = new RSr ();
+		protected r : RSr|null = new rList ();
 		get R () : RSr|null { return this.r;}
 		set R (r:RSr) { this.r = r; }
 		get to$$ () : string [] {
@@ -6013,7 +6018,8 @@ export namespace RS1 {
 		tiles:TDE[];
 
 		constructor(Str1: string[] | string | rList | RSr | RSR = '') {
-			let Strs, List, Lists;
+			let Strs, List, R, Lists, cl, rsd;
+
 			console.log ('TileList (' + Str1 as string + ')');
 
 			if ((typeof Str1) === 'string') {
@@ -6022,6 +6028,7 @@ export namespace RS1 {
 			}
 			else if (Array.isArray (Str1))
 				Strs = Str1 as string[];
+			else cl = (rsd = Str1 as RSD).cl;
 
 			
 			if (Strs) {
@@ -6029,15 +6036,14 @@ export namespace RS1 {
 				Lists = List._k._kids as ListTypes[];
 			}
 			else {
-				if (Str1 instanceof rList) 
-					List = Str1 as rList;
-				else if (Str1 instanceof RSr) {
-					let R = Str1 as RSr;
+				if ((cl === 'rList')  ||  (cl === 'RSr')) {
+					R = List = Str1 as rList;
 					Strs = R.to$$;
 				}
 				else if (Str1 instanceof RSR) {
-					let R = Str1 as RSR;
-					Strs = R.to$$;
+					R = List = (Str1 as RSR).R;
+					if (R)
+						Strs = R.to$$;
 				}
 			}
 

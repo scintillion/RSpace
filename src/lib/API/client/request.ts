@@ -125,8 +125,8 @@ export async function InitClient () {
     let ABCRSI = 's|display:FLEXRSI|height:100VHabc|';
 
     console.log ('READING TestTileStrings');
-    let targetList = new RS1.RSr (TestTileStrings);
-    let ABCRootList = new RS1.RSr (ABCRootStr);
+    let targetList = new RS1.rList (TestTileStrings);
+    let ABCRootList = new RS1.rList (ABCRootStr);
     let ABCRSIList = new RS1.RSI (ABCRSI);
 
     console.log  ('targetList = ' + targetList.expand);
@@ -143,7 +143,7 @@ export async function InitClient () {
 
 
     console.log ('READING TileStrings');
-    let A = new RS1.RSr (TileStrings);
+    let A = new RS1.rList (TileStrings);
     console.log ('A.to$=' + A.to$);
     let B = A.copy ();
     console.log ('B.to$=' + B.to$);
