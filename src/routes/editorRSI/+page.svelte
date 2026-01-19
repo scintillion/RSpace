@@ -7,7 +7,7 @@
 	let CLString =
 		'Test|Name:[%=John]Your Name|XY:[#=123]A Number Value|Member:[@Test1=ListNum]TestMem|Set:[{Test1=ListNum,Test1Name}]TestSet|';
 
-	let RSI = new RS1.RSI(CLString);
+	let RSI = new RS1.qList(CLString);
 
 	onMount(() => {
 		// Create modal container AFTER DOM is available

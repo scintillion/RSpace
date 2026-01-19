@@ -786,7 +786,7 @@ export namespace RS1 {
 		switch (name) {
 			case 'RSD' : return new RSD (x);
 			case 'xList' : return new xList (x);
-			case 'RSI' : return new RSI (x);
+			case 'qList' : return new qList (x);
 			case 'RSLeaf' : return new RSLeaf (x as RSD);
 			case 'RSTree' : return new RSTree (x as RSD);
 			case 'RSQ' : return new RSQ (x);
@@ -1945,7 +1945,7 @@ export namespace RS1 {
 
 				let D = S.slice(-1);
 				if (D === '|')
-					k.Set (new RSI (S),false);
+					k.Set (new qList (S),false);
 				else if (isDelim (D)) {
 					let LStrs = S.split (D);
 					// console.log ('LStrs.length=' + LStrs.length.toString ());
@@ -2507,26 +2507,26 @@ export namespace RS1 {
 				list = newList (list);
 			else cl = (rsd = list as RSD).cl;
 
-			if (cl === 'RSI') {
-				rsi = list as xList;
+			if (cl === 'qList') {
+				rsi = list as qList;
 				overlay = false;
 			}
-			else rsr = (cl === 'RSr') ? list as RSr : (list as RSR).R as RSr;
+			else rsr = (cl === 'rList') ? list as rList : (list as RSR).R as rList;
 
 			if (rsi) {
 				let name = rsi.Name;
 				let target = this.kidGet (name);
 				if (target) {	// merge rsi with name matched RSI (kid)
-					if (target.cl === 'RSI') {
-						console.log ('RSI merge target = ' + (target as RSI).expand);
-						console.log ('RSI merge incoming = ' + rsi.expand);
-						(target as RSI).merge (rsi);
-						console.log ('RSI target after merge = ' + (target as RSI).expand);
+					if (target.cl === 'qList') {
+						console.log ('qList merge target = ' + (target as qList).expand);
+						console.log ('qList merge incoming = ' + rsi.expand);
+						(target as qList).merge (rsi);
+						console.log ('qList target after merge = ' + (target as qList).expand);
 						return true
 					}	
 				}
 				else {
-					this.kidAdd (new RSI (rsi.to$));	// add new rsi as kid
+					this.kidAdd (new qList (rsi.to$));	// add new rsi as kid
 					return true;
 				}
 			}
@@ -2540,7 +2540,7 @@ export namespace RS1 {
 								(tlist as RSr).merge (nv.Value as RSr);
 								merged = true;
 							}
-							else if (tlist.cl === 'RSI') {
+							else if (tlist.cl === 'qList') {
 								(tlist as RSI).merge (nv.Value as RSI);
 								merged = true;
 							}	
@@ -2607,7 +2607,7 @@ export namespace RS1 {
 	}
 
 	export function newList (S='|') {
-		return !S  || (S.slice(-1) >=' ') ? new RSI (S) : new rList (S);
+		return !S  || (S.slice(-1) >=' ') ? new qList (S) : new rList (S);
 	}
 
 	export function newLists (Str:string|string[]) {
@@ -2643,17 +2643,6 @@ export namespace RS1 {
 		return Lists;
 	}
 
-
-	export class RSI extends xList {	// RSI is the NEW qList!!
-		get I () : xList|null { return this; }
-		set I (newI : xList) { this.qstr = newI.to$; }
-
-		get cl () { return 'RSI'; }
-
-		copy (NewName='') {
-			return new RSI (this.to$);
-		}
-	}
 
 	class RSF extends xList {
 		name='';
@@ -3069,13 +3058,6 @@ export namespace RS1 {
 
 
 
-	export class RSQ extends RSI {
-		get cl () { return 'RSQ'; }
-		protected q : RSI|null = new RSI ();
-		get Q () : RSI|null { return this.q; }
-		set Q (q:RSI) { this.q = q; }
-	}
-
 /*
 	export function fieldsToPB (Fields : RSF[], RSDName='', FieldRSD='') {
 		let nBytes = 0, count = 0, first = RSDName + (FieldRSD ? (':' + FieldRSD) : '');
@@ -3270,25 +3252,16 @@ export namespace RS1 {
 		}
 	}
 
+	type RSI = qList;	// RSI is the NEW qList!!
 
-/*
 
-	export class RSI extends xList {	// RSI is the NEW qList!!
-		get I () : xList|null { return this; }
-		set I (newI : xList) { this.qstr = newI.to$; }
 
-		get cl () { return 'RSI'; }
-
-		copy (NewName='') {
-			return new RSI (this.to$);
-		}
+	export class RSQ extends qList {
+		get cl () { return 'RSQ'; }
+		protected q : qList|null = new qList ();
+		get Q () : qList|null { return this.q; }
+		set Q (q:qList) { this.q = q; }
 	}
-
-
-
-
-*/
-
 
 
 /*
@@ -3384,7 +3357,7 @@ export namespace RS1 {
 
 	type RSr = rList;
 	
-	export class RSR extends RSI {
+	export class RSR extends qList {
 		get cl () { return 'RSR'; }
 
 		protected r : RSr|null = new rList ();
@@ -3406,9 +3379,9 @@ export namespace RS1 {
 
 		get K () { return this._k; }
 
-		protected q : RSI|null = new RSI ();
-		get Q () : RSI|null { return this.q;}
-		set Q (q:RSI) { this.q = q; }
+		protected q : qList|null = new qList ();
+		get Q () : qList|null { return this.q;}
+		set Q (q:qList) { this.q = q; }
 
 		protected p : RSPack|null = new RSPack ();
 		get P () : RSPack|null { return this.p;}
@@ -7243,7 +7216,7 @@ export namespace RS1 {
 
 	}
 
-	export class RSField extends RSI {
+	export class RSField extends qList {
 		protected _name = '';
 		protected _type=tNone;
 		protected _con='';

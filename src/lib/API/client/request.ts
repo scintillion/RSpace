@@ -94,7 +94,7 @@ export async function InitClient () {
     ND = Q.splitNames;
     console.log ('ND=' + ND.b);
 
-    let XYZ = new RS1.RSI ();
+    let XYZ = new RS1.qList ();
     let DEF:RS1.RSD = XYZ;
 
 	let TileStrings: string[] = [
@@ -127,7 +127,7 @@ export async function InitClient () {
     console.log ('READING TestTileStrings');
     let targetList = new RS1.rList (TestTileStrings);
     let ABCRootList = new RS1.rList (ABCRootStr);
-    let ABCRSIList = new RS1.RSI (ABCRSI);
+    let ABCRSIList = new RS1.qList (ABCRSI);
 
     console.log  ('targetList = ' + targetList.expand);
     console.log  ('ABCRootList = ' + ABCRootList.expand);
