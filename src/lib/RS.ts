@@ -65,7 +65,7 @@ export namespace RS1 {
 	type UBuf=Uint8Array;
 	type ABI=UBuf|ArrayBuffer|string|undefined;
 	type BBI=UBuf|undefined;
-	type RSFldData=string|string[]|number|number[]|RSPack|RSD|RSD[]|null;
+	type RSFldData=string|string[]|number|number[]|RSD|RSD[]|null;
 	
 	export class PB {	// prefix-buffer
 		prefix='';
@@ -339,11 +339,11 @@ export namespace RS1 {
 		get P ():RSPack|null { return null; }
 		set P (p : RSPack) {}
 
-		get Q ():RSI|null { return null; }
-		set Q (q : RSI) {}
+		get Q (): qList|null { return null; }
+		set Q (q : qList) {}
 
-		get R ():RSr|null { return null; }
-		set R (r : RSr) {}
+		get R (): rList|null { return null; }
+		set R (r : rList) {}
 
 		get S () : string[]|null { return null; }
 		set S (s : string[]) {}
@@ -1886,7 +1886,7 @@ export namespace RS1 {
 			return this.listName + '[Type=' + Type + ']' + (this.listDesc? (':'+this.listDesc):''); 
 		}
 
-		merge (add1 : xList|RSr|RSR|string, overlay=false) {
+		merge (add1 : xList|rList|RSR|string, overlay=false) {
 			if (this.isMom)
 				return this.mergeRSr (add1,overlay);
 
@@ -2497,10 +2497,10 @@ export namespace RS1 {
 
 		rListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L.cl === 'rList')) ? L as RSr : null;
+			return (L  &&  (L.cl === 'rList')) ? L as rList : null;
 		} 
 
-		mergeRSr (list : xList|RSr|RSR|string, overlay=true) {
+		mergeRSr (list : xList|rList|RSR|string, overlay=true) {
 			let rsi, rsr, rsd, cl, merged = false;
 
 			if (typeof list === 'string')
@@ -2536,12 +2536,12 @@ export namespace RS1 {
 					for (const nv of rsrNV) {						
 						tlist = this.kidGet (nv.Name);
 						if (tlist) {
-							if (tlist.cl == 'RSr') {
-								(tlist as RSr).merge (nv.Value as RSr);
+							if (tlist.cl == 'rList') {
+								(tlist as rList).merge (nv.Value as rList);
 								merged = true;
 							}
 							else if (tlist.cl === 'qList') {
-								(tlist as RSI).merge (nv.Value as RSI);
+								(tlist as qList).merge (nv.Value as qList);
 								merged = true;
 							}	
 						}
@@ -2555,7 +2555,7 @@ export namespace RS1 {
 					let name = rsr.Name;
 					let target = this.kidGet (name);
 					if (target && target.isMom) {	// merge rsr with name matched RSr (kid)
-						(target as RSr).merge (rsr);
+						(target as rList).merge (rsr);
 						return true;
 					}
 				}
@@ -2564,7 +2564,7 @@ export namespace RS1 {
 			return merged;
 		}
 
-		replace (list : xList|RSr|RSR|string, single = true) {
+		replace (list : xList|rList|RSR|string, single = true) {
 			let i=-1, xL:xList, replaced = 0;
 			
 			if (typeof list === 'string') 
@@ -3252,10 +3252,6 @@ export namespace RS1 {
 		}
 	}
 
-	type RSI = qList;	// RSI is the NEW qList!!
-
-
-
 	export class RSQ extends qList {
 		get cl () { return 'RSQ'; }
 		protected q : qList|null = new qList ();
@@ -3355,14 +3351,12 @@ export namespace RS1 {
 	}
 */
 
-	type RSr = rList;
-	
 	export class RSR extends qList {
 		get cl () { return 'RSR'; }
 
-		protected r : RSr|null = new rList ();
-		get R () : RSr|null { return this.r;}
-		set R (r:RSr) { this.r = r; }
+		protected r : rList|null = new rList ();
+		get R () : rList|null { return this.r;}
+		set R (r:rList) { this.r = r; }
 		get to$$ () : string [] {
 			return this.r ? this.r.to$$ : [];
 		}
@@ -6008,7 +6002,7 @@ export namespace RS1 {
 	export class TileList  {
 		tiles:TDE[];
 
-		constructor(Str1: string[] | string | rList | RSr | RSR = '') {
+		constructor(Str1: string[] | string | rList | RSR = '') {
 			let Strs, List, R, Lists, cl, rsd;
 
 			console.log ('TileList (' + Str1 as string + ')');
