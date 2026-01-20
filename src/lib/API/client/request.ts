@@ -133,9 +133,9 @@ export async function InitClient () {
     console.log  ('ABCRootList = ' + ABCRootList.expand);
     console.log  ('ABCRSIList = ' + ABCRSIList.expand);
     
-    ABCRootList.merge (ABCRSIList);
+    ABCRootList.mergeList (ABCRSIList);
     console.log  ('ABCRootList after RSIList merge = ' + ABCRootList.expand);
-    targetList.merge (ABCRootList, false);
+    targetList.mergeList (ABCRootList, false);
     
     console.log  ('after ABCRootList merge, targetList = ' + targetList.expand);
 
