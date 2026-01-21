@@ -3410,8 +3410,7 @@ export namespace RS1 {
 					}
 				}
 				else {
-					let name = rsr.Name;
-					let target = this.kidGet (name);
+					let name = rsr.Name, target = this.kidGet (name);
 					if (target && target.isMom) {	// merge rsr with name matched RSr (kid)
 						(target as rList).mergeList (rsr);
 						return true;
