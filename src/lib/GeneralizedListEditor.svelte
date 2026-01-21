@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { RS1 } from './RS';
+	import { ListEditor } from './ListEditor';
 
 	interface Props {
 		list: RS1.xList;
@@ -9,9 +10,11 @@
 
 	let { list, rList = null, onClose }: Props = $props();
 
+	// ListEditor instance - use $derived to react to prop changes
+	const editor = $derived(new ListEditor(list, rList));
+
 	// State
 	let selectedVID: RS1.vID | null = $state(null);
-	let vIDs: RS1.vID[] = $state([]);
 	let isEditing = $state(false);
 
 	// Field values
@@ -28,193 +31,10 @@
 	let showSetFields = $state(false);
 
 	// Formats
-	const formats: RS1.qList = RS1.rLoL.FT as RS1.qList;
-	const TypeArray = RS1.TypeNames;
-
-	// Initialize
-	$effect(() => {
-		loadVIDs();
-	});
-
-	function loadVIDs() {
-		// Get fresh vIDs from the list
-		let freshVIDs: RS1.vID[];
-		if ('toSortedVIDs' in list && typeof list.toSortedVIDs !== 'undefined') {
-			freshVIDs = list.toSortedVIDs;
-		} else {
-			freshVIDs = list.toVIDs;
-		}
-		// Create a new array to trigger reactivity
-		vIDs = [...freshVIDs];
-	}
-
-	function selectVID(vID: RS1.vID) {
-		selectedVID = vID;
-		isEditing = true;
-		
-		name = vID.Name;
-		let fullDesc = vID.Desc || '';
-		
-		if (!vID.Fmt) {
-			vID.Fmt = new RS1.IFmt('');
-		}
-		
-		const rawFMT = vID.Fmt as RS1.IFmt;
-		format = rawFMT.TypeStr || '';
-		value = rawFMT.Value?._Str as string || '';
-		fmtstr = rawFMT.Xtra || '';
-		
-		const formatDesc = formats?.descByName(rawFMT.Ch) as string;
-		
-		// Parse Member format: [@ListName=vIDName]Description
-		if (formatDesc === 'Member') {
-			showMemberFields = true;
-			showSetFields = false;
-			const memberMatch = fullDesc.match(/\[@([^=]+)=([^\]]+)\](.*)/);
-			if (memberMatch) {
-				listSelect = memberMatch[1];
-				vIDSelect = memberMatch[2];
-				description = memberMatch[3] || '';
-			} else {
-				description = fullDesc;
-			}
-		} 
-		// Parse Set format: [{ListName=vID1,vID2}]Description
-		else if (formatDesc === 'Set') {
-			showMemberFields = true;
-			showSetFields = true;
-			const setMatch = fullDesc.match(/\[\{([^=]+)=([^\}]+)\}\](.*)/);
-			if (setMatch) {
-				listSelect = setMatch[1];
-				vIDSelect = setMatch[2]; // Comma-separated values
-				description = setMatch[3] || '';
-			} else {
-				description = fullDesc;
-			}
-		} else {
-			showMemberFields = false;
-			showSetFields = false;
-			description = fullDesc;
-		}
-	}
-
-	function loadMemberFields() {
-		// This is handled reactively in the template
-		// The select elements will update based on rList state
-	}
-
-	function handleFormatChange() {
-		if (format === 'Member') {
-			showMemberFields = true;
-			showSetFields = false;
-		} else if (format === 'Set') {
-			showMemberFields = true;
-			showSetFields = true;
-		} else {
-			showMemberFields = false;
-			showSetFields = false;
-		}
-	}
-
-	function saveVID() {
-		if (!name) {
-			alert('Name is required');
-			return;
-		}
-
-		let vID: RS1.vID = new RS1.vID('');
-		vID.Name = name;
-		vID.Desc = description;
-		vID.Fmt = new RS1.IFmt('');
-
-		if (format && value) {
-			if (!checkFormat(value, format)) {
-				alert('Error: Invalid Format');
-				return;
-			}
-			vID.Fmt.setType(format);
-			vID.Fmt.setValue(value);
-		}
-
-		if (fmtstr) {
-			vID.Fmt.setXtra(fmtstr);
-		}
-
-		// Handle Member and Set types
-		if (format === 'Member' && listSelect && vIDSelect) {
-			vID.Desc = `[@${removeWhitespace(listSelect)}=${removeWhitespace(vIDSelect)}]${description}`;
-		} else if (format === 'Set' && listSelect && vIDSelect) {
-			// For Set, vIDSelect may contain comma-separated values if multiple selected
-			vID.Desc = `[{${removeWhitespace(listSelect)}=${vIDSelect}}]${description}`;
-		} else if (format && value) {
-			// Regular format with value
-			vID.Desc = description;
-		} else {
-			// Just description
-			vID.Desc = description;
-		}
-
-		const wasEditing = selectedVID !== null;
-		const savedName = name;
-		
-		list.setVID(vID);
-		// Force UI update by reloading vIDs
-		loadVIDs();
-		
-		// If we were editing an existing vID, reselect it to show updated values
-		if (wasEditing) {
-			// Get fresh vIDs after update
-			let freshVIDs: RS1.vID[];
-			if ('toSortedVIDs' in list && typeof list.toSortedVIDs !== 'undefined') {
-				freshVIDs = list.toSortedVIDs;
-			} else {
-				freshVIDs = list.toVIDs;
-			}
-			const updatedVID = freshVIDs.find(v => v.Name === savedName);
-			if (updatedVID) {
-				// Update the vIDs array and reselect
-				vIDs = [...freshVIDs];
-				selectVID(updatedVID);
-			}
-		} else {
-			clearFields();
-		}
-		
-		console.log('New listStr:', list.to$);
-	}
-
-	function deleteVID() {
-		if (selectedVID) {
-			list.del(selectedVID.Name);
-			loadVIDs();
-			clearFields();
-		}
-	}
-
-	function copyVID() {
-		if (selectedVID) {
-			const newVID = selectedVID.copy;
-			newVID.Name = `${newVID.Name} Copy`;
-			newVID.List = list;
-			list.setVID(newVID);
-			loadVIDs();
-			clearFields();
-		}
-	}
-
-	function moveVID(direction: 'up' | 'down') {
-		if (selectedVID) {
-			const dir = direction === 'up' ? -1 : 1;
-			list.bubble(selectedVID.Name, dir);
-			loadVIDs();
-		}
-	}
-
-	function addNewVID() {
-		clearFields();
-		isEditing = false;
-		// Fields are already cleared, ready for new input
-	}
+	const TypeArray = $derived(editor.getTypeArray());
+	
+	// Derived vIDs from editor
+	const vIDs = $derived(editor.getVIDs());
 
 	function clearFields() {
 		selectedVID = null;
@@ -230,47 +50,6 @@
 		showSetFields = false;
 	}
 
-	function checkFormat(value: string, format: string): boolean {
-		if (!format) return false;
-
-		value = value.trim();
-
-		switch (format) {
-			case 'Integer':
-				return /^\d+$/.test(value);
-			case 'String':
-				return true;
-			case 'Number':
-				return isNum(value);
-			case 'Dollar':
-				return /^\$?\d{1,3}(,\d{3})*(\.\d{2})?$/.test(value);
-			case 'Range':
-				return /^\d+$/.test(value);
-			case 'Numbers':
-				return /^\s*\d+\s*(,\s*\d+\s*)*$/.test(value);
-			case 'UpperCase':
-				return value.toUpperCase() === value;
-			case 'Ordinal':
-				return /^\d{1,2}(st|nd|rd|th)$/.test(value);
-			case 'Pair':
-				return /^\s*\d+\s*,\s*\d+\s*$/.test(value);
-			default:
-				return false;
-		}
-	}
-
-	function isNum(v: string): boolean {
-		const num = parseFloat(v);
-		return !isNaN(num) && isFinite(num);
-	}
-
-	function removeWhitespace(str: string): string {
-		return str.replace(/(\s+Bad\s+List\s+Name\s+|\s+)/g, '');
-	}
-
-	function removePossibleDelim(str: string): string {
-		return str.replace(/[\t\n\f|:]/g, '');
-	}
 </script>
 
 <div class="editor">
@@ -284,7 +63,20 @@
 					const target = e.target as HTMLSelectElement;
 					const selectedName = target.value;
 					const vID = vIDs.find(v => v.Name === selectedName);
-					if (vID) selectVID(vID);
+					if (vID) {
+						selectedVID = vID;
+						isEditing = true;
+						const result = editor.selectVID(vID);
+						name = result.name;
+						description = result.description;
+						format = result.format;
+						value = result.value;
+						fmtstr = result.fmtstr;
+						listSelect = result.listSelect;
+						vIDSelect = result.vIDSelect;
+						showMemberFields = result.showMemberFields;
+						showSetFields = result.showSetFields;
+					}
 				}}
 			>
 				{#each vIDs as vID (vID.Name)}
@@ -322,7 +114,11 @@
 					id="format" 
 					name="format"
 					bind:value={format}
-					onchange={handleFormatChange}
+					onchange={() => {
+						const result = editor.handleFormatChange(format);
+						showMemberFields = result.showMemberFields;
+						showSetFields = result.showSetFields;
+					}}
 				>
 					<option value="">Select Format</option>
 					{#each TypeArray as type}
@@ -413,13 +209,62 @@
 			{/if}
 
 			<div class="buttons">
-				<button onclick={saveVID}>Save</button>
-				<button onclick={addNewVID}>Add</button>
-				<button onclick={deleteVID} disabled={!selectedVID}>Delete</button>
+				<button onclick={() => {
+					const result = editor.saveVID(
+						name,
+						description,
+						format,
+						value,
+						fmtstr,
+						listSelect,
+						vIDSelect,
+						selectedVID
+					);
+					if (!result.success) return;
+					if (result.updatedVID) {
+						selectedVID = result.updatedVID;
+						isEditing = true;
+						const selectResult = editor.selectVID(result.updatedVID);
+						name = selectResult.name;
+						description = selectResult.description;
+						format = selectResult.format;
+						value = selectResult.value;
+						fmtstr = selectResult.fmtstr;
+						listSelect = selectResult.listSelect;
+						vIDSelect = selectResult.vIDSelect;
+						showMemberFields = selectResult.showMemberFields;
+						showSetFields = selectResult.showSetFields;
+					} else {
+						clearFields();
+					}
+				}}>Save</button>
+				<button onclick={() => {
+					clearFields();
+					isEditing = false;
+				}}>Add</button>
+				<button onclick={() => {
+					if (selectedVID) {
+						editor.deleteVID(selectedVID);
+						clearFields();
+					}
+				}} disabled={!selectedVID}>Delete</button>
 				<button onclick={clearFields}>Clear</button>
-				<button onclick={copyVID} disabled={!selectedVID}>Copy</button>
-				<button onclick={() => moveVID('up')} disabled={!selectedVID}>Up</button>
-				<button onclick={() => moveVID('down')} disabled={!selectedVID}>Down</button>
+				<button onclick={() => {
+					if (selectedVID) {
+						editor.copyVID(selectedVID);
+						clearFields();
+					}
+				}} disabled={!selectedVID}>Copy</button>
+				<button onclick={() => {
+					if (selectedVID) {
+						editor.moveVID(selectedVID, 'up');
+					}
+				}} disabled={!selectedVID}>Up</button>
+				<button onclick={() => {
+					if (selectedVID) {
+						editor.moveVID(selectedVID, 'down');
+					}
+				}} disabled={!selectedVID}>Down</button>
 				{#if onClose}
 					<button onclick={onClose}>Back</button>
 				{/if}
