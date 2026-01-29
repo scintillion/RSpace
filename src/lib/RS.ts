@@ -10,10 +10,65 @@ export namespace RS1 {
 
 	export const SysPrefix='/';
 
+	const DelimList='|\t\n\x0b\f\r\x0e\x0f\x10\x11\x12\x13\x14\x15';
+
+	type RPArgs = string|number|RSD|string[]|number[]|RSD[];
+
 	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',
 		tDisk='*',tArray='[',tArrayStr=':[]:', tStrs='$[', tNums='#[', tRSDs='+[', RSDArrayCh='!';
 
-	const DelimList='|\t\n\x0b\f\r\x0e\x0f\x10\x11\x12\x13\x14\x15';
+	export class RP {
+		type = '';
+		cl = '';
+		RSDName = '';
+		KidName = '';
+		dims = 0;
+		arrType = '';
+		bbiBytes = 0;
+		D : RPArgs = 0;
+
+		clear () {
+			this.type = '';			
+			this.cl = '';
+			this.RSDName = '';	
+			this.KidName = '';
+			this.dims = 0;			
+			this.arrType = '';	
+			this.bbiBytes = 0;
+			this.D = 0;
+		}
+
+		fromData (D : RPArgs, RSDName='', KidName='') {
+			this.clear ();
+			this.D = D;
+
+			let t = typeof D;
+			switch (t) {
+				case 'string' :	this.type = tStr;	break;
+				case 'number' :	this.type = tNum;	break;
+
+				default :
+					this.KidName = KidName; this.RSDName = RSDName;
+					if (Array.isArray (D)) {
+						if (D.length) {
+							let elType = typeof D[0];
+							switch (elType) {
+								case 'string' : this.arrType = tStr; this.type = tStrs; break;
+								case 'number' : this.arrType = tNum; this.type = tNums; break;
+								default : this.arrType = tRSD; this.type = tRSDs; break;
+							}
+						}
+						else { this.arrType = tRSD; this.type = tRSDs; }
+					}
+					else { this.type = tRSD; this.cl = (D as RSD).cl; 	}
+					break;
+			}
+		}
+
+		constructor (D : RPArgs, RSDName='', KidName='') {
+			this.fromData (D, RSDName, KidName);
+		}
+	}
 
 	export enum CLType {
 		None,
@@ -76,8 +131,8 @@ export namespace RS1 {
 		DataRSD:RSD|undefined;
 
 		fieldsToPB (Fields : RSF[]) {
-			let RSDName = this.RSDName, FieldRSD = this.FieldRSD;
-			let nBytes = 0, count = 0, first = RSDName + (FieldRSD ? (':' + FieldRSD) : '');
+			let RSDName = this.RSDName;
+			let nBytes = 0, count = 0, first = RSDName + (this.FieldRSD ? (':' + this.FieldRSD) : '');
 			let prefixes = [first];
 		
 			for (const F of Fields) {
@@ -90,8 +145,13 @@ export namespace RS1 {
 				}
 			}
 			prefixes.push (StrEnd);
+
+
 		
 			let prefix = prefixes.join (',');
+
+			console.log (prefixes.length.toString () + ' fieldsToPB='+prefix);
+
 			let prefixBuf = str2bbi (prefix), buf = RS1.newBuf (nBytes + prefixBuf.byteLength),
 					offset = prefixBuf.byteLength;
 			buf.set (prefixBuf,0);
@@ -102,7 +162,12 @@ export namespace RS1 {
 			let i = 0;
 			for (const F of Fields) {
 				if (F) {
-					let bbi = F._bbi;
+					if ((F.type === tRSD)  &&  (F.Data))
+						console.log ('  Field ' + (F.Data as RSD).Name + ' Type= ' + F.type + ' Prefix=' + F.prefix);
+					else console.log ('  Field ' + F.Name + ' Type= ' + F.type + ' Prefix=' + F.prefix);
+
+
+					let bbi = F._bbi; 
 					Bufs[i++] = bbi;
 					if (bbi  &&  bbi.byteLength) {
 						buf.set (bbi, offset);
@@ -126,7 +191,11 @@ export namespace RS1 {
 	
 			let offset = end + 1, str = bb2str (Buf.slice (0,end));
 			let prefix = str;
+
 			let prefixes = prefix.split (',');
+
+			console.log (prefixes.length.toString () + ' bufToPB='+prefix);
+
 			let first = prefixes[0];
 			prefixes = prefixes.slice (1,-1);
 							
@@ -162,9 +231,9 @@ export namespace RS1 {
 			this.RSDName = RSDName;
 			this.FieldRSD = FieldRSD;
 
-			if (In.constructor.name === 'Uint8Array')
-				this.bufToPB (In as UBuf)
-			else this.fieldsToPB (In as RSF[]);
+			if (Array.isArray (In))
+				this.fieldsToPB (In as RSF[]);
+			else this.bufToPB (In as UBuf)
 		}
 	}
 
@@ -317,6 +386,7 @@ export namespace RS1 {
 	export class RSD {
 		Mom : RSDT = null;
 		_bbi : BBI;
+		protected qstr = '';
 
 		get isMom () { return false; }
 		get cl () { return 'RSD'; }
@@ -357,16 +427,18 @@ export namespace RS1 {
 		get size () { return 0; }
 
 		get to$ () : string {
-			let s, iStr='', qStr='', rStr='';
+			let s, iStr='', qStr='', rStr='', zStr='';
 
 			if (s = this.I) {
-				if (iStr = s.to$)
-					iStr += 'I\x1f';
+				iStr = s.to$ + 'I\x1f';
+				if (iStr === 'I\x1f')
+					iStr = '';
 			}
 
 			if (s = this.Q) {
-				if (qStr = s.to$)
-					qStr += 'Q\x1f';
+				qStr = s.to$ + 'Q\x1f';
+				if (qStr === 'Q\x1f')
+					qStr = '';
 			}
 
 			if (s = this.R) {
@@ -374,7 +446,10 @@ export namespace RS1 {
 					rStr += 'R\x1f';
 			}
 
-			let Str = iStr + qStr + rStr;
+			if (this.qstr)
+				zStr = this.qstr + 'Z\x1f';
+
+			let Str = iStr + qStr + rStr + zStr;
 			return Str;
 		}
 
@@ -408,6 +483,8 @@ export namespace RS1 {
 						k.add (field.Data as RSD,false);
 				}
 			}
+
+			this._bbi = pb.bbi;
 		}
 
 		protected toPB (RSDName = '', KidName ='') {
@@ -456,7 +533,7 @@ export namespace RS1 {
 							Fields.push ((Kid as unknown) as RSF);
 						else {
 							if (!KidName)
-								KidName = Kid.Name;
+								KidName = Kid.cl;
 
 							field = new RSF ();
 							field.setData (Kid, KidName);
@@ -467,7 +544,9 @@ export namespace RS1 {
 				}
 			}
 
-			return new PB (Fields, RSDName, KidName);
+			let newPB = new PB (Fields, RSDName, KidName);
+			this._bbi = newPB.bbi;
+			return newPB;
 		}
 
 		fromBuf (Buf : UBuf, RSDName='', KidName='') {
@@ -489,6 +568,16 @@ export namespace RS1 {
 			}
 		}
 
+		get toBBI () {
+			if (this._bbi)
+				return this._bbi;
+			else {
+				let newPB = this.toPB ();
+				return this._bbi = newPB.bbi;
+			}
+		}
+
+
 		toPrefix (RSDName='') {
 			let k = this.K, bbi, prefix;
 			if (!(bbi = this._bbi)) {
@@ -502,7 +591,9 @@ export namespace RS1 {
 				cName = '[' + cName + ']';
 			else cName = '';
 			
-			return tRSD + cName + this.Name + ':' + bbi.length.toString ();
+			let str = tRSD + cName + this.Name + ':' + bbi.length.toString ();
+			console.log ('RSD.toPrefix=' + str);
+			return str;
 		}
 
 		fromPack (Pack:RSPack) {}
@@ -548,30 +639,40 @@ export namespace RS1 {
 		get clear () { return true; }
 
 		constructRSD (In:RSArgs, clear = false) {
-			if (clear)
-				this.clear;
-
 			if (!In)
 				return;
 
-			let cName = In.constructor.name;
-			switch (cName) {
-				case 'String' : this.from$ (In as string); break;
-				case 'RSPack' : this.fromPack (In as RSPack); break;
-				case 'Uint8Array' :	this.fromBuf (In as UBuf); break;
-				case '' : return;
-				case 'Array' :
-					let Arr = In as Array<any>;
-					if (!Arr.length)
-						return;
-					let elType = Arr[0].constructor;
+			if (clear)
+				this.clear;
 
-					switch (elType) {
-						case 'String' : this.from$ (Arr as string[]); break;
-						case 'RSF' : this.fromFields (Arr as RSF[]); break;
+//	type RSArgs=ABI|string[]|RSPack|RSDT|RSDT[]|RSField|ListTypes[]|undefined;
+
+
+			let t = typeof In;
+			switch (t) {
+				case 'string' : this.from$ (In as string); return;
+				case 'number' :	return;
+				case 'object' :
+					if (Array.isArray (In)) {
+						let Arr = In as Array<any>;
+						if (!Arr.length)
+							return;
+						let elType = typeof (Arr[0]);
+
+						switch (elType) {
+							case 'string' : this.from$ (In as string[]); return;
+							default :
+								if (Arr[0] instanceof RSField) {
+									this.fromFields (Arr as RSF[]); return; }
+						}
 					}
+					else if (In instanceof Uint8Array)
+						this.fromBuf (In);
+					//else if (In instanceof ArrayBuffer)
+					//	this.fromBuf (In as ArrayBuffer);
+					else
+						log ('Illegal input to RSD construct!');
 					break;
-				default : log ('Illegal input to RSD construct!');
 			}
 		}
 
@@ -1858,7 +1959,6 @@ export namespace RS1 {
 	}
 
 	export class xList extends RSD {
-		protected qstr='';
 		get cl () { return 'xList'; }
 
 
@@ -2788,8 +2888,10 @@ export namespace RS1 {
 			}
 
 			this._bbi = bbi;
-			return this.prefix = this.type + arrStr + this.name + ':'+
+			this.prefix = this.type + arrStr + this.name + ':'+
 				(this._bbi ? this._bbi.length.toString () : '0');
+			console.log ('RSF.toPrefix: ^^' + this.prefix);
+			return this.prefix;
 		}
 
 		fromPrefix (prefix:string, bbi:BBI, FieldRSD = '', offset=-1) {

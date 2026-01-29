@@ -137,9 +137,17 @@ export async function InitClient () {
     console.log  ('ABCRootList after RSIList merge = ' + ABCRootList.expand);
     targetList.mergeList (ABCRootList, false);
     
+    targetList._bbi = undefined; // force rebuild
+    let newBBI = targetList.toBBI,bbstr = RS1.bb2str (targetList.toBBI) ;
+    console.log ('New PB = ' + bbstr);
+    
+    let newtargetList = new RS1.rList (targetList.to$);
+    if (newtargetList.to$ !== targetList.to$) {
+        console.log ('targetList = ' + targetList.expand);
+        console.log ('newtargetList = ' + newtargetList.expand);
+    }   
+
     console.log  ('after ABCRootList merge, targetList = ' + targetList.expand);
-
-
 
 
     console.log ('READING TileStrings');
