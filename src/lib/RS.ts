@@ -426,8 +426,11 @@ export namespace RS1 {
 
 		get size () { return 0; }
 
-		get to$ () : string {
-			let s, iStr='', qStr='', rStr='', zStr='';
+		get to$ () {
+			let s, iStr='', qStr='', rStr='', zStr='', kStr='', k = this.K;
+
+			if (!k)
+				return this.qstr;
 
 			if (s = this.I) {
 				iStr = s.to$ + 'I\x1f';
@@ -446,10 +449,28 @@ export namespace RS1 {
 					rStr += 'R\x1f';
 			}
 
-			if (this.qstr)
-				zStr = this.qstr + 'Z\x1f';
 
-			let Str = iStr + qStr + rStr + zStr;
+			if (k) {
+				if (this instanceof xList) {
+					let lastDelim = DelimList.slice (-1), newStr, newDelim, highDelim='|';
+					
+					let Kids = k._kids, Strs = [this.qstr];
+					for (const Kid of Kids) {
+						if (Kid) {
+							newStr = Kid.to$;
+							Strs.push (newStr);
+							newDelim = newStr.slice (-1);
+							if (newDelim > highDelim)
+								highDelim = newDelim;
+						}
+					}
+
+					if (Strs.length) 
+						kStr = Strs.join ('K\x1f') + 'K\x1f';
+				}
+			}
+
+			let Str = iStr + qStr + rStr + zStr + kStr;
 			return Str;
 		}
 
@@ -524,7 +545,7 @@ export namespace RS1 {
 				Fields.push (field);
 			}
 
-			if (k) {
+			if (k  &&  !(this instanceof xList)) {	// xList directly puts includes kids in to$
 				let Kids = k._kids;
 				for (const Kid of Kids) {
 					if (Kid) {
@@ -2056,14 +2077,19 @@ export namespace RS1 {
 			if (!k)
 				return '|'
 
-			let high = -1, i, Kids = k._kids;
+			let high = '|', Kids = k._kids;
 
 			for (const L of Kids)
-				if (L && ((i = DelimList.indexOf((L as xList).delim)) > high))
-					high = i;
+				if (L) {
+					let i = (L as xList).delim;
+					if (i > high)
+						high = i;
+					else if ((i < high)  &&  (high === '|'))
+						high = i;
+				}
 
 			// If _kids is empty, high=-1, returns DelimList[0]='\t'
-			return DelimList[high+1];
+			return DelimList[DelimList.indexOf (high)+1];
 		}
 
 		get indent () {
@@ -2136,20 +2162,16 @@ export namespace RS1 {
 		get listDesc () { return this.namedesc().b; }
 
 		get to$ () {
-			let D = this.delim, bbi;
-			if (D === '|')
-				 return this.qstr;
-
-			let k = this.K, str='';
-			if (k) {
-				str = this.qstr + D;
-				let Lists = k._kids;
-				for (const L of Lists)
-					if (L)
-						str += (L as xList).toSafe + D;
-			}
+			let k = this.K;
+			if (!k)
+				return this.qstr;
+			
+			let D = this.delim, Strs =[this.qstr], Lists = k._kids;
+			for (const L of Lists)
+				if (L)
+					Strs.push ((L as xList).to$);
 				
-			return str;
+			return Strs.join (D) + D;
 		}
 
 		protected namedescstr (start=0) {
