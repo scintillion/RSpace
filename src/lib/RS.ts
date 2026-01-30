@@ -403,14 +403,10 @@ export namespace RS1 {
 
 		R?	: rList;	
 
-		get S () : string[]|null { return null; }
-		set S (s : string[]) {}
+		S?	: string[];
+		X?	: RSD;
 
-		get X () : RSDT { return undefined; }
-		set X (x : RSDT) {}
-
-		get Data () : any { return undefined; }
-		set Data (d : any) {}
+		Data? : any;
 
 		get clearKids () {
 			let k = this.K
@@ -6976,7 +6972,6 @@ export namespace RS1 {
 		 }
 
 		get Error () { return this._error; }
-		get Data () { return this._data; }
 
 		setAB (AB:ArrayBuffer|null = NILAB) { 
 			if (AB) 
@@ -7703,7 +7698,6 @@ export namespace RS1 {
 		 }
 
 		get Error () { return this.descByName ('Error'); }
-		get Data () { return this._data; }
 
 		setAB (AB:ArrayBuffer|null = NILAB) { 
 			if (AB) 
