@@ -120,7 +120,7 @@ export namespace RS1 {
 	type UBuf=Uint8Array;
 	type ABI=UBuf|ArrayBuffer|string|undefined;
 	type BBI=UBuf|undefined;
-	type RSFldData=string|string[]|number|number[]|RSD|RSD[]|null;
+	type RSFldData=string|string[]|number|number[]|RSD|RSD[]|undefined;
 	
 	export class PB {	// prefix-buffer
 		prefix='';
@@ -263,7 +263,7 @@ export namespace RS1 {
 		k:RSK|undefined;
 	}
 
-	type RSDT=RSD|null;
+	type RSDT=RSD|undefined;
 	type RSArgs=ABI|string[]|RSPack|RSDT|RSDT[]|RSField|ListTypes[]|undefined;
 
 
@@ -384,25 +384,17 @@ export namespace RS1 {
 	}	
 
 	export class RSD {
-		Mom : RSDT = null;
+		Mom? : RSD;
 		_bbi : BBI;
 		protected qstr = '';
 
 		get isMom () { return false; }
 		get cl () { return 'RSD'; }
 
-		get notNIL () { return true; }
-		get notZero () { return true; }
+		I?	:	xList;
 
-		get I (): xList|null { return null; }
-
-		get K ():RSK|null { return null; }
+		K?	:	RSK;
 		
-		get clearKids () {
-			let k = this.K
-			return k ? k.clear : false;
-		}
-
 		get N () : number[]|null { return null; }
 		set N (n : number[]) {}
 
@@ -418,11 +410,19 @@ export namespace RS1 {
 		get S () : string[]|null { return null; }
 		set S (s : string[]) {}
 
-		get X () : RSDT { return null; }
+		get X () : RSDT { return undefined; }
 		set X (x : RSDT) {}
 
-		get Data () : any { return null; }
+		get Data () : any { return undefined; }
 		set Data (d : any) {}
+
+		get clearKids () {
+			let k = this.K
+			return k ? k.clear : false;
+		}
+
+		get notNIL () { return true; }
+		get notZero () { return true; }
 
 		get size () { return 0; }
 
@@ -993,8 +993,8 @@ export namespace RS1 {
 				this._names[i] = '';
 				let Kid = this._kids[i];
 				if (Kid)
-					Kid.Mom = null;
-				this._kids[i] = null;
+					Kid.Mom = undefined;
+				this._kids[i] = undefined;
 				this.mark;
 			}
 			return i >= 0;
@@ -1005,15 +1005,15 @@ export namespace RS1 {
 				return this._kids[kid as number];
 
 			let i = this.index (kid as string|RSD);
-			return (i >= 0) ? this._kids[i] : null;
+			return (i >= 0) ? this._kids[i] : undefined;
 		}
 
-		Set (kid1 : RSD|RSD[]|null, replace=false) {
+		Set (kid1 : RSD|RSD[]|undefined, replace=false) {
 			let Kids = this._kids, Names = this._names, changed = 0;
 			let NewKids = (Array.isArray (kid1)) ? kid1 as RSD[] : [kid1 as RSD];
 
 			for (const kid of NewKids) {
-				let Name = kid.Name, i = replace ? Names.indexOf (Name) : Kids.indexOf (null);
+				let Name = kid.Name, i = replace ? Names.indexOf (Name) : Kids.indexOf (undefined);
 				kid.Mom = this._me;
 				if (i < 0) {
 					Kids.push (kid);
@@ -1154,10 +1154,9 @@ export namespace RS1 {
 	}
 
 	export class RSMom extends RSD {
-		_k : RSK = new RSK (this);
-		get isMom () { return true; }
+		K : RSK = new RSK (this);
 
-		get K () { return this._k; }
+		get isMom () { return true; }
 
 		get cl () { return 'RSMom'; }
 	}
@@ -1189,7 +1188,10 @@ export namespace RS1 {
 		get cl () { return 'RSTree'; }
 
 		get Leafs () {
-			let count = 0, Items:RSLeaf[]=[], k = this._k;
+			let count = 0, Items:RSLeaf[]=[], k = this.K;
+			if (!k)
+				return Items;
+
 			for (const K of k._kids)
 				if (count++  &&  K)
 					Items.push (K as RSLeaf);
@@ -1203,28 +1205,36 @@ export namespace RS1 {
 		}
 
 		addLeaf (D:RSD, level:number) {
+			let K = this.K;
+			if (!K)
+				return;
+
 			let L = new RSLeaf (D, level);
 			if (!level) {
 				this.clear;
-				this._k._kids.push (null);	// add the 0 element - a dummy, not a true leaf
-				this._k._names.push ('');	
+				K._kids.push (undefined);	// add the 0 element - a dummy, not a true leaf
+				K._names.push ('');	
 			}
 
-			this._k.Set (L, false);
+			K.Set (L, false);
 
 			let dk = D.K;
 			if (dk) {
 				let Kids = dk._kids;
 				++level;
-				for (const K of Kids)
-					if (K)
-						this.addLeaf (K, level);
+				for (const Kid of Kids)
+					if (Kid)
+						this.addLeaf (Kid, level);
 			}
 		}
 
 		private links () {
 			// calculate relations   for the TDEs
-			let Kids = this._k._kids, limit = Kids.length;
+			let K = this.K;
+			if (!K)
+				return;
+
+			let Kids = K._kids, limit = Kids.length;
 
 			for (let tnum = 0; ++tnum < limit; ) {
 				let me = Kids[tnum] as RSLeaf;
@@ -1980,12 +1990,15 @@ export namespace RS1 {
 	}
 
 	export class xList extends RSD {
+		I : xList = this;
+		
 		get cl () { return 'xList'; }
 
 
 		constructor (In : RSArgs=undefined)
 		{
 			super (In);
+
 			if (In)
 				this.from$ (In as string|string[]);
 		}
@@ -2599,18 +2612,20 @@ export namespace RS1 {
 // 
 
 		listByName (name:string) {
-			let k = this.K;
-			return k ? k.Get (name) : null;
+			if (this.K)
+				return this.K.Get (name);
 		}
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L.cl === 'qList')) ? L as qList : null;
+			if (L  &&  (L.cl === 'qList')) 
+				return L as qList;
 		} 
 
 		rListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L.cl === 'rList')) ? L as rList : null;
+			if (L  &&  (L.cl === 'rList'))
+				return L as rList;
 		} 
 
 		mergeRSr (list : xList|rList|RSR|string, overlay=true) {
@@ -2830,7 +2845,7 @@ export namespace RS1 {
 					}
 
 					switch (conName) {
-						case '' : this.type = tStrs; data = null; return;
+						case '' : this.type = tStrs; data = undefined; return;
 						case tStr : case 'string' : return this.type = tStrs; return;
 						case tNum : case 'number' : return this.type = tNums; return;
 						default : this.RSDName = conName; return this.type = tRSDs;
@@ -3314,8 +3329,10 @@ export namespace RS1 {
 
 	export class qList extends xList {
 		get cl () { return 'qList'; }
-		get I () : qList|null { return this; }
-		set I (newI : qList) { this.qstr = newI.to$; }
+
+		constructor (Str:RSArgs='') {
+			super (Str);
+		}
 
 		copy (NewName='') : RSD {
 			return new qList (this.to$);
@@ -3342,15 +3359,13 @@ export namespace RS1 {
 	}
 
 	export class Bead extends RSR {
+		K : RSK = new RSK (this);
+
 		get cl () { return 'Bead'; }
 
-		_k:RSK = new RSK (this);
 		protected _s:string[] = [];
 		protected _n:number[] = [];
 		protected x : RSD|null=null;
-
-
-		get K () { return this._k; }
 
 		protected q : qList|null = new qList ();
 		get Q () : qList|null { return this.q;}
@@ -3364,9 +3379,6 @@ export namespace RS1 {
 
 		get N () : number[] { return this._n; }	
 
-		get X () : RSD|null { return this.x;}
-		set X (p:RSPack) { this.p = p; }
-
 		private get toStrPrefix () {
 			// let q = this.q.toS, r = this.r.toS;
 			// return '$' + q.length.toString () + ',' + r.length.toString () + '$' + q + r;
@@ -3375,15 +3387,14 @@ export namespace RS1 {
 	}
 
 	export class rList extends xList {
-		_k:RSK = new RSK (this);
+		K : RSK = new RSK (this);
 
 		get cl () { return 'rList'; }
-		get K () { return this._k; }
+
 		get isMom () { return true; }
 
 		constructor (Str:RSArgs='',name='',desc='') {
 			super (Str);
-
 			if (!Str)
 				return;		// null rList
 
@@ -3421,7 +3432,7 @@ export namespace RS1 {
 					Strs = Str as string[];
 					break;
 				case 'List[]' :
-					this._k.Set (Str as RSD[],false);
+					this.K.Set (Str as RSD[],false);
 					console.log ('rList ' + this.qstr + ' created: ' + this.info);
 					return;
 				default : Strs = [];
@@ -3468,18 +3479,20 @@ export namespace RS1 {
 // 
 
 		listByName (name:string) {
-			let k = this.K;
-			return k ? k.Get (name) : null;
+			if (this.K)
+				return this.K.Get (name);
 		}
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L.cl === 'qList')) ? L as qList : null;
+			if (L  &&  (L.cl === 'qList')) 
+				return L as qList;
 		} 
 
 		rListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  (L.cl === 'rList')) ? L as rList : null;
+			if (L  &&  (L.cl === 'rList')) 
+				return L as rList;
 		} 
 
 		mergeList (list : xList|rList|RSR|string, overlay=true) {
@@ -4502,13 +4515,13 @@ export namespace RS1 {
 	export class TDE extends RSD {
 		//  TileDefElement, for defining Tiles
 		level = 0;
-		tileID: TileID | undefined;
-		TList:rList|null=null;
+		tileID?: TileID;
+		TList?:rList;
 		Lists:ListTypes[]=[];
-		aList:qList|null=null;
-		sList:qList|null=null;
-		vList:qList|null=null;
-		jList:qList|null=null;
+		aList?:qList;
+		sList?:qList;
+		vList?:qList;
+		jList?:qList;
 
 		nLists = 0;
 		parent = 0;
@@ -4532,7 +4545,8 @@ export namespace RS1 {
 
 		qListByName (name:string) {
 			let L = this.listByName (name);
-			return (L  &&  L.cl === 'qList') ? L as qList : null;
+			if (L  &&  L.cl === 'qList') 
+				return L as qList;
 		}
 
 		constructor(Str: string|rList) {
@@ -4545,7 +4559,11 @@ export namespace RS1 {
 			this.TList = List1;
 			// console.log('TDE List[' + this.List.Name + ']=' + this.List.fStr + '.');
 
-			this.Lists = List1._k.Kids as ListTypes[];
+			let K = this.K;
+			if (!K)
+				return;
+
+			this.Lists = K.Kids as ListTypes[];
 			this.aList = this.qListByName ('a');
 			this.sList = this.qListByName ('s');
 			this.vList = this.qListByName ('v');
@@ -6048,7 +6066,7 @@ export namespace RS1 {
 	}
 
 	export class TileList  {
-		tiles:TDE[];
+		tiles:TDE[]=[];
 
 		constructor(Str1: string[] | string | rList | RSR = '') {
 			let Strs, List, R, Lists, cl, rsd;
@@ -6066,7 +6084,10 @@ export namespace RS1 {
 			
 			if (Strs) {
 				List = new rList (Strs);
-				Lists = List._k._kids as ListTypes[];
+				if (!List.K)
+					return;		// panic, should not happen
+
+				Lists = List.K._kids as ListTypes[];
 			}
 			else {
 				if ((cl === 'rList')  ||  (cl === 'RSr')) {
@@ -6081,13 +6102,13 @@ export namespace RS1 {
 			}
 
 
-			if (!List) {
+			if (!List  ||  !List.K) {
 				throw 'NIL TileList!';
 				this.tiles = [];
 				return;
 			}
 
-			let i = 0, Ls = List._k._kids as ListTypes[];
+			let i = 0, Ls = List.K._kids as ListTypes[];
 			this.tiles = Array(Ls.length + 1);
 			for (const L of Ls)
 				if (L) this.tiles[++i] = new TDE (L as rList);
@@ -7994,7 +8015,7 @@ export namespace RS1 {
 		get cl () { return 'RSPack'; }
 
 		get Fields () {
-			return this._k.Kids as RSF[];
+			return this.K ? this.K.Kids as RSF[] : [];
 		}
 
 		addField (F : RSF, replace=false) {
