@@ -392,20 +392,13 @@ export namespace RS1 {
 		get cl () { return 'RSD'; }
 
 		I?	:	xList;
-
 		K?	:	RSK;
-		
 		N?	: number[];
-
 		P?	: RSPack;
-
 		Q?	: qList;
-
 		R?	: rList;	
-
 		S?	: string[];
 		X?	: RSD;
-
 		Data? : any;
 
 		get clearKids () {
@@ -413,7 +406,6 @@ export namespace RS1 {
 			return k ? k.clear : false;
 		}
 
-		get notNIL () { return true; }
 		get notZero () { return true; }
 
 		get size () { return 0; }
@@ -7740,7 +7732,6 @@ export namespace RS1 {
 				return;
 			}
 
-		    this.notNIL;
 			this._AB1 = NILAB;
 
 			let Type;
@@ -7805,7 +7796,6 @@ export namespace RS1 {
 
 
 		private setByAB (AB : ArrayBuffer,Type1 : string) {
-		    this.notNIL;
 			this._AB1 = NILAB;
 
 			let D;
@@ -7837,8 +7827,6 @@ export namespace RS1 {
 		}
 
 		private _setByBuf (Type : string, InBuffer : Int8Array | ArrayBuffer, Start = -1, nBytes = -1) {
-		    this.notNIL;
-
 			let ABuf : ArrayBuffer;
 			let IBuf,TBuf : Int8Array;
 
@@ -7903,8 +7891,6 @@ export namespace RS1 {
 
 
 		Equal (Ref : RSField) : boolean {
-		    this.notNIL;
-
 			if (this._type === Ref._type) {
 				switch (this._type) {
 					case tNum : return this.Num === Ref.Num;
