@@ -395,17 +395,13 @@ export namespace RS1 {
 
 		K?	:	RSK;
 		
-		get N () : number[]|null { return null; }
-		set N (n : number[]) {}
+		N?	: number[];
 
-		get P ():RSPack|null { return null; }
-		set P (p : RSPack) {}
+		P?	: RSPack;
 
-		get Q (): qList|null { return null; }
-		set Q (q : qList) {}
+		Q?	: qList;
 
-		get R (): rList|null { return null; }
-		set R (r : rList) {}
+		R?	: rList;	
 
 		get S () : string[]|null { return null; }
 		set S (s : string[]) {}
@@ -911,7 +907,6 @@ export namespace RS1 {
 			case 'qList' : return new qList (x);
 			case 'RSLeaf' : return new RSLeaf (x as RSD);
 			case 'RSTree' : return new RSTree (x as RSD);
-			case 'RSQ' : return new RSQ (x);
 			case 'RSr' : return new rList (x  as string|string[]|ListTypes[]);
 			case 'RSR' : return new RSR (x);
 			case 'Bead' : return new Bead (x);
@@ -3340,21 +3335,17 @@ export namespace RS1 {
 	}
 
 	export class RSQ extends qList {
+		Q	:	qList = new qList ();
 		get cl () { return 'RSQ'; }
-		protected q : qList|null = new qList ();
-		get Q () : qList|null { return this.q; }
-		set Q (q:qList) { this.q = q; }
 	}
 
 
 	export class RSR extends qList {
+		R	: rList = new rList ();
 		get cl () { return 'RSR'; }
 
-		protected r : rList|null = new rList ();
-		get R () : rList|null { return this.r;}
-		set R (r:rList) { this.r = r; }
 		get to$$ () : string [] {
-			return this.r ? this.r.to$$ : [];
+			return this.R ? this.R.to$$ : [];
 		}
 	}
 
@@ -3362,22 +3353,6 @@ export namespace RS1 {
 		K : RSK = new RSK (this);
 
 		get cl () { return 'Bead'; }
-
-		protected _s:string[] = [];
-		protected _n:number[] = [];
-		protected x : RSD|null=null;
-
-		protected q : qList|null = new qList ();
-		get Q () : qList|null { return this.q;}
-		set Q (q:qList) { this.q = q; }
-
-		protected p : RSPack|null = new RSPack ();
-		get P () : RSPack|null { return this.p;}
-		set P (p:RSPack) { this.p = p; }
-
-		get S () : string[] { return this._s; }
-
-		get N () : number[] { return this._n; }	
 
 		private get toStrPrefix () {
 			// let q = this.q.toS, r = this.r.toS;
