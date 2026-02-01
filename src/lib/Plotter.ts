@@ -23,7 +23,7 @@ export class Plotter {
   }
 
   private CreateTile(tile: RS1.TDE): { element: HTMLElement; index: number } | null {
-    if (!tile.aList || tile.Lists.length < 1) {
+    if (!tile.aList || !tile.sList || tile.Lists.length < 1) {
       console.error("Error: Invalid Tile");
       return null;
     }
@@ -73,6 +73,11 @@ export class Plotter {
     const link = tile.aList?.descByName("link");
     if (link) {
       props.link = link;
+    }
+
+    const element = tile.aList?.descByName("element");
+    if (element === "button" || element === "div") {
+      props.element = element;
     }
 
     // Interactions - convert string 'true'/'false' to boolean

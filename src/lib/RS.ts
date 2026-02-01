@@ -4522,7 +4522,7 @@ export namespace RS1 {
 			this.TList = List1;
 			// console.log('TDE List[' + this.List.Name + ']=' + this.List.fStr + '.');
 
-			let K = this.K;
+			let K = List1.K;
 			if (!K)
 				return;
 
