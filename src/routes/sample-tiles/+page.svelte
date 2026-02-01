@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { Plotter } from '$lib/Plotter';
 	import { RS1 } from '$lib/RS';
+	import TileEditorModal from './TileEditorModal.svelte';
 
-	const TileStrings: string[] = [
+	const initialTileStrings: string[] = [
 		'TS3:SampleTiles',
 		'T\ta|name:grid|\ts|display:grid|grid-template-columns:repeat(auto-fill, minmax(200px, 1fr))|gap:20|width:100%|padding:40px 24px|box-sizing:border-box|\t',
 		' T\ta|name:basic-div|inner:Basic Div|\ts|width:200|height:200|background:#667eea|color:white|display:flex|align-items:center|justify-content:center|border-radius:8|\t',
@@ -27,61 +28,113 @@
 		' T\ta|name:full-featured|inner:Full Featured|drag:true|resize:true|hover:true|clickAction:Alert|alertContent:Full featured tile!|\ts|width:200|height:200|background:#667eea|color:white|display:flex|align-items:center|justify-content:center|border-radius:8|position:relative|cursor:move|\t'
 	];
 
-	const List: RS1.TileList = new RS1.TileList(TileStrings);
+	// TileStrings[0] = header, TileStrings[1..] = data rows; DOM id tile-N === TileStrings[N]
+	let TileStrings = $state([...initialTileStrings]);
+	let tilesContainer = $state<HTMLDivElement | null>(null);
 	let plotter: Plotter | null = null;
 
-	onMount(() => {
-		const container = document.querySelector('.tiles');
-		if (container) {
-			plotter = new Plotter(List, container as HTMLDivElement);
-			plotter.PlotTiles();
+	let dialogOpen = $state(false);
+	/** Index into TileStrings (1 = first data tile; 0 is header) */
+	let selectedTileIndex = $state(1);
+	let editingTypePart = $state('');
+	let editingAList = $state('');
+	let editingSList = $state('');
+
+	function parseTileLine(line: string): { typePart: string; aList: string; sList: string } {
+		const parts = line.split('\t');
+		const typePart = parts[0] ?? '';
+		const aList = parts[1] ?? '';
+		const sList = parts[2] ?? '';
+		return { typePart: typePart || 'T', aList, sList };
+	}
+
+	function buildTileLine(typePart: string, aList: string, sList: string): string {
+		const typeWithIndent = (typePart && typePart.trim()) ? typePart : 'T';
+		return `${typeWithIndent}\t${aList}\t${sList}\t`;
+	}
+
+	function openTileEditor(domTileIndex: number) {
+		// list.tiles[0] is unused; list.tiles[1]=TileStrings[1], list.tiles[2]=TileStrings[2], ... so DOM id tile-N === TileStrings[N]
+		const tileStringsIndex = domTileIndex;
+		const line = TileStrings[tileStringsIndex];
+		if (line == null) return;
+		selectedTileIndex = tileStringsIndex;
+		const { typePart, aList, sList } = parseTileLine(line);
+		editingTypePart = typePart || 'T';
+		editingAList = aList;
+		editingSList = sList;
+		dialogOpen = true;
+	}
+
+	function handleContextMenu(e: MouseEvent) {
+		const el = (e.target as HTMLElement).closest?.('[id^="tile-"]') as HTMLElement | null;
+		if (!el) return;
+		e.preventDefault();
+		const id = el.getAttribute('id') ?? '';
+		const match = id.match(/^tile-(\d+)$/);
+		if (match) {
+			const domIndex = parseInt(match[1], 10);
+			openTileEditor(domIndex);
 		}
+	}
+
+	function applyEdit(typePart: string, aList: string, sList: string) {
+		const line = buildTileLine(typePart, aList, sList);
+		TileStrings = TileStrings.with(selectedTileIndex, line);
+		closeDialog();
+	}
+
+	function closeDialog() {
+		dialogOpen = false;
+	}
+
+	// React to TileStrings and container: replot whenever either is ready/updated (single source of truth for grid DOM)
+	$effect(() => {
+		const container = tilesContainer;
+		const strings = TileStrings;
+		if (!container || !strings.length) return;
+		if (plotter) {
+			plotter.destroy();
+			plotter = null;
+		}
+		container.innerHTML = '';
+		const list = new RS1.TileList(strings);
+		plotter = new Plotter(list, container);
+		plotter.PlotTiles();
+		return () => {
+			if (plotter) {
+				plotter.destroy();
+				plotter = null;
+			}
+		};
 	});
 
 	onDestroy(() => {
 		if (plotter) {
 			plotter.destroy();
+			plotter = null;
 		}
 	});
 </script>
 
-<div class="full-page">
-	<div class="tiles tile-grid"></div>
+<div
+	class="w-full min-h-full min-w-0 flex-1 box-border overflow-y-auto bg-[#1e1e1e] flex flex-col"
+	role="region"
+	aria-label="Sample tiles"
+	oncontextmenu={handleContextMenu}
+>
+	<div class="tiles tile-grid w-full py-10 px-6" bind:this={tilesContainer}></div>
+
+	{#if dialogOpen}
+		<TileEditorModal
+			selectedTileIndex={selectedTileIndex}
+			initialTypePart={editingTypePart}
+			initialAList={editingAList}
+			initialSList={editingSList}
+			buildTileLine={buildTileLine}
+			onClose={closeDialog}
+			onApply={applyEdit}
+		/>
+	{/if}
 </div>
 
-<style>
-	:global(html),
-	:global(body) {
-		margin: 0;
-		padding: 0;
-		width: 100%;
-		height: 100%;
-		overflow-x: hidden;
-	}
-
-	:global(body) {
-		background: #f5f5f5;
-	}
-
-	:global(#svelte),
-	:global(.container),
-	:global(main) {
-		width: 100%;
-		min-height: 100vh;
-		margin: 0;
-		padding: 0;
-	}
-
-	.full-page {
-		width: 100%;
-		min-height: 100vh;
-		box-sizing: border-box;
-		overflow-y: auto;
-	}
-
-	/* Container holds the grid wrapper tile; grid layout comes from first tile's styles */
-	.tiles.tile-grid {
-		width: 100%;
-		padding: 40px 24px;
-	}
-</style>

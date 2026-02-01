@@ -13,11 +13,15 @@
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^6.0.0",
 		"@sveltejs/kit": "^2.20.4",
+		"@tailwindcss/vite": "^4.1.18",
 		"@types/better-sqlite3": "^7.6.4",
 		"@types/btoa": "^1.2.3",
+		"autoprefixer": "^10.4.24",
+		"postcss": "^8.5.6",
 		"prettier": "^2.8.8",
 		"svelte": "^5.45.6",
 		"svelte-check": "^4.0.5",
+		"tailwindcss": "^4.1.18",
 		"tslib": "^2.4.1",
 		"typescript": "^5.4.5",
 		"vite": "^6.2.5"
