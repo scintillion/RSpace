@@ -261,6 +261,8 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 	console.log ('Server Receives Client Request #' + Serial.toString ());
 
 	let QF = InPack.xField;
+	if (!QF)
+		return RS1.NILPack;
 
 	console.log ('-----------\nInPack=' + InPack.info + 'Q=' + QF?.Str + '\n-----------\n'
 		 + InPack.desc);
