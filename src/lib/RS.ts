@@ -378,12 +378,44 @@ export namespace RS1 {
 			return k ? k.clear : false;
 		}
 
+		get clear () {
+			if (this.I)
+				this.I.clear;
+			
+			if (this.K)
+				this.K.clear;
+			
+			if (this.Q)
+				this.Q.clear;
+			
+			if (this.R)
+				this.R.clear;
+			
+			if (this.N)
+				this.N = [];
+			if (this.P)
+				this.P.clear;
+			
+			if (this.S)
+				this.S = [];
+			
+			if (this.T)
+				this.T = '';
+			
+			if (this.X)
+				this.X.clear;
+			
+			if (this.Data)
+				this.Data = NILAB;
+			return true; 
+		}
+
 		get size () { return 0; }
 
 		get to$ () {
 			let s, iStr='', qStr='', rStr='', zStr='', kStr='', tStr = '', sStr = '', k = this.K;
 
-			if (!k  &&  this.cl == 'qList')
+			if (this.cl === 'qList')
 				return this.qstr;
 
 			if (s = this.I)
@@ -401,7 +433,7 @@ export namespace RS1 {
 			}
 
 			if (this.T)
-				tStr = this.T + 'T\x1e';
+				tStr = this.T + 'T' + EndStr;
 
 			if (k) {
 				if (this instanceof xList) {
@@ -425,6 +457,99 @@ export namespace RS1 {
 
 			let Str = iStr + qStr + rStr + zStr + kStr + tStr + sStr;
 			return Str;
+		}
+
+		from$ (S:string|string[]) : string|string[] {
+			let last, str, type = typeof S, Splits, Strs, q, r;
+			if (q = this.Q)
+				q.clear;
+			if (r = this.R)
+				r.clear;
+			this.S = undefined;
+			this.T = undefined;
+			this.qstr = '|';
+
+			if (type === 'string') {
+				str = S as string;
+				if (!str)
+					str = '|';
+
+				last = str.slice (-1);
+				if (last === '|') 		// simple case, qList
+					return this.qstr = str;
+				else if (last === EndStr) 	// delim case
+					Splits = str.split (EndStr);
+				else if (last < ' ')
+					Strs = str.split (last).slice (0,-1);
+				else if (str.indexOf ('\n') >= 0)
+					Strs = str.split ('\n');	// deal with special case no terminating '\n'
+				else //	last >= ' ', not terminated by delim, must add to qstr
+					Strs = [str + '|'];
+			}
+			else Strs = S as string[];
+
+			if (!Strs  ||	!Strs.length)
+				return '';
+
+			let remain:string[] = [], i, first = Strs[0];
+			if (first) {
+				if (first.slice (-1) === '|') {
+					this.qstr = first;
+					Strs = Strs.slice (1);
+				}
+				else if (first.indexOf ('|') >= 0) {
+					this.qstr = first + '|';
+					Strs = Strs.slice (1);
+				}
+			}
+			else Strs = Strs.slice (1);
+
+			let k = this.K;
+			if (k) {
+				k.clear;
+				for (const S of Strs)
+					if (S)
+						k.add (newList (S),false);
+			}
+
+			if (Splits) {
+				for (const str of Splits) {
+					if (!str)
+						continue;
+
+					last = str.slice (-1); first = str.slice (0,-1);
+					switch (last) {
+						case 'I' :
+							if (str.slice(-1) !== '|')
+								first += '|';
+							this.qstr = first;
+							break;
+
+						case 'Q' :
+							if (q)
+								q.from$ (first);
+							break;
+
+						case 'R' :
+							if (r)
+								r.from$ (first);
+							break;
+
+						case 'T' :
+							if (this.T)
+								this.T = first;
+							break;
+
+						case 'S' :
+							if (this.S)
+								this.S = first.split ('\n');
+							break;
+
+						default : remain.push (str);
+					}
+				}
+			}
+			return remain;
 		}
 
 		get to$$ () : string [] { return []; }
@@ -578,87 +703,13 @@ export namespace RS1 {
 
 		fromPack (Pack:RSPack) {}
 		fromFields (Fields : RSF[]) {}
-		from$ (S:string|string[]) : string|string[] {
-			let last, str, type = typeof S, Splits;
-			if (type === 'string') {
-				str = S as string;
-				if (!str)
-					str = '|';
 
-				last = str.slice (-1);
-				if (last === '|') 		// simple case, qList
-					return this.qstr = str;
-				else if (last === EndStr) {	// delim case
-
-
-				}
-			}
-
-			let remain:string[] = [], i=this.I, q=this.Q, r=this.R, first, Strs;
-
-			if (i)
-				i.clear;
-			if (q)
-				q.clear;
-			if (r)
-				r.clear;
-			this.S = undefined;
-			this.T = undefined;
-
-			// this string code probably not executed by xList/qList/rList, overridden in xList
-			if ((typeof S) === 'string') {
-				let str = S as string;
-				last = str.slice (-1);
-				if (last === '|')
-					return this.qstr = str;
-				else if (last < ' ') 
-					Strs = str.split (last).slice (0,-1);
-				else {
-					if (str.indexOf (EndStr) >= 0)
-						Strs = str.split (EndStr);
-					else if (str.indexOf ('\n') >= 0)
-						Strs = str.split ('\n');
-					else Strs = [str];
-				}
-			}
-			else Strs = S as string[];
-
-			for (const str of Strs) {
-				if (!str)
-					continue;
-
-				last = str.slice (-1); first = str.slice (0,-1);
-				switch (last) {
-					case 'I' : if (i) i.from$ (first); break;
-
-					case 'Q' : if (q)	q.from$ (first); break;
-
-					case 'R' :
-						if (r)
-							r.from$ (first);
-						break;
-
-					case 'T' : this.T = first; break;
-
-					case 'S' :
-						this.S = first.split ('\n');
-						break;
-
-					default : remain.push (str);
-				}
-			}
-			
-			return remain;
-		}
-
-		get clear () { return true; }
-
-		constructRSD (In:RSArgs, clear = false) {
-			if (!In)
-				return;
-
+		constructRSD (In:RSArgs, clear = true) {
 			if (clear)
 				this.clear;
+
+			if (!In)
+				return;
 
 			let t = typeof In;
 			switch (t) {
