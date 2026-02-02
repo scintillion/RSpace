@@ -6490,6 +6490,20 @@ export namespace RS1 {
 		return Num;
 	}
 
+	export function ab2bb (AB : ArrayBuffer) {
+		return newBuf (AB);
+	}
+
+	export function bb2ab (bbi : BBI) {
+		if (bbi) {
+			let newAB = new ArrayBuffer (bbi.byteLength);
+			let newBBI = new Uint8Array (newAB);
+			newBBI.set (bbi);
+			return newAB;
+		}
+		return NILAB;
+	}
+
 	export function bb2num (buf : BBI) : number {
 		if (buf) {
 			let len = buf.length, AB = new ArrayBuffer (len), dest = new Uint8Array (AB);

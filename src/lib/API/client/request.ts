@@ -37,24 +37,31 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
   return BP;
 }
 
-/*
-
-async function rsdRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
+async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
   // console.log ('PackRequest Incoming = \n' + BP.Desc ());
-  BP.addArgs (['#',++Serial]);
+  rsd.Set ('#', ++Serial);
 
-  let AB = BP.bufOut ();
+  let AB = rsd.toBBI;
   console.log ('Sending Client Request #' + Serial.toString ());
 
-  let recvAB = await RS1.ReqAB (AB);
+  if (AB) {
+    let ABuffer = new ArrayBuffer (AB.byteLength);
+    let newAB = RS1.newBuf (ABuffer);
+    newAB.set (AB);
 
-  BP.bufIn (recvAB);
+    let recvAB = await RS1.ReqAB (ABuffer);
 
-  console.log (' ---- Received Server reply #' + BP.fNum ('#').toString () + '\n' + BP.desc);
+    let newRSD = new RS1.rList (ABuffer);
+    // BP.bufIn (recvAB);
 
-  return BP;
+    console.log (' ---- Received Server reply #' + newRSD.Get ('#').toString () + '\n' + newRSD.expand);
+    return newRSD;
+  }
+
+  return RS1.NILRSD;
 }
-*/
+
+
 
 
 export async function InitClient () {
