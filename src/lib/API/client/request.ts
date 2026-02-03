@@ -113,7 +113,7 @@ export async function InitClient () {
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
     console.log (Q.descByName ('XYZ'));
     console.log (Q.num ('ABC').toString ());
-    console.log (Q.count.toString ());
+    console.log (Q.qCount.toString ());
     console.log ('Names=' + Q.names);
     let ND = Q.splitNames;
     console.log ('ND=' + ND.b);
