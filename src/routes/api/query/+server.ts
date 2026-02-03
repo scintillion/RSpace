@@ -231,7 +231,7 @@ class RServer {
 	DBK : DBKit;
 	myVilla='S';
 	myTile='';
-	mySession='';
+	mySession='ABC';
 
 	nextSession=0;
 
@@ -249,7 +249,107 @@ const Q = new DBKit ('q.sqlite3');
 
 const RSS = new RServer ('tile.sqlite3');
 
+async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
+	let Serial = InRSD.Get ('#');
+	let Client = InRSD.Get ('Client');
+	let ABC = InRSD.Get ('ABC');
+
+	if (!Serial)
+	{
+		console.log ('NO Client Serial:\n' + InRSD.expand);
+		throw "No Client Serial!";
+	}
+	console.log ('Server Receives Client Request #' + Serial,
+		 ' Client = ' + Client + ' ABC=' + ABC);
+
+
+	// Real processing here 
+	let OutList = new RS1.qList ();
+	OutList.setFast (['!H',++(RSS.nextSession),'#',Serial]);
+	console.log ('*** Session = **' + RSS.mySession + '**');
+	console.log ('  Starting Session #' + RSS.mySession);
+	return OutList;
+}
+
+
 async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
+	let Serial = InPack.fNum ('#');
+	let Client = InPack.fStr ('Client');
+	let ABC = InPack.fStr ('ABC');
+	let OutPack : RS1.BufPack;
+
+	if (!Serial)
+	{
+		console.log ('NO Client Serial:\n' + InPack.expand);
+		throw "No Client Serial!";
+	}
+	console.log ('Server Receives Client Request #' + Serial.toString (),
+		 ' Client = ' + Client + ' ABC=' + ABC);
+
+	OutPack = new RS1.BufPack ();
+	OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
+	console.log ('*** Session = **' + RSS.mySession + '**');
+	console.log ('  Starting Session #' + RSS.mySession);
+	return OutPack;
+
+/*
+
+	let QF = InPack.xField;
+	if (!QF)
+		return RS1.NILPack;
+
+	console.log ('-----------\nInPack=' + InPack.info + 'Q=' + QF?.Str + '\n-----------\n'
+		 + InPack.desc);
+
+		 
+	switch (QF.Name) {
+		case '!Q' :
+			RSS.myTile = InPack.fStr('.T');
+			console.log ('  Query Tile --> ' + RSS.myTile);
+			
+			let Params = RSS.DBK.buildQ (InPack);
+			OutPack = RSS.DBK.execQ (InPack, Params);
+
+			OutPack.addArgs (['#',Serial]);
+
+			console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
+			return OutPack;
+
+		case '!H' :
+			OutPack = new RS1.BufPack ();
+			OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
+			console.log ('  Starting Session #' + RSS.mySession);
+			return OutPack;
+			break;
+
+		default : return RS1.NILPack;
+	}
+*/
+
+	return RS1.NILPack;
+}
+
+async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
+	let BP = new RS1.BufPack ();
+	BP.bufIn (AB);
+
+	let ResultPack = await RS1.ReqPack (BP);
+	let ResultAB = ResultPack.bufOut ();
+	return ResultAB;
+}
+
+export const POST = (async ({ request, url }) => {
+
+	const ClientAB = await request.arrayBuffer();
+
+	let ServerAB = await RS1.ReqAB (ClientAB);
+
+	return new Response(ServerAB);
+}) satisfies RequestHandler;
+
+
+/*
+ async function (OLD)ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 	let Serial = InPack.fNum ('#');
 	let OutPack : RS1.BufPack;
 
@@ -294,20 +394,4 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 	return RS1.NILPack;
 }
 
-async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
-	let BP = new RS1.BufPack ();
-	BP.bufIn (AB);
-
-	let ResultPack = await RS1.ReqPack (BP);
-	let ResultAB = ResultPack.bufOut ();
-	return ResultAB;
-}
-
-export const POST = (async ({ request, url }) => {
-
-	const ClientAB = await request.arrayBuffer();
-
-	let ServerAB = await RS1.ReqAB (ClientAB);
-
-	return new Response(ServerAB);
-}) satisfies RequestHandler;
+*/

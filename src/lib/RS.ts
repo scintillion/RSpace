@@ -949,7 +949,7 @@ export namespace RS1 {
 
 		copy (NewName = '') : RSD {
 			let pb = this.toPB ();
-			let newRS = newRSD (this.constructor.name, pb.bbi);
+			let newRS = newRSD (this.cl, pb.bbi);
 			if (NewName)
 				newRS.Name = NewName;
 			return newRS;
