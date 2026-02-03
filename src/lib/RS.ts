@@ -405,7 +405,31 @@ export namespace RS1 {
 			return true; 
 		}
 
-		get size () { return 0; }
+		get notZero () : boolean {
+			if (this.qstr.length > 1)
+				return true;
+			let k = this.K;
+			if (k) {
+				if (k._kids.length)
+					return true;
+			}
+
+			/*
+		I?	:	xList;
+		K?	:	RSK;
+		Q?	:	qList;
+		R?	:	rList;	
+
+		N?	:	number[];
+		P?	:	RSPack;
+		S?	:	string[];
+		T?	:	string;
+		X?	:	RSD;
+		Data? : any;
+			*/
+
+			return this.Q || this.R || this.N ||  this.P  || this.S ||  this.T || this.X  ||  this.Data;
+		}
 
 		get to$ () {
 			let s, iStr='', qStr='', rStr='', zStr='', kStr='', tStr = '', sStr = '', k = this.K;
@@ -824,6 +848,15 @@ export namespace RS1 {
 
 		get indent () { return 0; }
 
+		get dirty () { 
+			return this._bbi !== undefined;
+		}
+
+		get mark () {
+			this._bbi = undefined;
+			return true;
+		}
+
 		get info () {
 			let namestr = this.Name;
 
@@ -841,20 +874,6 @@ export namespace RS1 {
 				lines += ' G=' + this.Group;
 
 			lines += ']';
-			return lines;
-		}
-
-		get kidsInfo () {
-			let lines = this.info + '\n   ' + this.toSafe.slice(0,75); 
-
-			let n = 0, K = this.K;
-			if (K) {
-				let Items = K._kids;
-				for (const L of Items)
-					if (L)
-						lines += '\n' + ''.padStart (this.indent,' ') + 'child#' + (++n).toString () + '==' + L.info;
-			}
-
 			return lines;
 		}
 
@@ -879,14 +898,6 @@ export namespace RS1 {
 
 		// **** Kid functions ****
 
-		get dirty () { 
-			return this._bbi !== undefined;
-		}
-
-		get mark () {
-			this._bbi = undefined;
-			return true;
-		}
 		get kidTree () : RSTree|undefined {
 			let k = this.K;
 			if (!k)
@@ -896,6 +907,20 @@ export namespace RS1 {
 				k._tree = new RSTree (this);
 
 			return k._tree;
+		}
+
+		get kidsInfo () {
+			let lines = this.info + '\n   ' + this.toSafe.slice(0,75); 
+
+			let n = 0, K = this.K;
+			if (K) {
+				let Items = K._kids;
+				for (const L of Items)
+					if (L)
+						lines += '\n' + ''.padStart (this.indent,' ') + 'child#' + (++n).toString () + '==' + L.info;
+			}
+
+			return lines;
 		}
 
 		get kidsClear () {
@@ -931,9 +956,20 @@ export namespace RS1 {
 			return K ? K.Kids : [];
 		}
 
-		get kidCount () {
-			let K = this.K;
-			return K ? K.nItems : 0;
+		kidCount (shallow = true) {
+			let K = this.K, count = 0;
+			if (K) {
+				if (shallow)
+					return K.nItems;
+
+				let Kids = K.Kids;
+
+				for (const kid of Kids)
+					if (kid)
+						count += kid.kidCount (false);
+			}
+
+			return count;
 		}
 
 		get kidNameValues () : NameValue[] {
