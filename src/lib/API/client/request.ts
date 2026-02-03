@@ -197,8 +197,8 @@ export async function InitClient () {
     let SS = RList.to$;
     console.log ('toStr =  ' + '\nRList.toStr=\n' + RList.to$+ '!');
     console.log ('RList.EXPAND=\n' + RList.expand);
-    if (RList.Tree)
-        console.log ('RList.TREE!!\n' + RList.Tree.expand);
+    if (RList.kidTree)
+        console.log ('RList.TREE!!\n' + RList.kidTree.expand);
     let ABC:RS1.RSD = RList;
         console.log ('RList.RSD.constructor=' + ABC.constructor.name);
 
