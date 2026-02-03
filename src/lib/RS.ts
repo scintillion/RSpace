@@ -1449,6 +1449,142 @@ export namespace RS1 {
 		}
 
 
+		listByName (name:string) {
+			if (this.K)
+				return this.K.Get (name);
+		}
+
+		qListByName (name:string) {
+			let L = this.listByName (name);
+			if (L  &&  (L.cl === 'qList')) 
+				return L as qList;
+		} 
+
+		rListByName (name:string) {
+			let L = this.listByName (name);
+			if (L  &&  (L.cl === 'rList'))
+				return L as rList;
+		} 
+
+		mergeRList (list : xList|rList|RSR|string, overlay=true) {
+			let rsi, rsr, rsd, cl, merged = false;
+
+			if (this.cl !== 'rList')
+				return;
+
+			if (typeof list === 'string')
+				list = newList (list);
+			else cl = (rsd = list as RSD).cl;
+
+			if (cl === 'qList') {
+				rsi = list as qList;
+				overlay = false;
+			}
+			else rsr = (cl === 'rList') ? list as rList : (list as RSR).R as rList;
+
+			if (rsi) {
+				let name = rsi.Name;
+				let target = this.kidGet (name);
+				if (target) {	// merge rsi with name matched RSI (kid)
+					if (target.cl === 'qList') {
+						console.log ('qList merge target = ' + (target as qList).expand);
+						console.log ('qList merge incoming = ' + rsi.expand);
+						(target as qList).merge (rsi);
+						console.log ('qList target after merge = ' + (target as qList).expand);
+						return true
+					}	
+				}
+				else {
+					this.kidAdd (new qList (rsi.to$));	// add new rsi as kid
+					return true;
+				}
+			}
+			else if (rsr) {
+				if (overlay) {
+					let rsrNV = rsr.NameValues,tlist;
+					for (const nv of rsrNV) {						
+						tlist = this.kidGet (nv.Name);
+						if (tlist) {
+							if (tlist.cl == 'rList') {
+								console.log ('rList merge target = ' + (tlist as rList).expand);
+								console.log ('rList merge incoming = ' + (nv.Value as rList).expand);
+
+								(tlist as rList).mergeList (nv.Value as rList);
+								console.log ('rList target POST merge = ' + (tlist as rList).expand);
+								merged = true;
+							}
+							else if (tlist.cl === 'qList') {
+										console.log ('qList merge target = ' + tlist.expand);
+								console.log ('qList merge incoming = ' + (nv.Value as rList).expand);
+
+								(tlist as qList).merge (nv.Value as qList);
+								console.log ('qList target POST merge = ' + tlist.expand);
+								merged = true;
+							}	
+						}
+						else {	// not found, must add this list
+							this.kidAdd (newList ((nv.Value as xList).to$));
+							merged = true;
+						}
+					}
+				}
+				else {
+					let name = rsr.Name;
+					let target = this.kidGet (name);
+					if (target && target.isMom) {	// merge rsr with name matched RSr (kid)
+						(target as rList).merge (rsr);
+						return true;
+					}
+				}
+			}
+
+			return merged;
+		}
+
+		replace (list : xList|rList|RSR|string, single = true) {
+			let i=-1, xL:xList, replaced = 0;
+			
+			if (typeof list === 'string') 
+				xL = newList (list);
+			else {
+				xL = list as xList;
+				if (list.cl === 'RSR') {
+					if ((list as RSR).R)
+						xL = (list as RSR).R as xList;
+				}
+			}
+
+			let name = xL.Name, k = this.K;
+			if (!k)
+				return 0;
+
+			if (single) {
+				i = k._names.indexOf (name);
+				if (i >= 0) {
+					k._kids[i] = newList (xL.to$);
+					return 1;
+				}
+				return 0;
+			}
+
+			while ((i = k._names.indexOf (name,i+1)) >= 0) {
+				k._kids[i] = newList (xL.to$);
+				++replaced;
+			}
+
+			return replaced;
+		}
+
+		bubbleKid (nameOrList:string|RSD,dir=0) {
+			let k = this.K;
+			if (k)
+				return k.bubble (nameOrList as string|RSD,dir);
+			return false;
+		}
+
+
+
+
 		// **** Kid functions ****
 
 		get dirty () { 
