@@ -111,17 +111,17 @@ export async function InitClient () {
     console.log ('mySession = ' + RS1.mySession.toString ());
 
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
-    console.log (Q.descByName ('XYZ'));
-    console.log (Q.num ('ABC').toString ());
+    console.log (Q.qDescByName ('XYZ'));
+    console.log (Q.qNum ('ABC').toString ());
     console.log (Q.qCount.toString ());
-    console.log ('Names=' + Q.names);
-    let ND = Q.splitNames;
+    console.log ('Names=' + Q.qNames);
+    let ND = Q.qSplitNames;
     console.log ('ND=' + ND.b);
     console.log ('As=' + ND.a);
     let V = new RS1.vID ('DEF:ghq');
     Q.qSet ('DEF','ghq');
     Q.qSet ('XYZ',987);
-    ND = Q.splitNames;
+    ND = Q.qSplitNames;
     console.log ('ND=' + ND.b);
 
     let XYZ = new RS1.qList ();
@@ -187,9 +187,9 @@ export async function InitClient () {
     console.log ('B.to$=' + B.to$);
 
     console.log ('Prebubble = ' + Q.to$);
-    Q.bubble ('DEF');
+    Q.qBubble ('DEF');
     console.log ('Postbubble = ' + Q.to$);
-    Q.bubble ('DEF',1);
+    Q.qBubble ('DEF',1);
     console.log ('Bubble again = ',Q.to$);
 
     let RList = new RS1.rList (TileStrings);

@@ -30,14 +30,14 @@ export class Plotter {
 
     let styles = ``;
     let index = this.list.tiles.indexOf(tile);
-    const cssProperties = tile.sList.toVIDs;
-    cssProperties.forEach((property) => {
+    const cssProperties = tile.sList?.qToVIDs;
+    cssProperties?.forEach((property) => {
       if (property.Name !== "row" && property.Name !== "column") {
         if (this.CheckNum(property.Desc)) {
           styles += `${property.Name}:${property.Desc}px;`;
         } else styles += `${property.Name}:${property.Desc};`;
       } else {
-        if (tile.sList?.num(property.Name) === 1) {
+        if (tile.sList?.qNum(property.Name) === 1) {
           styles += `flex-direction:${property.Name};`;
         }
       }
@@ -50,90 +50,90 @@ export class Plotter {
     const props: any = {
       id: `tile-${index}`,
       styles: styles,
-      content: tile.aList?.descByName("inner") || "",
+      content: tile.aList?.qDescByName("inner") || "",
       tileType: tileType, // Pass tile type so T.svelte can determine element type
     };
 
     // Click actions
-    const clickAction = tile.aList?.descByName("clickAction");
+    const clickAction = tile.aList?.qDescByName("clickAction");
     if (clickAction) {
       props.clickAction = clickAction;
     }
 
-    const redirect = tile.aList?.descByName("redirect");
+    const redirect = tile.aList?.qDescByName("redirect");
     if (redirect) {
       props.redirect = redirect;
     }
 
-    const alertContent = tile.aList?.descByName("alertContent");
+    const alertContent = tile.aList?.qDescByName("alertContent");
     if (alertContent) {
       props.alertContent = alertContent;
     }
 
-    const link = tile.aList?.descByName("link");
+    const link = tile.aList?.qDescByName("link");
     if (link) {
       props.link = link;
     }
 
     // Interactions - convert string 'true'/'false' to boolean
-    const drag = tile.aList?.descByName("drag");
+    const drag = tile.aList?.qDescByName("drag");
     if (drag !== undefined && drag !== '') {
       props.drag = drag === 'true' || String(drag).toLowerCase() === 'true';
     }
 
-    const dragAxis = tile.aList?.descByName("dragAxis");
+    const dragAxis = tile.aList?.qDescByName("dragAxis");
     if (dragAxis) {
       props.dragAxis = dragAxis as 'x' | 'y' | 'xy';
     }
 
-    const resize = tile.aList?.descByName("resize");
+    const resize = tile.aList?.qDescByName("resize");
     if (resize !== undefined && resize !== '') {
       props.resize = resize === 'true' || String(resize).toLowerCase() === 'true';
     }
 
-    const swipe = tile.aList?.descByName("swipe");
+    const swipe = tile.aList?.qDescByName("swipe");
     if (swipe !== undefined && swipe !== '') {
       props.swipe = swipe === 'true' || String(swipe).toLowerCase() === 'true';
     }
 
-    const hold = tile.aList?.descByName("hold");
+    const hold = tile.aList?.qDescByName("hold");
     if (hold !== undefined && hold !== '') {
       props.hold = hold === 'true' || String(hold).toLowerCase() === 'true';
     }
 
-    const hover = tile.aList?.descByName("hover");
+    const hover = tile.aList?.qDescByName("hover");
     if (hover !== undefined && hover !== '') {
       props.hover = hover === 'true' || String(hover).toLowerCase() === 'true';
     }
 
-    const click = tile.aList?.descByName("click");
+    const click = tile.aList?.qDescByName("click");
     if (click !== undefined && click !== '') {
       props.click = click === 'true' || String(click).toLowerCase() === 'true';
     }
 
-    const dblclick = tile.aList?.descByName("dblclick");
+    const dblclick = tile.aList?.qDescByName("dblclick");
     if (dblclick !== undefined && dblclick !== '') {
       props.dblclick = dblclick === 'true' || String(dblclick).toLowerCase() === 'true';
     }
 
     // Text editing
-    const innerEdit = tile.aList?.descByName("innerEdit");
+    const innerEdit = tile.aList?.qDescByName("innerEdit");
     if (innerEdit !== undefined && innerEdit !== '') {
       props.innerEdit = innerEdit === 'true' || String(innerEdit).toLowerCase() === 'true';
     }
 
-    const textPreview = tile.aList?.descByName("textPreview");
+    const textPreview = tile.aList?.qDescByName("textPreview");
     if (textPreview !== undefined && textPreview !== '') {
       props.textPreview = textPreview === 'true' || String(textPreview).toLowerCase() === 'true';
     }
 
     // Background image
-    const bgImage = tile.aList?.descByName("BgImage");
+    const bgImage = tile.aList?.qDescByName("BgImage");
     if (bgImage !== undefined && bgImage !== '') {
       props.bgImage = bgImage === 'true' || String(bgImage).toLowerCase() === 'true';
     }
 
-    const backgroundImage = tile.sList?.descByName("background-image");
+    const backgroundImage = tile.sList?.qDescByName("background-image");
     if (backgroundImage && backgroundImage !== 'url("")') {
       props.backgroundImage = backgroundImage;
     }

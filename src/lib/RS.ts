@@ -372,6 +372,14 @@ export namespace RS1 {
 		X?	:	RSD;
 		Data? : any;
 
+		copy (NewName = '') : RSD {
+			let pb = this.toPB ();
+			let newRS = newRSD (this.cl, pb.bbi);
+			if (NewName)
+				newRS.Name = NewName;
+			return newRS;
+		}
+	
 		get Name () { return this.qGet ('Name@'); }
 		set Name (N:string) {
 			this.qSet ('Name',N);
@@ -444,11 +452,64 @@ export namespace RS1 {
 			return this.Q || this.R || this.N ||  this.P  || this.S ||  this.T || this.X  ||  this.Data;
 		}
 
+		//	Info on RSD
 
+		get qDescStr () {
+			let Type = this.qDescByName ('Type');
+			return this.listName + '[Type=' + Type + ']' + (this.qDesc? (':'+this.qDesc):''); 
+		}
 
+		get info () {
+			let namestr = this.Name;
+
+			let lines = namestr;
+			if (this.Desc)
+				lines += ':' + this.Desc;
+				
+			lines += '[' + this.cl;
+				
+			if (this.Type)
+				lines += ' T=' + this.Type;
+			if (this.Sub)
+				lines += ' S=' + this.Sub;
+			if (this.Group)
+				lines += ' G=' + this.Group;
+
+			lines += ']';
+			return lines;
+		}
+
+		get expand () {
+			let lines = this.info, count = 0, k = this.K;
+			
+			if (!k)
+				return lines;
+			
+			for (const K of k._kids)
+				if (K)
+					lines += '\n    ' + padNumStr (++count) + '.' + K.info;
+
+			return lines;
+		}
+
+		get toSafe () {
+			return SafeStr (this.to$);
+		}
 
 		//	IN/OUT from RSD
 
+
+		get to$$ () : string [] {
+			let Strs:string[] = [], k = this.K;
+
+			if (k) {
+				for (const kid of k._kids)
+					if (kid)
+						Strs.push (kid.to$);
+			}
+			
+			return Strs;
+		}
 
 		get to$ () {
 			let s, iStr='', qStr='', rStr='', zStr='', kStr='', tStr = '', sStr = '', k = this.K;
@@ -689,6 +750,16 @@ export namespace RS1 {
 
 			}
 		}
+		get dirty () { 
+			return this._bbi !== undefined;
+		}
+
+		get mark () {
+			this._bbi = undefined;
+			return true;
+		}
+
+
 
 		fromBuf (Buf : UBuf, RSDName='', KidName='') {
 			let pb = new PB (Buf, RSDName, KidName), k = this.K;
@@ -803,7 +874,7 @@ export namespace RS1 {
 		//	qList (intrinsic) functions
 
 		qGet (s:string) {
-			return this.descByName (s);
+			return this.qDescByName (s);
 		}
 
 		qSetNameValues (nv :(string|number|undefined|null)[]=[]) {
@@ -846,10 +917,10 @@ export namespace RS1 {
 			let addend = ((typeof add1) === 'string') ? newList (add1 as string) : add1;
 			let cl = addend.cl;
 
-			let add = addend.splitNames, notFound = true;
+			let add = addend.qSplitNames, notFound = true;
 
 			for (const a of add.a)
-				if (this.findname (a) >= 0) {
+				if (this.qFindName (a) >= 0) {
 					notFound = false;
 					break;
 				}
@@ -861,7 +932,7 @@ export namespace RS1 {
 				return;	// fast merge!
 			}
 
-			let dest = this.splitNames;
+			let dest = this.qSplitNames;
 			for (let lim = add.a.length, i = 0; i < lim;++i) {
 				let j = dest.a.indexOf (add.a[i]);
 				if (j >= 0) 	// need to replace
@@ -872,57 +943,9 @@ export namespace RS1 {
 				}
 			}
 
-			this.fromRaw (dest.b);
+			this.qFromRaw (dest.b);
 		}
 
-
-		//	general (RSD) functions
-
-		get dirty () { 
-			return this._bbi !== undefined;
-		}
-
-		get mark () {
-			this._bbi = undefined;
-			return true;
-		}
-
-		get info () {
-			let namestr = this.Name;
-
-			let lines = namestr;
-			if (this.Desc)
-				lines += ':' + this.Desc;
-				
-			lines += '[' + this.cl;
-				
-			if (this.Type)
-				lines += ' T=' + this.Type;
-			if (this.Sub)
-				lines += ' S=' + this.Sub;
-			if (this.Group)
-				lines += ' G=' + this.Group;
-
-			lines += ']';
-			return lines;
-		}
-
-		get expand () {
-			let lines = this.info, count = 0, k = this.K;
-			
-			if (!k)
-				return lines;
-			
-			for (const K of k._kids)
-				if (K)
-					lines += '\n    ' + padNumStr (++count) + '.' + K.info;
-
-			return lines;
-		}
-
-		get toSafe () {
-			return SafeStr (this.to$);
-		}
 
 		//	****   xList functions		****
 
@@ -951,11 +974,6 @@ export namespace RS1 {
 			if (this.isMom)
 				{ throw 'NO firstDelim in rList!'; return -1; }
 			return this.qstr.indexOf('|');
-		}
-
-		get descStr () {
-			let Type = this.descByName ('Type');
-			return this.listName + '[Type=' + Type + ']' + (this.qDesc? (':'+this.qDesc):''); 
 		}
 
 		get indent () {
@@ -1030,7 +1048,7 @@ export namespace RS1 {
 		// qList / FLAT functions
 		//
 
-		setFast (Args:any[]) {
+		qSetFast (Args:any[]) {
 			let str = '|', len = Args.length;
 			if (len & 1)
 				throw 'setFast requires Name:Value pairs';
@@ -1042,12 +1060,12 @@ export namespace RS1 {
 			this.qMerge (str);
 		}
 
-		newRef (name='') {
+		qNewRef (name='') {
 			return new qList (name+':'+'@'+this.listName);
 		}
 
-		bubble (name:string|number, dir=0) {
-			let start = this.findname (name);
+		qBubble (name:string|number, dir=0) {
+			let start = this.qFindName (name);
 			if (start < 0)
 				return false;
 
@@ -1091,11 +1109,11 @@ export namespace RS1 {
 			return (count <= 1) ? 0 : count - 1;
 		}
 
-		num (name:string|number) {
-			return Number (this.descByName (name));
+		qNum (name:string|number) {
+			return Number (this.qDescByName (name));
 		}
 
-		protected findname (name:string|number) {
+		protected qFindName (name:string|number) {
 			let str = '|' + name.toString ()+':';
 			let nPos = this.qstr.indexOf (str);
 			if (nPos >= 0)
@@ -1106,7 +1124,7 @@ export namespace RS1 {
 			return nPos >= 0 ? nPos + 1 : -1;
 		}
 
-		protected findByDesc(Desc: string|number) {
+		protected qFindByDesc(Desc: string|number) {
 			let SearchStr = ':' + Desc.toString() + '|';
 
 			let Pos = this.qstr.indexOf(SearchStr, this.qstr.indexOf('|'));
@@ -1122,16 +1140,16 @@ export namespace RS1 {
 			return this.qstr.indexOf(SearchStr);
 		}
 
-		nameByDesc(desc: string|number) {
-			let Pos = this.findByDesc (desc);
+		qNameByDesc(desc: string|number) {
+			let Pos = this.qFindByDesc (desc);
 			if (Pos >= 0)
 				return this.qstr.slice (Pos,this.qstr.indexOf(':',Pos));
 			return '';
 		}
 
 
-		protected prepost (name:string|number) {
-			let nPos = this.findname (name);
+		protected qPrePost (name:string|number) {
+			let nPos = this.qFindName (name);
 			if (nPos >= 0) {
 				let dPos = this.qstr.indexOf ('|',nPos);
 				if (dPos >= 0)
@@ -1142,14 +1160,14 @@ export namespace RS1 {
 		}
 
 		qDel (name:string|number) {
-			let pair = this.prepost (name);
+			let pair = this.qPrePost (name);
 			if (pair.a)
 				this.qstr = pair.a + pair.b;
 		}
 
 		qSet (name:string|number,desc:string|number='') {
 			let vStr = desc ? (name.toString () + ':' + desc.toString ()) : name.toString ();
-			let pair = this.prepost(name);
+			let pair = this.qPrePost(name);
 
 			if (pair.a)
 				this.qstr = pair.a + vStr + pair.b;
@@ -1157,8 +1175,8 @@ export namespace RS1 {
 		}
 
 
-		get toVIDs () {
-			let Strs = this.toRaw;
+		get qToVIDs () {
+			let Strs = this.qToRaw;
 			let VIDs = new Array<vID> (Strs.length);
 
 			let count = 0;
@@ -1168,7 +1186,7 @@ export namespace RS1 {
 			return VIDs;
 		}
 
-		static VIDsToLines(VIDs: vID[], Delim: string): string[] {
+		static qVIDsToLines(VIDs: vID[], Delim: string): string[] {
 			let i = VIDs.length;
 			let Lines: string[] = new Array(i);
 
@@ -1177,15 +1195,15 @@ export namespace RS1 {
 			return Lines;
 		}
 
-		get toVList () {
+		get qToVList () {
 			return new vList (this.qstr);
 		}
 
-		toVIDList (Sep=';',Delim='') {
+		qToVIDList (Sep=';',Delim='') {
 			if (!Delim)
 				Delim = ':';
 
-			let VIDs = this.toVIDs, Str = '';
+			let VIDs = this.qToVIDs, Str = '';
 
 			for (const v of VIDs)
 				Str += v.Name + Delim + v.Desc + Sep;
@@ -1193,12 +1211,12 @@ export namespace RS1 {
 			return Str.slice (0,-1);
 		}
 
-		fromVList (L : vList) {
+		qFromVList (L : vList) {
 			this.from$ (L.x.toStr);
 		}
 
-		getVID (name:string|number) {
-			let nPos = this.findname (name);
+		qGetVID (name:string|number) {
+			let nPos = this.qFindName (name);
 			if (nPos < 0)
 				return null;
 
@@ -1209,14 +1227,14 @@ export namespace RS1 {
 			return null;
 		}
 
-		getVIDFmt (name:string|number) {
-			let VID = this.getVID (name);
+		qGetVIDFmt (name:string|number) {
+			let VID = this.qGetVID (name);
 			if (VID  &&  !VID.Fmt) 
 				VID.Fmt = new IFmt ('');
 			return VID;
 		}
 
-		setVID (VID:vID) {
+		qSetVID (VID:vID) {
 			let str = VID.to$, pos = str.indexOf(':');
 			if (!str)
 				return;		// null VID
@@ -1231,11 +1249,11 @@ export namespace RS1 {
 			if (typeof xq === 'string')
 				x = (xq as string).split ('|');
 			else {
-				let split = (xq as xList).splitNames;
+				let split = (xq as xList).qSplitNames;
 				x = split.a;
 			}
 
-			let split = this.splitNames, count = 0, newRaw = [];
+			let split = this.qSplitNames, count = 0, newRaw = [];
 			for (const s of x) {
 				if (s) {
 					let i = split.a.indexOf (s);
@@ -1249,28 +1267,8 @@ export namespace RS1 {
 			return count ? new qList (newRaw) : new qList ();
 		}
 
-		get rtoQList () {
-			let qstrs: string[] = [''], k = this.K;
-
-			if (!k)
-				return new qList ();
-
-			let Lists = k._kids;
-
-			for (const L of Lists) {
-					if (!L) continue;
-
-					let D = L.Desc, N = L.Name;
-					qstrs.push ((D && (D != N)) ? (N + ':' + D) : N);
-				}
-
-			qstrs = qstrs.sort();
-
-			return new qList(qstrs.join('|') + '|');
-		}		
-
-		rToSelect(Select: HTMLSelectElement | HTMLOListElement | HTMLUListElement) {
-			let VIDs = this.toVIDs;
+		qToSelect(Select: HTMLSelectElement | HTMLOListElement | HTMLUListElement) {
+			let VIDs = this.qToVIDs;
 			let VIDLen = VIDs.length;
 
 			if (Select instanceof HTMLSelectElement) {
@@ -1338,12 +1336,8 @@ export namespace RS1 {
 			}
 		}
 
-
-
-
-
-		descByName (name:string|number) {
-			let nPos = this.findname (name);
+		qDescByName (name:string|number) {
+			let nPos = this.qFindName (name);
 			if (nPos < 0)
 				return '';
 
@@ -1356,19 +1350,19 @@ export namespace RS1 {
 			return (dPos >= 0) ? str.slice (dPos + 1) : str;
 		}
 
-		get toRaw () : string[] {
+		get qToRaw () : string[] {
 			let Strs = this.qstr.split ('|');
 			return Strs.slice (1,-1);
 		}
 
-		fromRaw (VIDStrs:string[]=[]) {
+		qFromRaw (VIDStrs:string[]=[]) {
 			let NameDesc = this.qstr.slice (0,this.qstr.indexOf('|')+1);
 			let VIDStr = VIDStrs.join ('|');
 			this.qstr = NameDesc + (VIDStr ? (VIDStr + '|') : '');
 		}
 
-		get splitNames () : strsPair {
-			let raw = this.toRaw, names=new Array<string> (raw.length),count=0;
+		get qSplitNames () : strsPair {
+			let raw = this.qToRaw, names=new Array<string> (raw.length),count=0;
 
 			for (const s of raw) {
 				let dPos = s.indexOf(':');
@@ -1378,7 +1372,11 @@ export namespace RS1 {
 			return new strsPair (names,raw);
 		}
 
-		get names () { return this.splitNames.a; }
+		get qNames () { return this.qSplitNames.a; }
+
+
+
+
 
 		// **** Kid functions (general, excluding rList) ****
 
@@ -1461,26 +1459,6 @@ export namespace RS1 {
 			return K ? K.NameValues : [];
 		}
 
-		copy (NewName = '') : RSD {
-			let pb = this.toPB ();
-			let newRS = newRSD (this.cl, pb.bbi);
-			if (NewName)
-				newRS.Name = NewName;
-			return newRS;
-		}
-	
-		get to$$ () : string [] {
-			let Strs:string[] = [], k = this.K;
-
-			if (k) {
-				for (const kid of k._kids)
-					if (kid)
-						Strs.push (kid.to$);
-			}
-			
-			return Strs;
-		}
-
 		//	rList functions
 
 		listByName (name:string) {
@@ -1499,6 +1477,26 @@ export namespace RS1 {
 			if (L  &&  (L.cl === 'rList')) 
 				return L as rList;
 		} 
+
+		get rtoQList () {
+			let qstrs: string[] = [''], k = this.K;
+
+			if (!k)
+				return new qList ();
+
+			let Lists = k._kids;
+
+			for (const L of Lists) {
+					if (!L) continue;
+
+					let D = L.Desc, N = L.Name;
+					qstrs.push ((D && (D != N)) ? (N + ':' + D) : N);
+				}
+
+			qstrs = qstrs.sort();
+
+			return new qList(qstrs.join('|') + '|');
+		}		
 
 		rMergeList (list : xList|rList|RSR|string, overlay=true) {
 			let rsi, rsr, rsd, cl, merged = false;
@@ -5312,7 +5310,7 @@ export namespace RS1 {
         get names () { return this.splitNames.a; }
 
         merge (addend : qList) {
-            let dest = this.splitNames, add = addend.splitNames;
+            let dest = this.splitNames, add = addend.qSplitNames;
 
             for (let lim = add.a.length, i = 0; i < lim;++i) {
                 let j = dest.a.indexOf (add.a[i]);
@@ -7140,7 +7138,7 @@ export namespace RS1 {
 			return NILList;
 		 }
 
-		get Error () { return this.descByName ('Error'); }
+		get Error () { return this.qDescByName ('Error'); }
 
 		setAB (AB:ArrayBuffer|null = NILAB) { 
 			if (AB) 
