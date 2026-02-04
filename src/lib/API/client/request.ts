@@ -41,8 +41,8 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
   // console.log ('PackRequest Incoming = \n' + BP.Desc ());
-  rsd.Set ('#', ++Serial);
-  rsd.Set ('Client','XYZ');
+  rsd.qSet ('#', ++Serial);
+  rsd.qSet ('Client','XYZ');
 
   let AB = rsd.toBBI;
   console.log ('Sending Client Request #' + Serial.toString ());
@@ -57,7 +57,7 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     let newRSD = new RS1.rList (ABuffer);
     // BP.bufIn (recvAB);
 
-    console.log (' ---- Received Server reply #' + newRSD.Get ('#').toString () + '\n' + newRSD.expand);
+    console.log (' ---- Received Server reply #' + newRSD.qGet ('#').toString () + '\n' + newRSD.expand);
     return newRSD;
   }
 
@@ -119,8 +119,8 @@ export async function InitClient () {
     console.log ('ND=' + ND.b);
     console.log ('As=' + ND.a);
     let V = new RS1.vID ('DEF:ghq');
-    Q.set ('DEF','ghq');
-    Q.set ('XYZ',987);
+    Q.qSet ('DEF','ghq');
+    Q.qSet ('XYZ',987);
     ND = Q.splitNames;
     console.log ('ND=' + ND.b);
 
@@ -163,9 +163,9 @@ export async function InitClient () {
     console.log  ('ABCRootList = ' + ABCRootList.expand);
     console.log  ('ABCRSIList = ' + ABCRSIList.expand);
     
-    ABCRootList.mergeList (ABCRSIList);
+    ABCRootList.rMergeList (ABCRSIList);
     console.log  ('ABCRootList after RSIList merge = ' + ABCRootList.expand);
-    targetList.mergeList (ABCRootList, false);
+    targetList.rMergeList (ABCRootList, false);
     
     targetList._bbi = undefined; // force rebuild
     let newBBI = targetList.toBBI,bbstr = RS1.bb2str (targetList.toBBI) ;
