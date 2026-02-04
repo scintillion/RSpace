@@ -361,7 +361,6 @@ export namespace RS1 {
 		get isMom () { return false; }
 		get cl () { return 'RSD'; }
 
-		I?	:	xList;
 		K?	:	RSK;
 		Q?	:	qList;
 		R?	:	rList;	
@@ -374,9 +373,8 @@ export namespace RS1 {
 		Data? : any;
 
 		get clear () {
-			if (this.I)
-				this.I.clear;
-			
+			this.qstr = '|';
+
 			if (this.K)
 				this.K.clear;
 			
@@ -569,8 +567,6 @@ export namespace RS1 {
 			}
 			return remain;
 		}
-
-		get to$$ () : string [] { return []; }
 
 		PBsToBuf (PBs:PB[],RSDName='') {
 			let pStrs = new Array<string> (PBs.length + 1), count = 0, cName = this.cl;
@@ -769,8 +765,7 @@ export namespace RS1 {
 		get NILchk () { return false; }
 
 		Get (s:string) {
-			let i = this.I;
-			return i ? i.descByName (s) : '';
+			return this.descByName (s);
 		}
 
 		setNameValues (nv :(string|number|undefined|null)[]=[]) {
@@ -1523,6 +1518,18 @@ export namespace RS1 {
 			if (NewName)
 				newRS.Name = NewName;
 			return newRS;
+		}
+	
+		get to$$ () : string [] {
+			let Strs:string[] = [], k = this.K;
+
+			if (k) {
+				for (const kid of k._kids)
+					if (kid)
+						Strs.push (kid.to$);
+			}
+			
+			return Strs;
 		}
 	}
 
@@ -2592,54 +2599,7 @@ export namespace RS1 {
 	}
 
 	export class xList extends RSD {
-		I : xList = this;
-		
 		get cl () { return 'xList'; }
-
-
-		constructor (In : RSArgs=undefined)
-		{
-			super (In);
-
-			if (In)
-				this.from$ (In as string|string[]);
-		}
-
-		//
-		// COMMON functions
-		//
-
-		from$ (Str:string|string[]='|') {
-			if (this.notIList)
-				return '';
-
-			if ((typeof Str) === 'string') {
-				let S = Str as string;
-
-				if (S.slice(-1) !== '|')
-					S += '|';
-				this.qstr = S;
-				console.log ('creating ' + this.info);
-			}
-			else {
-				this.qstr = '|';
-				this.fromRaw (Str as string[]);
-				console.log ('creating ' + this.info);
-			}
-			return '';
-		}
-
-		get to$$ () : string [] {
-			let Strs:string[] = [], k = this.K;
-
-			if (k) {
-				for (const kid of k._kids)
-					if (kid)
-						Strs.push (kid.to$);
-			}
-			
-			return Strs;
-		}
 	}
 
 	export function newList (S='|') {
