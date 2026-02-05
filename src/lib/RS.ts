@@ -844,7 +844,9 @@ export namespace RS1 {
 						let elType = typeof (Arr[0]);
 
 						switch (elType) {
-							case 'string' : this.from$ (In as string[]); return;
+							case 'string' : 
+								this.rConstruct (In); return;
+								//this.from$ (In as string[]); return;
 							default :
 								if (Arr[0] instanceof RSField) {
 									this.fromFields (Arr as RSF[]); return; }
@@ -1698,8 +1700,13 @@ export namespace RS1 {
 					continue;
 
 				let D = S.slice(-1);
-				if (D === '|')
+				console.log('IN BRANCH', JSON.stringify(S), JSON.stringify(D), D === '|');
+
+				if (D === '|') {
+					console.log ('  After IF, D === ' + JSON.stringify (D));
+					
 					k.Set (new qList (S),false);
+				}
 				else if (isDelim (D)) {
 					let LStrs = S.split (D);
 					// console.log ('LStrs.length=' + LStrs.length.toString ());
@@ -3134,6 +3141,11 @@ export namespace RS1 {
 
 	export class rList extends xList {
 		K : RSK = new RSK (this);
+
+		constructor (In? : RSArgs, name = '', desc = '') {
+			super ();
+			this.rConstruct (In, name, desc);
+		}
 		
 		get iList () { return false; }
 		get notIList () { return true; }
