@@ -23,7 +23,7 @@ export class QEditor {
 	}; // HTMLElement(s)
 	private selectContainer: HTMLDivElement;
 	private rList: RS1.rList;
-	private formats: RS1.qList = RS1.rLoL.FT as RS1.qList;
+	private formats: RS1.qList = new RS1.qList (RS1.rLoL.FT ? RS1.rLoL.FT : '');
 	
 
 	/** Public Functions (External Calls) */
@@ -97,9 +97,9 @@ export class QEditor {
 		// public/Populate
 		this.CLToSelect();
 
-		const FirstVID: RS1.vID = this.qList.toSortedVIDs[0] as RS1.vID;
+		const FirstVID: RS1.vID = this.qList.qToSortedVIDs[0] as RS1.vID;
 
-		const vIDs = this.qList.toSortedVIDs;
+		const vIDs = this.qList.qToSortedVIDs;
 		this.selectbox.onchange = () => {
 			const selected = this.selectbox.value;
 			const VID: RS1.vID = vIDs.find((VID) => VID.Name === selected) as RS1.vID;
@@ -126,7 +126,7 @@ export class QEditor {
 			this.selectbox.innerHTML = '';
 		}
 
-		this.qList.toSelect(this.selectbox);
+		this.qList.qToSelect(this.selectbox);
 		this.selectContainer.appendChild(this.selectbox);
 	}
 
@@ -156,7 +156,7 @@ export class QEditor {
 
 			const rawFMT = vID.Fmt as RS1.IFmt;
 			const format1: string = rawFMT.TypeStr;
-			const format = this.formats?.descByName(rawFMT.Ch) as string;
+			const format = this.formats?.qDescByName(rawFMT.Ch) as string;
 			
 			if (format === 'Member') {
 				this.LoadMemberAndSetFields();
@@ -186,13 +186,13 @@ export class QEditor {
 		this.i.value.style.display = 'none';
 		this.i.list.style.cssText =
 			'display: block; width: 100px; height: 40px; border-radius: 10px; font-family: inherit; outline: none; border: none; padding-left: 10px; transition: 0.3s linear;';
-		const CL = this.rList.toQList as RS1.qList;
-		CL.toSelect(this.i.list);
+		const CL = this.rList.rtoQList as RS1.qList;
+		CL.qToSelect(this.i.list);
 		this.i.vID.style.cssText =
 			'display: block; width: 100px; height: 40px; border-radius: 10px; font-family: inherit; outline: none; border: none; padding-left: 10px; transition: 0.3s linear;';
 		this.i.list.onchange = () => {
 			const List = this.rList.qListByName(this.i.list.value) as RS1.qList;
-			List.toSelect(this.i.vID);			
+			List.qToSelect(this.i.vID);			
 		};
 
 		if (field === 'Set') {
@@ -210,7 +210,7 @@ export class QEditor {
 	}
 
 	private CreateVID(): void {
-		const format: string = this.formats.nameByDesc(
+		const format: string = this.formats.qNameByDesc(
 			this.RemovePossibleDelim(this.i.fmt.value)
 		) as string;
 		let value: string = this.RemovePossibleDelim(this.i.value.value) as string;
@@ -245,7 +245,7 @@ export class QEditor {
 
 		// Update vList
 		// this.vList.x.UpdateVID(vID);
-		this.qList.setVID(vID);
+		this.qList.qSetVID(vID);
 		this.CLToSelect();
 		vID = vID.copy ;
 		// vID.List = this.vList;
@@ -279,7 +279,7 @@ export class QEditor {
 		}
 
 	
-		this.qList.setVID(vID);
+		this.qList.qSetVID(vID);
 		this.CLToSelect();
 		vID = vID.copy ;
 		// vID.List = this.vList;
@@ -300,7 +300,7 @@ export class QEditor {
 	}
 
 	private UpdateVID(name: string): void {
-		const format: string = this.formats.nameByDesc(
+		const format: string = this.formats.qNameByDesc(
 			this.RemovePossibleDelim(this.i.fmt.value)
 		) as string;
 		let value: string | number = this.RemovePossibleDelim(this.i.value.value);;
@@ -340,12 +340,12 @@ export class QEditor {
 		let vID = new RS1.vID(`${name}:${validDesc}`, this.qList);
 
 		if (updatedName) {
-			this.qList.setVID(vID);
+			this.qList.qSetVID(vID);
 			console.log(this.qList);
 			this.setVIDName(vID,updatedName)
 		}
 
-		this.qList.setVID(vID);
+		this.qList.qSetVID(vID);
 		this.CLToSelect();
 	 
 		
@@ -357,7 +357,7 @@ export class QEditor {
 	}
 
 	private DeleteVID(name: string): void {
-		this.qList.del(name);
+		this.qList.qDel(name);
 		this.CLToSelect();
 	}
 
@@ -367,7 +367,7 @@ export class QEditor {
 
 		newvID.Name = `${newvID.Name} Copy`;
 		// this.vList.x.UpdateVID(newvID, false);
-		this.qList.setVID(newvID);
+		this.qList.qSetVID(newvID);
 		this.ClearRef();
 		this.Populate();
 		// console.log(this.vList.Str); [ignore]
@@ -376,12 +376,12 @@ export class QEditor {
 	private MoveElement(direction: string, vID: RS1.vID): void {
 		if (direction === 'up') {
 			// this.vList.x.Bubble(vID.Name, -1);
-			this.qList.bubble(vID.Name, -1);
+			this.qList.qBubble(vID.Name, -1);
 			this.CLToSelect(true);
 			return;
 		} else if (direction === 'down') {
 			// this.vList.x.Bubble(vID.Name, 1);
-			this.qList.bubble(vID.Name, 1);
+			this.qList.qBubble(vID.Name, 1);
 			this.CLToSelect(true);
 			return;
 		} else return;
@@ -482,7 +482,7 @@ export class LOLEditor {
 
 	get CL(): RS1.qList | undefined {
 		// return this.rList.TovList();
-		return this.rList.toQList;
+		return this.rList.rtoQList;
 	}
 
 	constructor(rList: RS1.rList, container: HTMLDivElement) {
@@ -540,7 +540,7 @@ export class LOLEditor {
 
 	private LoadSelect(): void {
 		// this.LOL.ToSelect(this.select);
-		this.rList.toSelect(this.select);
+		this.rList.rtoSelect(this.select);
 
 
 		this.select.onchange = () => this.ListChangeHandler();
@@ -626,7 +626,7 @@ export class LOLEditor {
 			'Which list would you like to merge with? *(enter name, case sensitive)'
 		) as string;
 		// currentList.x.Merge(this.LOL.List(mergeWith));
-		currentList.merge(this.rList.qListByName(mergeWith));
+		currentList.qMerge(this.rList.qListByName(mergeWith));
 	}
 
 	private LoadList(): void {
@@ -666,7 +666,7 @@ export class LOLEditor {
 			target: this.container,
 			props: {
 				// CLString: list.Str [modify]
-				CLString: list.toStr
+				CLString: list.to$
 			}
 		});
 	}

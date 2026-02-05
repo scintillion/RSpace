@@ -9,7 +9,7 @@ export class ListEditor {
 	constructor(list: RS1.xList, rList: RS1.rList | null = null) {
 		this.list = list;
 		this.rList = rList;
-		this.formats = RS1.rLoL.FT as RS1.qList;
+		this.formats = RS1.rLoL.FT;	// as RS1.qList;
 		this.TypeArray = RS1.TypeNames;
 	}
 
@@ -21,7 +21,7 @@ export class ListEditor {
 		if ('toSortedVIDs' in this.list && typeof this.list.toSortedVIDs !== 'undefined') {
 			freshVIDs = this.list.toSortedVIDs;
 		} else {
-			freshVIDs = this.list.toVIDs;
+			freshVIDs = this.list.qToVIDs;
 		}
 		// Create a new array to trigger reactivity
 		return [...freshVIDs];
@@ -49,7 +49,7 @@ export class ListEditor {
 		const value = rawFMT.Value?._Str as string || '';
 		const fmtstr = rawFMT.Xtra || '';
 		
-		const formatDesc = this.formats?.descByName(rawFMT.Ch) as string;
+		const formatDesc = this.formats?.qDescByName(rawFMT.Ch) as string;
 		
 		let listSelect = '';
 		let vIDSelect = '';
@@ -173,7 +173,7 @@ export class ListEditor {
 		const wasEditing = selectedVID !== null;
 		const savedName = name;
 		
-		this.list.setVID(vID);
+		this.list.qSetVID(vID);
 		
 		// If we were editing an existing vID, get the updated one
 		let updatedVID: RS1.vID | undefined;
@@ -183,7 +183,7 @@ export class ListEditor {
 			if ('toSortedVIDs' in this.list && typeof this.list.toSortedVIDs !== 'undefined') {
 				freshVIDs = this.list.toSortedVIDs;
 			} else {
-				freshVIDs = this.list.toVIDs;
+				freshVIDs = this.list.qToVIDs;
 			}
 			updatedVID = freshVIDs.find(v => v.Name === savedName);
 		}
@@ -199,20 +199,20 @@ export class ListEditor {
 	}
 
 	public deleteVID(vID: RS1.vID): void {
-		this.list.del(vID.Name);
+		this.list.qDel(vID.Name);
 	}
 
 	public copyVID(vID: RS1.vID): RS1.vID {
 		const newVID = vID.copy;
 		newVID.Name = `${newVID.Name} Copy`;
 		newVID.List = this.list;
-		this.list.setVID(newVID);
+		this.list.qSetVID(newVID);
 		return newVID;
 	}
 
 	public moveVID(vID: RS1.vID, direction: 'up' | 'down'): void {
 		const dir = direction === 'up' ? -1 : 1;
-		this.list.bubble(vID.Name, dir);
+		this.list.qBubble(vID.Name, dir);
 	}
 
 	public getTypeArray(): string[] {

@@ -2375,7 +2375,7 @@ export namespace RS1 {
 		Xtra='';
 		Value: IValue = new IValue();
 		Num = 0;
-		List: vList|undefined;
+		List?: qList;
 		Arr: number[] | undefined;
 
 		/*  Input Formats, defined by [FormatStr]
@@ -2418,7 +2418,7 @@ export namespace RS1 {
 		setXtra (Str1='') {
 			switch (this.Type) {
 				case FMMember:
-					if ((this.List = CL.List(Str1)) === NILList)
+					if (this.List = CL.List(Str1))
 						this.Xtra = Str1 + ' = Bad List Name';
 					break;
 
@@ -5856,49 +5856,42 @@ export namespace RS1 {
 	}
 
 	export class LoL {	//	LoL
-		Lists: vList[] = [];
+		Lists: qList[] = [];
 
-		List (Name: string): vList {
+		List (Name: string) {
 			for (const L of this.Lists)
 				if (L.Name === Name) return L;
-
-			return NILList;
 		}
 
-		add (Q : ListArgs, replace = false) {
-			if (!Q)
-				return NILList;
+//		type ListArgs	= BufPack|vList[]|string|string[]|undefined;
 
-			let List = NILList, Strs, len, i=0;
+		add (Q : qList|string|string[], replace = false) {
+			let List : qList|undefined, Strs, len, i=0;
 
-			if (Array.isArray (Q)) {
-				if (!(len=Q.length))
-					return;
-
-				if ((typeof Q[0]) === 'string')
-					Strs = Q as string[];
-				else {
-					Strs = Array<string>(len);
-					for (const L of Q)
-						Strs[i++] = (L as vList).x.toStr;
+			if (Array.isArray (Q)  &&  Q.length) {
+				if (len=Q.length)
+				{
+					if ((typeof Q[0]) === 'string')
+						Strs = Q as string[];
+					else {
+						Strs = Array<string>(len);
+						for (const L of Q)
+							Strs[i++] = L;
+					}
 				}
+				else Strs = [''];
 			}
 			else if ((typeof Q) === 'string') {
 				Strs = [Q as string];
-				len = 1;
 			}
-			else {	// BufPack
-				let Pack = Q as BufPack, len = Pack.Ds.length;
-				Strs = Array<string>(len);
-				for (const F of Pack.Ds)
-					Strs[i++] = F.Data as string;
-			}
+			else Strs = [''];
+
 
 			for (const S of Strs) {
-				List = new vList (S);
+				List = new qList (S);
 				if (replace) {
 					let Old = this.List(List.Name);
-					if (Old !== NILList) {
+					if (Old) {
 						let index = this.Lists.indexOf (Old);
 						if (index >= 0) {
 							this.Lists[index] = List;
@@ -5909,17 +5902,17 @@ export namespace RS1 {
 				this.Lists.push (List);
 			}
 
-			return List;
+			return List ? List : new qList ();
 		}
 
 		constructor (Lists:ListArgs=undefined) {
-			this.add (Lists);
+			this.add (Lists as string|string[]|qList);
 		}
 
 		get toStrs () : string[] {
 			let Strs = [];
 			for (const L of this.Lists)
-				Strs.push (L.x.toStr);
+				Strs.push (L.to$);
 			return Strs;
 		}
 
@@ -5962,12 +5955,14 @@ export namespace RS1 {
 
 			if (this.Lists[0]) Download (FileName, DefineStr);
 
+/*
 			for (let i = 0; i < CL.Lists.length; ++i) {
 				let List = CL.Lists[i];
 				let Pack = List.SavePack ();
 				Pack.xAdd ('Q','I');
 				sql.bInsUpd (Pack);
 			}
+*/
 
 			let BP = new BufPack('TEST', 'Details...asdfasdfas');
 			BP.addArgs([
@@ -6029,9 +6024,6 @@ export namespace RS1 {
 	//  ________________________________________________
 
 	export class RsLoL extends LoL {
-		get cl () { return 'RSLoL'; }
-
-
 		FM = this.add('FM|Num|Int|Dollar|Ord|Range|Pair|Nums|Member|Set|Str|Strs|Upper|');
 
 		/*  Input Formats, defined by~FormatStr~
@@ -6080,6 +6072,7 @@ export namespace RS1 {
 		CY = this.add('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
 		Test = this.add('Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|');
 
+		get cl () { return 'RSLoL'; }
 	}
 
 	export const CL = new RsLoL();
@@ -6104,13 +6097,12 @@ export namespace RS1 {
 			let RetStr = '';
 			let Invalid = true;
 
-			let ListVID: vID | undefined = CL.FM ? CL.FM.x.GetVID(this.ListType) : undefined;
+			let ListVID = CL.FM.qGetVID (this.ListType);
 			if (ListVID) {
 				let List = CL.List (ListVID.Name);
 
-				if (List !== NILList) {
-					let VID: vID | undefined = List.x.GetVID(this.ID);
-
+				if (List) {
+					let VID = List.qGetVID(this.ID);
 					RetStr = ListVID.Name + ':' + ListVID.Desc;
 
 					if (VID) {
