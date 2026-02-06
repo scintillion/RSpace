@@ -22,10 +22,10 @@ export class Plotter {
     return /^\d+$/.test(str);
   }
 
-  private CreateTile(tile: RS1.TDE): { element: HTMLElement; index: number } | null {
+  private CreateTile(tile: RS1.TDE): { element: HTMLElement; index: number } | undefined {
     if (!tile.aList || tile.Lists.length < 1) {
       console.error("Error: Invalid Tile");
-      return null;
+      return undefined;
     }
 
     let styles = ``;
@@ -157,7 +157,7 @@ export class Plotter {
     
     if (!tileElement || !(tileElement instanceof HTMLElement)) {
       console.error("Failed to mount tile component");
-      return null;
+      return undefined;
     }
     
     // Return the actual tile element, not the wrapper

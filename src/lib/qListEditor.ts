@@ -23,7 +23,7 @@ export class QEditor {
 	}; // HTMLElement(s)
 	private selectContainer: HTMLDivElement;
 	private rList: RS1.rList;
-	private formats: RS1.qList = new RS1.qList (RS1.rLoL.FT ? RS1.rLoL.FT : '');
+	private formats: RS1.qList = new RS1.qList (!RS1.rLoL.FT ? '' : RS1.rLoL.FT.to$);
 	
 
 	/** Public Functions (External Calls) */
@@ -540,7 +540,7 @@ export class LOLEditor {
 
 	private LoadSelect(): void {
 		// this.LOL.ToSelect(this.select);
-		this.rList.rtoSelect(this.select);
+		//   need to rewrite this....   this.rList.rTrtoSelect(this.select);
 
 
 		this.select.onchange = () => this.ListChangeHandler();
@@ -626,7 +626,7 @@ export class LOLEditor {
 			'Which list would you like to merge with? *(enter name, case sensitive)'
 		) as string;
 		// currentList.x.Merge(this.LOL.List(mergeWith));
-		currentList.qMerge(this.rList.qListByName(mergeWith));
+		// currentList.qMerge(this.rList.qListByName(mergeWith));
 	}
 
 	private LoadList(): void {

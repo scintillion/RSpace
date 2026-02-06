@@ -99,10 +99,10 @@ export async function InitClient () {
 
     let F = new RS1.PackField ('Num',123);
     F.clear;
-    let List = new RS1.vList ();
+    let List = new RS1.qList ();
     let v = new RS1.vID ('ABC:DEF');
-    List.x.UpdateVID (v);
-    console.log ('List=' + List.toStr);
+    List.qSetVID (v);
+    console.log ('List=' + List.to$);
 
     let OutPack = new RS1.BufPack ();
     OutPack.xAdd ('H',RS1.myVilla);

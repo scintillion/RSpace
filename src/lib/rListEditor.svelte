@@ -131,7 +131,7 @@
 			{#if kidArray}
 				{#each kidArray as kid}
 					{#if step === 'Home'}
-							{@render selectBox(kid)}
+							{@render selectBox(kid as RS1.RSD)}
 					{/if}
 					{#if step === 'edit'}
 						{#if kid}

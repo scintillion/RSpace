@@ -2,14 +2,14 @@ import { RS1 } from './RS';
 
 export class ListEditor {
 	public list: RS1.xList;
-	public rList: RS1.rList | null;
+	public rList?: RS1.rList;
 	private formats: RS1.qList;
 	private TypeArray: string[];
 
-	constructor(list: RS1.xList, rList: RS1.rList | null = null) {
+	constructor(list: RS1.xList, rList: RS1.rList | undefined = undefined) {
 		this.list = list;
 		this.rList = rList;
-		this.formats = RS1.rLoL.FT;	// as RS1.qList;
+		this.formats = RS1.rLoL.FT as RS1.qList;
 		this.TypeArray = RS1.TypeNames;
 	}
 
@@ -19,7 +19,7 @@ export class ListEditor {
 		// Get fresh vIDs from the list
 		let freshVIDs: RS1.vID[];
 		if ('toSortedVIDs' in this.list && typeof this.list.toSortedVIDs !== 'undefined') {
-			freshVIDs = this.list.toSortedVIDs;
+			freshVIDs = this.list.qToSortedVIDs;
 		} else {
 			freshVIDs = this.list.qToVIDs;
 		}
@@ -131,8 +131,7 @@ export class ListEditor {
 		fmtstr: string,
 		listSelect: string,
 		vIDSelect: string,
-		selectedVID: RS1.vID | null
-	): { success: boolean; updatedVID?: RS1.vID; listStr: string } {
+		selectedVID?: RS1.vID): { success: boolean; updatedVID?: RS1.vID; listStr: string } {
 		if (!name) {
 			alert('Name is required');
 			return { success: false, listStr: this.list.to$ };
@@ -170,7 +169,7 @@ export class ListEditor {
 			vID.Desc = description;
 		}
 
-		const wasEditing = selectedVID !== null;
+		const wasEditing = selectedVID;
 		const savedName = name;
 		
 		this.list.qSetVID(vID);
@@ -181,7 +180,7 @@ export class ListEditor {
 			// Get fresh vIDs after update
 			let freshVIDs: RS1.vID[];
 			if ('toSortedVIDs' in this.list && typeof this.list.toSortedVIDs !== 'undefined') {
-				freshVIDs = this.list.toSortedVIDs;
+				freshVIDs = this.list.qToSortedVIDs;
 			} else {
 				freshVIDs = this.list.qToVIDs;
 			}

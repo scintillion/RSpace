@@ -879,7 +879,7 @@ export namespace RS1 {
 			return this.qDescByName (s);
 		}
 
-		qSetNameValues (nv :(string|number|undefined|null)[]=[]) {
+		qSetNameValues (nv :(string|number|undefined)[]=[]) {
 			let i = 0, name = 0, NVs : string[] = Array ((nv.length+1) >> 1);
 			for (const v of nv) {
 				if (++name & 1) 	// name
@@ -1115,7 +1115,7 @@ export namespace RS1 {
 			return Number (this.qDescByName (name));
 		}
 
-		protected qFindName (name:string|number) {
+		qFindName (name:string|number) {
 			let str = '|' + name.toString ()+':';
 			let nPos = this.qstr.indexOf (str);
 			if (nPos >= 0)
@@ -1126,7 +1126,7 @@ export namespace RS1 {
 			return nPos >= 0 ? nPos + 1 : -1;
 		}
 
-		protected qFindByDesc(Desc: string|number) {
+		qFindByDesc(Desc: string|number) {
 			let SearchStr = ':' + Desc.toString() + '|';
 
 			let Pos = this.qstr.indexOf(SearchStr, this.qstr.indexOf('|'));
@@ -1197,9 +1197,9 @@ export namespace RS1 {
 			return Lines;
 		}
 
-		get qToVList () {
-			return new vList (this.qstr);
-		}
+//		get qToVList () {
+//			return new vList (this.qstr);
+//		}
 
 		qToVIDList (Sep=';',Delim='') {
 			if (!Delim)
@@ -1213,20 +1213,20 @@ export namespace RS1 {
 			return Str.slice (0,-1);
 		}
 
-		qFromVList (L : vList) {
-			this.from$ (L.x.toStr);
-		}
+//		qFromVList (L : vList) {
+//			this.from$ (L.x.toStr);
+//		}
 
 		qGetVID (name:string|number) {
 			let nPos = this.qFindName (name);
 			if (nPos < 0)
-				return null;
+				return undefined;
 
 			let endPos = this.qstr.indexOf('|',nPos);
 			if (endPos >= 0)
 				return new vID (this.qstr.slice (nPos,endPos));
 
-			return null;
+			return undefined;
 		}
 
 		qGetVIDFmt (name:string|number) {
@@ -1238,12 +1238,11 @@ export namespace RS1 {
 
 		qSetVID (VID:vID) {
 			let str = VID.to$, pos = str.indexOf(':');
-			if (!str)
-				return;		// null VID
-
-			if (pos < 0) // no desc
-				this.qSet (str);
-			else this.qSet (str.slice (0,pos),str.slice (pos+1));
+			if (str) {
+				if (pos < 0) // no desc
+					this.qSet (str);
+				else this.qSet (str.slice (0,pos),str.slice (pos+1));
+			}
 		}
 
 		qExtract (xq : xList|string) {
@@ -1606,7 +1605,7 @@ export namespace RS1 {
 
 		rConstruct (Str:RSArgs='',name='',desc='') {
 			if (!Str)
-				return;		// null rList
+				return;	
 
 			if (desc === name)
 				desc = '';
@@ -1678,45 +1677,41 @@ export namespace RS1 {
 			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 		}
 
-		rAddList (Str:string|string[]|xList) {
-			let k = this.K;
-			if (!k)
-				return null;
+		rAddList (Str:string|string[]|xList) : qList|rList|undefined {
+			let k, list;
+			if (!(k = this.K))
+				return undefined;
 
 			if ((typeof Str) === 'string') {
 				let S = Str as string, D = S.slice (-1);
 
-				return (D === '|') ? k.Set (new qList (S),false) :
-					k.Set (new rList (S),false);
+				list = (D === '|') ? new qList (S) : new rList (S);
+				k.Set (list, false);
+				return list;
 			}
 			else if (!Array.isArray (Str)) {	// non Array List
-				return k.Set (Str as xList);
+				k.Set (list = Str as xList);
+				return Str;
 			}
 
 			let Strs = Str as string[];
-			let L = null;
+			let L = undefined;
 			for (const S of Strs) {
 				if (!S)
 					continue;
 
 				let D = S.slice(-1);
-				console.log('IN BRANCH', JSON.stringify(S), JSON.stringify(D), D === '|');
-
 				if (D === '|') {
-					console.log ('  After IF, D === ' + JSON.stringify (D));
-					
 					k.Set (new qList (S),false);
 				}
 				else if (isDelim (D)) {
 					let LStrs = S.split (D);
-					// console.log ('LStrs.length=' + LStrs.length.toString ());
-					if (!LStrs.length)
-						continue;
-					
-					LStrs.length = LStrs.length - 1;
-					let L = new rList (LStrs);
-					if (L)
-						k.Set (L,false);
+					if (LStrs.length) {
+						LStrs.length = LStrs.length - 1;
+						let L = new rList (LStrs);
+						if (L)
+							k.Set (L,false);
+					}
 				}
 			}
 
@@ -1727,7 +1722,7 @@ export namespace RS1 {
 	export const NILRSD = new RSD ();
 
 	export function newRSD (name:string,x:RSArgs=undefined) : RSD {
-		let R = null;
+		let R = undefined;
 
 		if (!name) {
 			if (x) {
@@ -2282,7 +2277,7 @@ export namespace RS1 {
 	interface PackReq { (Pack : BufPack) : Promise<BufPack> }
 	interface RSDReq { (RSD : RSD) : Promise<RSD> }	
 	interface DataReq { (D : RSData) : Promise<RSData> }
-	interface RIDReg { (R: RID) : void }
+	interface RIDReg { (R: RID) : undefined }
 
 	export async function NILDataReq (D:RSData) : Promise<RSData>
 		{ throw "NILDataReq"; return NILData; }
@@ -2626,17 +2621,17 @@ export namespace RS1 {
 			return '';
 		}
 	}
-	type IFmt0=IFmt|null;
+	type IFmt0=IFmt|undefined;
 
 	export class vID  {
         // often abbreviated as VID
-        List:vList|null = null;
+        List?:qList;
 
 		Values: number[] = [];
 		Name='';
 		Desc='';
 		ID=0;
-		Fmt: IFmt | null = null;
+		Fmt?: IFmt;
 
 		static fastVID (name='',desc='') {
 			let v = new vID ('');
@@ -2645,7 +2640,7 @@ export namespace RS1 {
 			return v;
 		}
 
-		constructor(Str: string, List1:vList|null=null) {
+		constructor(Str: string='', List1?:qList) {
 			if (!Str)
 				return;
 
@@ -2757,7 +2752,7 @@ export namespace RS1 {
 			}
 		}
 
-		ToList(Select: HTMLOListElement | HTMLUListElement | null) {
+		ToList(Select?: HTMLOListElement | HTMLUListElement) {
 			if (!Select) {
 				return;
 			} else if (!(Select instanceof HTMLOListElement) && !(Select instanceof HTMLUListElement)) {
@@ -3112,6 +3107,8 @@ export namespace RS1 {
 		}
 	}
 
+	export const NILList = new qList ();
+
 	export class RSQ extends qList {
 		Q	:	qList = new qList ();
 		get cl () { return 'RSQ'; }
@@ -3309,7 +3306,7 @@ export namespace RS1 {
 		Q = ()=>new RSData;
 		let RP : NewData = Q as NewData;
 
-		Reg (['List',()=>new vList (),NILDataReq])
+		Reg (['List',()=>new qList (),NILDataReq])
 	}
 
 	var dNames=new Array<string>, dNews=new Array<NewData>,dEdits=new Array<DataReq>;
@@ -3632,7 +3629,7 @@ export namespace RS1 {
 		return Strs;
 	}
 
-	type ListArgs	= BufPack|vList[]|string|string[]|undefined;
+	type ListArgs	= BufPack|qList[]|string|string[]|undefined;
 	type ListTypes=qList|rList|undefined;
 	type NewListArgs = string|string[]|ListTypes[];
 
@@ -3806,12 +3803,12 @@ export namespace RS1 {
 		Name = '';
 		Desc = '';
 		_type = 'Data';
-		_rID : RID|null = null;
+		_rID? : RID;
 		_Tile = 'S';
 		Sub = '';
 		Str = '';
-		List = NILList;
-		Pack = NILPack;
+		List? : qList;
+		Pack? : BufPack;
 		Details = '';
 		Data: any;
 
@@ -3875,8 +3872,9 @@ export namespace RS1 {
 			this.Sub = P.fStr ('sub');
 			// this.ID = P.num ('.ID');
 			this.List = P.fList ('list');
-			if (this.List === NILList)
-				this.List = new vList ();
+			
+			if (!this.List)
+				this.List = new qList ();
 
 			this.Pack = P.fPack('pack');
 			if (this.Pack === NILPack)
@@ -4043,7 +4041,7 @@ export namespace RS1 {
 		let Type = P.fStr ('type');
 
 		switch (Type) {
-			case 'List' : return new RSData (P);    // previously vList (P)!!
+			case 'List' : return new RSData (P); 
 		}
 
 		for (const PTD of PTDs) {
@@ -4140,7 +4138,7 @@ export namespace RS1 {
 		Lists:ListTypes[]=[];
 		aList?:qList;
 		sList?:qList;
-		vList?:qList;
+		varList?:qList;
 		jList?:qList;
 
 		nLists = 0;
@@ -4186,7 +4184,7 @@ export namespace RS1 {
 			this.Lists = K.Kids as ListTypes[];
 			this.aList = this.qListByName ('a');
 			this.sList = this.qListByName ('s');
-			this.vList = this.qListByName ('v');
+			this.varList = this.qListByName ('v');
 			this.jList = this.qListByName ('j');
 
 			if (this.Lists) {
@@ -4339,14 +4337,16 @@ export namespace RS1 {
 		}
 	}
 
+/*
+
 	class vListXtra {
-		vL : vList = NILList;
-		qL :qList|null=null;
+		vL? : qList;
+		qL? :qList;
 
 		count=0;
-		IDs: number[] | undefined;
+		IDs?: number[];
 		NameIDs='';
-		Childs:vList[]|undefined;
+		Childs?:qList[];
 		_firstDelim = -1;
 		Delim = '|';
 		_indent=0;
@@ -4431,7 +4431,7 @@ export namespace RS1 {
 				for (let i = 0; ++i < limit; ) {
 					if (Strs[i][0] === '/' || !Strs[i].trim()) continue; //	ignore comment lines
 
-					let Child: vList = new vList(Strs[i]);
+					let Child: qList = new qList(Strs[i]);
 					if (Child) {
 						if (!this.Childs) this.Childs = [];
 						this.Childs.push(Child);
@@ -4462,7 +4462,7 @@ export namespace RS1 {
 
 			console.log('InitList (' + this.Name + '), NameStr =' + NameStr + '.');
 
-			this.vL.Init (Str1);
+			this.vL.from$ (Str1);
 
 			//			console.log ('InitList ' + this._Name + ' Indent = ' + this._Indent.toString () + ' #C =' +
 			//				this.ChildCount.toString () + ' Count = ' + this.Count.toString () + ' Str=' + this._Str);
@@ -4500,8 +4500,8 @@ export namespace RS1 {
 		}
 
 		get qstr () {
-			if (this.vL !== NILList)
-				return this.vL.qstr;
+			if (this.vL)
+				return this.vL.to$;
 			else if (!this.qL)
 				return 'NILList';
 			else return '|';
@@ -4515,7 +4515,8 @@ export namespace RS1 {
 		fromRaw (VIDStrs:string[]=[]) {
 			let D = this.Delim, NameDesc = this.qstr.slice (0,this.qstr.indexOf(D)+1);
 			let VIDStr = VIDStrs.join (D);
-			this.vL.Init (NameDesc + (VIDStr ? (VIDStr + D) : ''));
+			if (this.vL)
+				this.vL.from$ (NameDesc + (VIDStr ? (VIDStr + D) : ''));
 		}
 
 		get toVIDs () {
@@ -4538,9 +4539,9 @@ export namespace RS1 {
 			return Lines;
 		}
 
-		get toVList () {
-			return new vList (this.qstr);
-		}
+//		get toVList () {
+//			return new vList (this.qstr);
+//		}
 
 		toVIDList (Sep=';',Delim='') {
 			if (!Delim)
@@ -4559,33 +4560,16 @@ export namespace RS1 {
 		}
 
 		GetNamePos(Name: string|number): number {
-            return this.vL.find (Name);
-
-    /*
-			let SearchStr = this.Delim + Name.toString (); // e.g. '|NameXYZ:''
-
-			let Pos1 = this.qstr.indexOf(SearchStr + ':', this.vL.firstDelim);
-			if (Pos1 >= 0) return Pos1;
-
-			return this.qstr.indexOf(SearchStr + this.Delim, this.vL.firstDelim);
-    */
-		}
+            return this.vL  ? this.vL.qFindName (Name) : -1;
+			}
 
 	   get size () {
             return this.vL.count;
-    /*
-			if (this.vL.count)
-				return this.count;
-
-		    if (this.qstr.length > 2)
-				return 1;
-
-			return 0;
-    */
-	   }
+  	   }
 
 		get toStr() : string {
-			if (this.LType != CLType.Pack) return this.vL.qstr;
+			if ((this.LType != CLType.Pack)  &&  this.vL)
+				return this.vL.to$;
 
 			if (!this.Childs) return '';
 
@@ -4593,17 +4577,17 @@ export namespace RS1 {
 			let limit = Strs.length;
 			for (let i = 0; i < limit; ) {
 				let Child = this.Childs[i++];
-				if (Child) Strs.push(Child.qstr);
+				if (Child) Strs.push(Child.to$);
 			}
 
 			return Strs.join(this.Delim) + this.Delim;
 		}
 
-		get FirstChild(): vList {
+		get FirstChild(): qList {
 			return (this.Childs) ? this.Childs[0] : NILList;
 		}
 
-		Merge(AddList: vList | undefined): boolean {
+		Merge(AddList: qList | undefined): boolean {
 			let DestStrs = this.qstr.split(this.Delim);
 			DestStrs.length = DestStrs.length - 1;
 			let Destlimit = DestStrs.length;
@@ -4615,7 +4599,7 @@ export namespace RS1 {
 
 			if (!AddList) return false;
 
-			let AddStrs = AddList.qstr.split(AddList.x.Delim);
+			let AddStrs = AddList.to$.split('|');
 
 			let Addlimit = AddStrs.length - 1; // don't use last!
 			console.log('Adding List');
@@ -4730,69 +4714,6 @@ export namespace RS1 {
 			this.NameIDs = NameStr;
 			this.count = ID;
 			return NameStr;
-		}
-
-/*
-		IDByName(Name: string) {
-			let Delim1 = this.Delim;
-			let SearchStr = Delim1 + Name + ':';
-			let NameList = this.NameList();
-			let Pos = NameList.indexOf(SearchStr);
-			if (Pos >= 0) {
-				let Start = Pos + SearchStr.length;
-				let End = Start;
-				let Str;
-
-				while (NameList[++End] != Delim1);
-
-				let Num = Number((Str = NameList.slice(Start, End)));
-				if (isNaN(Num)) {
-					// console.log('QQQNameList 999 Str=' + Str + ' Name=' + Name + ' NameList=' + NameList);
-					Num = 999;
-				}
-				return Num;
-			}
-			return 0;
-		}
-
-		NameByID(ID: number) {
-			if (ID <= 0 || ID > this.count) return '';
-
-			let Str = this.NameList();
-			let Delim1 = this.Delim;
-			let SearchStr = ':' + ID.toString() + Delim1;
-			let Pos = Str.indexOf(SearchStr);
-			if (Pos >= 0) {
-				let Start = Pos;
-				while (Str[--Start] != Delim1);
-				return Str.slice(Start + 1, Pos);
-			}
-
-			return '';
-		}
-*/
-
-		Dump(DumpStr: string) {
-			if (this.Name && this.vL.Indent)
-				console.log(
-					DumpStr +
-						'Dump:' +
-						this.Name +
-						' Indent = ' +
-						this.vL?.Indent.toString() +
-						' #C =' +
-						this.Childs
-						? this.Childs?.length.toString()
-						: '0' + ' Count = ' + this.count.toString() + ' Str=' + this.qstr
-				);
-
-			if (this.Childs) {
-				let limit = this.Childs.length;
-
-				for (let i = 0; i < limit; ++i) {
-					this.Childs[i].x.Dump(DumpStr + '   ');
-				}
-			}
 		}
 
 
@@ -5048,6 +4969,7 @@ export namespace RS1 {
 
 	}
 
+/*
 	class zList extends qList {
 		// qL = null;
 
@@ -5082,8 +5004,10 @@ export namespace RS1 {
 			return (this.Childs) ? this.Childs[0] : NILList;
 		}
 	}
+*/
 
-	export class vList extends RSData {
+/*
+	export class xvList extends RSData {
 		x = NILvLX;
 		_type = 'List';
 		qstr = '';
@@ -5243,14 +5167,13 @@ export namespace RS1 {
             this.add (name,desc);
         }
 
-        getVID (name:string|number) : vID|null {
+        getVID (name:string|number) {
             let nPos = this.find (name);
             if (nPos >= 0) {
 	            let endPos = this.qstr.indexOf(this.d,nPos+1);
     	        if (endPos >= 0)
 	                return new vID (this.qstr.slice (nPos,endPos));
 			}
-            return null;
         }
 
         desc1 (name:string|number) {
@@ -5382,17 +5305,18 @@ export namespace RS1 {
 
     } // vList
 
-	export const NILList = new vList ('NIL|');
+	export const NILList = new qList ('NIL|');
 	export const NILvLX = new vListXtra (NILList);
+*/
 
 	export class vFast {
 		Names : Array<string>=[];
 		Values : Array<string>=[];
 
-		constructor (Str1 : string|vList='') {
-			let List = ((typeof Str1) === 'string') ? new vList (Str1 as string) : Str1 as vList;
+		constructor (Str1 : string|qList='') {
+			let List = ((typeof Str1) === 'string') ? new qList (Str1 as string) : Str1 as qList;
 
-			let VIDs = List.x.toVIDs;
+			let VIDs = List.qToVIDs;
 			let count = VIDs.length;
 			if (count) {
 				this.Names.length = count;
@@ -5477,7 +5401,7 @@ export namespace RS1 {
 					qstr += name + ':' + this.Values[i] + '|';
 			}
 
-			return new vList ((qstr.length > 1)?qstr : '');
+			return new qList ((qstr.length > 1)?qstr : '');
 		}
 
 		clear () {
@@ -5859,19 +5783,20 @@ export namespace RS1 {
 		Lists: qList[] = [];
 
 		List (Name: string) {
-			for (const L of this.Lists)
+			let Lists = this.Lists;
+			for (const L of Lists)
 				if (L.Name === Name) return L;
 		}
 
 //		type ListArgs	= BufPack|vList[]|string|string[]|undefined;
 
-		add (Q : qList|string|string[], replace = false) {
+		add (Q : qList|string|string[], replace = false) : qList {
 			let List : qList|undefined, Strs, len, i=0;
 
-			if (Array.isArray (Q)  &&  Q.length) {
-				if (len=Q.length)
+			if (Array.isArray (Q)  &&  (len = Q.length)) {
+				if (len)
 				{
-					if ((typeof Q[0]) === 'string')
+					if ((typeof (Q[0])) === 'string')
 						Strs = Q as string[];
 					else {
 						Strs = Array<string>(len);
@@ -5925,15 +5850,13 @@ export namespace RS1 {
 
 			let DefineStr = '/*\tDefines for vLists\t*/\n\n';
 
-			let CList = vList;
-			DefineStr += 'CList = ' + typeof CList + '\n';
+			DefineStr += 'CList = ' + typeof (qList) + '\n';
 
 			console.log('Reading TileStrings!');
 			let NewTileList = new rList(TileStrings);
-			// if (NewTileList) NewTileList.x.Dump('');
 			console.log('Finished reading TileStrings');
 
-			//			TL = new TileList(TileStrings);
+			//	TL = new TileList(TileStrings);
 			console.log('Testing NewTileList');
 			TL = new TileList(NewTileList);
 			console.log('TileList is read from NewTileList');
@@ -5942,12 +5865,10 @@ export namespace RS1 {
 
 			let TString = TL.toStr;
 
-			let LongList = new vList(TileStrings.join('\n') + '\n');
+			let LongList = new qList (TileStrings.join('\n') + '\n');
 
-			DocStr += '\n Dump of LongList...\n' + LongList.Str + '\n End of LongList Dump.  \n';
+			DocStr += '\n Dump of LongList...\n' + LongList.to$ + '\n End of LongList Dump.  \n';
 			DocStr += 'LongList Name=' + LongList.Name + ' Desc=' + LongList.Desc + '\n\n';
-
-			if (LongList) LongList.x.Dump('');
 
 			DocStr += '\n' + TString + '\n*/\n';
 
@@ -5994,7 +5915,7 @@ export namespace RS1 {
 			console.log ('IDList=' + IDList.toStr + '.');
 		}
 
-		toVList(): vList {
+		toQList(): qList {
 			let limit = this.Lists.length;
 
 			let qstrs: string[] = ['LL:LoL'];
@@ -6011,13 +5932,13 @@ export namespace RS1 {
 
 			qstrs = qstrs.sort();
 
-			return new vList(qstrs.join('|') + '|');
+			return new qList(qstrs.join('|') + '|');
 		}
 
 		toSelect(Select: HTMLSelectElement) {
-			let List = this.toVList();
+			let List = this.toQList();
 
-			if (List) List.x.toSelect(Select);
+			if (List) List.qToSelect (Select);
 		}
 	}
 
@@ -6126,18 +6047,18 @@ export namespace RS1 {
 	//  _____________________________________
 
 	export class ListEdit {
-		MainList: HTMLSelectElement | null | undefined;
-		DropList: HTMLSelectElement | null | undefined;
-		ListSelect: HTMLSelectElement | null | undefined;
-		TileSelect: HTMLSelectElement | null | undefined;
+		MainList?: HTMLSelectElement;
+		DropList?: HTMLSelectElement;
+		ListSelect?: HTMLSelectElement;
+		TileSelect?: HTMLSelectElement;
 
 		MainSelectedID: number = 0;
 		ListSelectedID: number = 0;
 
-		NameEdit: HTMLInputElement | null | undefined;
-		FormatEdit: HTMLInputElement | null | undefined;
-		ValueEdit: HTMLInputElement | null | undefined;
-		DescEdit: HTMLInputElement | null | undefined;
+		NameEdit?: HTMLInputElement;
+		FormatEdit?: HTMLInputElement;
+		ValueEdit?: HTMLInputElement;
+		DescEdit?: HTMLInputElement;
 	}
 
 	export const LstEdit = new ListEdit();
@@ -6306,7 +6227,7 @@ export namespace RS1 {
 		return NaN;
 	}
 
-	export type PFData=string|number|ArrayBuffer|BufPack|vList|RSData|undefined;
+	export type PFData=string|number|ArrayBuffer|BufPack|qList|RSData|undefined;
 
 	export class PackField extends RSD {
 		protected _name = '';
@@ -6369,7 +6290,7 @@ export namespace RS1 {
 				let Str = ab2str (AB);
 
 				if (Str)
-					return new vList (Str);
+					return new qList (Str);
 			}
 
 			return NILList;
@@ -6404,14 +6325,14 @@ export namespace RS1 {
 		get rsPack () { return (this._type == tData) ? this._data as BufPack : NILPack; }
 		get List () {
 			switch (this._type) {
-				case tList :	return this._data ? this._data as vList : new vList ();
+				case tList :	return this._data ? this._data as qList : new qList ();
 				case tAB : case tStr : 
 					let Str = this._data;
 					if (!Str)
-						return new vList ();
+						return new qList ();
 					if (typeof (Str) !== 'string')
 						Str = ab2str (Str);
-					return new vList (Str);
+					return new qList (Str);
 			}
 			return NILList;
 		 }
@@ -6445,7 +6366,7 @@ export namespace RS1 {
 					break;
 
 				case tPack : AB = this.Pack.bufOut (); break;
-				case tList : AB = str2ab ((this._data as vList).x.toStr).buffer; break;
+				case tList : AB = str2ab ((this._data as qList).to$).buffer; break;
 				default : AB = NILAB; this._error = 'toArray Error, Type =' + this._type + '.';
 			}
 
@@ -6479,7 +6400,7 @@ export namespace RS1 {
 								break;
 							case 'vList' :
 								Type = tList;
-								D = new vList ((D as vList).x.toStr);
+								D = new qList ((D as qList).to$);
 								break;
 							case 'ArrayBuffer' :
 								Type = tAB;
@@ -6520,7 +6441,7 @@ export namespace RS1 {
 				case tStr : D = ''; break;
 				case tPack : D = new BufPack (); break;
 				case tAB : D = new ArrayBuffer (0); break;
-				case tList : D = new vList (''); break;
+				case tList : D = new qList (''); break;
 				default : 
 					D = NILAB;
 			}
@@ -6549,7 +6470,7 @@ export namespace RS1 {
 					// have TypeLists fully implemented (Name/new/EditFunc)
 					break;
 				case tAB : D = AB.slice (0); break;
-				case tList : D = new vList (ab2str (AB)); break;
+				case tList : D = new qList (ab2str (AB)); break;
 				default : this._error = 'constructor error Type =' + Type1 + ', converted to NILAB.';
 					Type1 = tAB;
 					D = NILAB;
@@ -6603,7 +6524,7 @@ export namespace RS1 {
 				case tNum : Str += this.Num.toString (); break;
 				case tStr : Str += this.Str; break;
 				case tList : let L = this.List;
-					Str += 'LIST=' + L.Name + ' Desc:' + L.Desc + ' Count=' + L.x.count;
+					Str += 'LIST=' + L.Name + ' Desc:' + L.Desc;
 					break;
 				case tPack : case tData : case tAB :
 					 Str += '(' ;
@@ -7095,7 +7016,7 @@ export namespace RS1 {
 				let Str = ab2str (AB);
 
 				if (Str)
-					return new vList (Str);
+					return new qList (Str);
 			}
 
 			return NILList;
@@ -7130,14 +7051,14 @@ export namespace RS1 {
 		get rsPack () { return (this._type == tData) ? this._data as BufPack : NILPack; }
 		get List () {
 			switch (this._type) {
-				case tList :	return this._data ? this._data as vList : new vList ();
+				case tList :	return this._data ? this._data as qList : new qList ();
 				case tAB : case tStr : 
 					let Str = this._data;
 					if (!Str)
-						return new vList ();
+						return new qList ();
 					if (typeof (Str) !== 'string')
 						Str = ab2str (Str);
-					return new vList (Str);
+					return new qList (Str);
 			}
 			return NILList;
 		 }
@@ -7171,7 +7092,7 @@ export namespace RS1 {
 					break;
 
 				case tPack : AB = this.Pack.bufOut (); break;
-				case tList : AB = str2ab ((this._data as vList).x.toStr).buffer; break;
+				case tList : AB = str2ab ((this._data as qList).to$).buffer; break;
 				default : AB = NILAB; this.qSet ('Error','toArray Error, Type =' + this._type + '.');
 			}
 
@@ -7200,7 +7121,7 @@ export namespace RS1 {
 							break;
 						case 'vList' :
 							Type = tList;
-							D = new vList ((D as vList).x.toStr);
+							D = new qList ((D as qList).to$);
 							break;
 						case 'ArrayBuffer' :
 							Type = tAB;
@@ -7266,7 +7187,7 @@ export namespace RS1 {
 					// have TypeLists fully implemented (Name/new/EditFunc)
 					break;
 				case tAB : D = AB.slice (0); break;
-				case tList : D = new vList (ab2str (AB)); break;
+				case tList : D = new qList (ab2str (AB)); break;
 				default : this.qSet ('Error','constructor error Type =' + Type1 + ', converted to NILAB.');
 					Type1 = tAB;
 					D = NILAB;
@@ -7318,7 +7239,7 @@ export namespace RS1 {
 				case tNum : Str += this.Num.toString (); break;
 				case tStr : Str += this.Str; break;
 				case tList : let L = this.List;
-					Str += 'LIST=' + L.Name + ' Desc:' + L.Desc + ' Count=' + L.x.count;
+					Str += 'LIST=' + L.Name + ' Desc:' + L.Desc;
 					break;
 				case tPack : case tData : case tAB :
 					 Str += '(' ;
@@ -8155,7 +8076,7 @@ export namespace RS1 {
 					case tNum : Object.assign (o,{ N : F.Num }); break;
 					case tStr : Object.assign (o,{ N : F.Str }); break;
 					case tPack : case tData : Object.assign (o, {N : F.Pack.copy }); break;
-					case tList : Object.assign (o, {N : new vList (F.List.x.toStr)}); break;
+					case tList : Object.assign (o, {N : new qList (F.List.to$)}); break;
 						
 					default : Object.assign (o,{ N : F.AB.slice(0) }); break;
 				}
@@ -8232,12 +8153,12 @@ export namespace RS1 {
 		// Immediately Invoked Function Expression IIFE
 		// Code that runs in your function
 
-		let Q = ['List', vList, '', RSData];
+		let Q = ['List', qList, '', RSData];
 		// let RSDT = new RSDataType ('List',vList);
 		// let QDT = new RSDataType ('ABC',PackToData);
 
 		RegPackToData (PackToData);
-		_Classes.push (vList);
+		_Classes.push (qList);
 		// let List = new _Classes[0];
 
 		console.log ('NILData TEST!');
