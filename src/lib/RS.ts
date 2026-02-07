@@ -3365,9 +3365,10 @@ export namespace RS1 {
 		}
 	}
 	
-	export function InitReq (AB : ABReq, Pack : PackReq) { // , rsd : RSDReq) {
+	export function InitReq (AB : ABReq, Pack : PackReq, rsd : RSDReq) { // , rsd : RSDReq) {
 		_ReqAB = AB;
 		_ReqPack = Pack;
+		_ReqRSD = rsd;
 		// _ReqRSD = rsd;
 		console.log ('Functions Assigned!');
 		return true;
@@ -5624,25 +5625,6 @@ export namespace RS1 {
 		}
 	}
 
-	class RSFldInfo {
-		RSDType = '';
-		name = '';
-		arrType = '';
-		arrABs:ArrayBuffer[]|undefined;
-		prefix='';
-		AB:ArrayBuffer|undefined;
-		Data:any;
-
-		fromData (D : any, name='') {
-
-
-
-
-
-		}
-
-	}
-
 	export class RSField extends qList {
 		protected _name = '';
 		protected _type=tNone;
@@ -6341,28 +6323,6 @@ export namespace RS1 {
 		}
 	}
 
-/*
-	export class RSDBuf {
-		RSDName='';
-		KidName='';
-		offset = 0;
-		prefixes:string[] = [];
-		prefix='';
-		first='';
-		buf:BBI;
-		Fields:RSF[]=[];
-		Bufs:BBI[]=[];
-
-		constructor (input : BBI|RSF[]=undefined) {
-			if (Array.isArray (input))	// RSF[]
-				this.fromRSF (input as RSF[]);
-			else if (input)
-				this.fromBuf (input as UBuf);
-		}
-	}
-*/
-
-
 
 	export class RSPack extends RSMom {
 		RSDName='';
@@ -6528,9 +6488,9 @@ export namespace RS1 {
 			   log ('NILPack!'); return false;
 		   }
 		   return true;
-	   }
+		}
 
-	   get Type() { return this._type; }
+		get Type() { return this._type; }
 		get Details () { return this._details; }
 
 		get info () {
@@ -6965,8 +6925,6 @@ export namespace RS1 {
 
 			while ((NPos = Prefix.indexOf(',', NPos)) > 0) {
 				if ((SPos = Prefix.indexOf(':', ++NPos)) > 0) {
-//					let NewFld = new PackField(Prefix.slice (Name,DBuf,Type);
-
 					Type = Prefix[NPos];
 					Name = Prefix.slice(NPos + 1, SPos);
 
@@ -7029,8 +6987,8 @@ export namespace RS1 {
 			else return 0;
 		}
 
-/*		Unpack creates an array of BufPacks corresponding to the BufPacks
-		that are packed in this single BufPack. Also strips out the */
+	//	Unpack creates an array of BufPacks corresponding to the BufPacks
+	//	that are packed in this single BufPack. Also strips out the 
 
 		unpackArray () : BufPack[] {
 			if (!this.multi)
@@ -7321,6 +7279,50 @@ export namespace RS1 {
 	function zFindLinePos (z:string,Name:string,start=0) {
 		return zFindPos (z,'\n' + Name,start);
 	}
+	function zFindQPos (z:string,QName:string,start=0) {
+		return zFindPos (z, '\t' + QName, start);
+	}
+	function zFindLineAndQ (z:string,Line:string,Q:string,start=0) {
+		let linePos = zFindPos (z, '\n' + Line, start);
+		if (linePos < 0)
+			return -1;
+		return zFindPos (z, '\t' + Q, linePos);
+	}
+	function zGetPairPos (z:string, name:string, start=0) {
+		let endpos = z.indexOf ('\t', start), dName = '|' + name;
+		let pos = z.indexOf (dName + '|',start);
+		if (pos < 0)
+			pos = z.indexOf (dName + ':',start);
+		if (pos < 0)
+			return -1;		// not found
+
+		let NLpos = z.indexOf ('\n');
+		if (pos < NLpos)
+			return pos;		// found name within the target line
+
+		return -1;			// not found within target line
+	}
+
+	function zGetPair (z:string, name:string, start=0) {
+		let pos = zGetPairPos (z, name, start);
+
+		if (pos < 0)
+			return	'';
+
+		let endpos = z.indexOf ('|',pos);
+		return (endpos >= 0) ? z.slice (pos, endpos) : ''
+	}
+
+	function zGetQStr (z:string,QName:string,start=0) {
+		let qPos = zFindQPos (z, QName, start);
+		if (qPos >= 0) {
+			let endPos = z.indexOf ('\t',++qPos);
+			if (endPos >= 0)
+				return z.slice (qPos, endPos);
+		}
+		return	'';
+	}
+
 	function zGetLine (z:string,Name:string,start=0) {
 		let pos = zFindPos (z,'\n'+Name, start);
 		if (pos >= 0) {
@@ -7331,32 +7333,12 @@ export namespace RS1 {
 		return	'';
 	}
 
-	function zFindQPos (z:string,QName:string,start=0) {
-		return zFindPos (z, '\t' + QName, start);
-	}
-	function zFindLineQ (z:string,Line:string,Q:string,start=0) {
-		let linePos = zFindPos (z, '\n' + Line, start);
-		if (linePos < 0)
-			return -1;
-		return zFindPos (z, '\t' + Q, linePos);
-	}
-	function zGetQStr (z:string,QName:string,start=0) {
-		let qPos = zFindQPos (z, QName, start);
-		if (qPos >= 0) {
-			let endPos = z.indexOf ('\t',qPos + 1);
-			if (endPos >= 0)
-				return z.slice (qPos + 1, endPos);
-		}
-		return	'';
-	}
-
 	function zValidate (In:string|string[]) {	// reformat zList string, if needed, or just return it
-		let z:string;
+		let z:string, delim;
 		
 		if ((typeof In) === 'string') {
 			z = In as string;
-			let delim = z.slice (-1);
-			if (delim !== '\n')
+			if ((delim = z.slice (-1)) !== '\n')
 				z = delim + '\n';
 			}
 		else z = (In as string[]).join ('\n') + '\n';

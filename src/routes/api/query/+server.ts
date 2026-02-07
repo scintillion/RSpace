@@ -20,6 +20,7 @@ class DBKit {
 
 		RS1.ReqAB = ReqAB;
 		RS1.ReqPack = ReqPack;
+		RS1.ReqRSD = ReqRSD;
 		RS1._RegRID = 'S';
 	}
 
@@ -250,9 +251,9 @@ const Q = new DBKit ('q.sqlite3');
 const RSS = new RServer ('tile.sqlite3');
 
 async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
-	let Serial = InRSD.Get ('#');
-	let Client = InRSD.Get ('Client');
-	let ABC = InRSD.Get ('ABC');
+	let Serial = InRSD.qGet ('#');
+	let Client = InRSD.qGet ('Client');
+	let ABC = InRSD.qGet ('ABC');
 
 	if (!Serial)
 	{
@@ -265,7 +266,7 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 
 	// Real processing here 
 	let OutList = new RS1.qList ();
-	OutList.setFast (['!H',++(RSS.nextSession),'#',Serial]);
+	OutList.qSetFast (['!H',++(RSS.nextSession),'#',Serial]);
 	console.log ('*** Session = **' + RSS.mySession + '**');
 	console.log ('  Starting Session #' + RSS.mySession);
 	return OutList;
@@ -288,6 +289,7 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 
 	OutPack = new RS1.BufPack ();
 	OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
+	OutPack.addArgs (['ServeReply','987']);
 	console.log ('*** Session = **' + RSS.mySession + '**');
 	console.log ('  Starting Session #' + RSS.mySession);
 	return OutPack;
@@ -330,10 +332,15 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 }
 
 async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
+	console.log ('Entering ReqAB in Server.ts');
 	let BP = new RS1.BufPack ();
 	BP.bufIn (AB);
 
+	console.log ('Calling ReqPack in ReqAB/server.ts')
 	let ResultPack = await RS1.ReqPack (BP);
+
+	console.log ('Returned from ReqPack with ResultPack/server.ts');
+
 	let ResultAB = ResultPack.bufOut ();
 	return ResultAB;
 }
@@ -341,6 +348,8 @@ async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 export const POST = (async ({ request, url }) => {
 
 	const ClientAB = await request.arrayBuffer();
+
+	console.log ('ClientAB received in POST/server.ts');
 
 	let ServerAB = await RS1.ReqAB (ClientAB);
 

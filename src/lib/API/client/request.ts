@@ -4,7 +4,7 @@ var Serial : number = 0;
 
 async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
     
-    // console.log ('AB sent by Client, bytes = ' + AB.byteLength.toString ());
+    console.log ('AB sent by Client, bytes = ' + AB.byteLength.toString ());
     const req = await fetch(
         `/api/query`,
         {
@@ -22,10 +22,8 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 }
 
 async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
-  // console.log ('PackRequest Incoming = \n' + BP.Desc ());
+  console.log ('PackRequest Incoming = \n' + BP.desc);
   BP.addArgs (['#',++Serial]);
-  BP.addArgs (['Client', 'XYZ']);
-  BP.addArgs (['ABC', '123']);
 
   let AB = BP.bufOut ();
   console.log ('Sending Client Request #' + Serial.toString ());
@@ -40,7 +38,7 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 }
 
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
-  // console.log ('PackRequest Incoming = \n' + BP.Desc ());
+  console.log ('RSDRequest Incoming = \n' + rsd.expand);
   rsd.qSet ('#', ++Serial);
   rsd.qSet ('Client','XYZ');
 
@@ -68,7 +66,7 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
 
 
 export async function InitClient () {
-   RS1.InitReq (ABRequest,packRequest);
+   RS1.InitReq (ABRequest,packRequest,RSDRequest);
 
    let newVID = new RS1.vID ('Name:Desc');
    let newFmt = new RS1.IFmt ('');
@@ -106,9 +104,12 @@ export async function InitClient () {
 
     let OutPack = new RS1.BufPack ();
     OutPack.xAdd ('H',RS1.myVilla);
+    OutPack.addArgs (['Client', 'XYZ']);
+    OutPack.addArgs (['ABC', '123']);
     let InPack = await RS1.ReqPack (OutPack);
     RS1.mySession = InPack.fNum('!H');
-    console.log ('mySession = ' + RS1.mySession.toString ());
+    let ServeReply = InPack.fStr ('ServeReply');
+    console.log ('mySession = ' + RS1.mySession.toString () + ' ServeReply =' + ServeReply);
 
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
     console.log (Q.qDescByName ('XYZ'));
