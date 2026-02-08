@@ -229,6 +229,8 @@ export namespace RS1 {
 				let F = new RSF ();
 				F.fromPrefix (P,bbi,FieldRSD);
 				Fields[i++] = F;
+
+				console.log ('Adding Field ' + F.expand)
 			}
 	
 			this.Fields = Fields;
@@ -777,11 +779,14 @@ export namespace RS1 {
 		fromBuf (Buf : UBuf, RSDName='', KidName='') {
 			let pb = new PB (Buf, RSDName, KidName), k = this.K;
 
+			console.log ('FromBuf # Fields = ' + pb.Fields.length.toString ());
 			for (const F of pb.Fields) {
 				let name = F.name;
 
 				switch (name) {
-					case '.$' : this.from$ (F.Data as string); break;
+					case '.$' : 
+						console.log ('from$, str = ' + typeof (F.Data) + ':' + (F.Data as string))
+						this.from$ (F.Data as string); break;
 					case '.x' : this.X = F.Data; break;
 					case '.p' : this.fromPack (F.Data as RSPack); break;
 					// case '.q' : this.Q = F.Data as RSI; break;
@@ -865,8 +870,11 @@ export namespace RS1 {
 									this.fromFields (Arr as RSF[]); return; }
 						}
 					}
-					else if (In instanceof Uint8Array)
+					else if (In instanceof Uint8Array) {
+						console.log ('ConstructRSD on server, bytes = ' +
+							(In as Uint8Array).byteLength.toString ());
 						this.fromBuf (In);
+					}
 					//else if (In instanceof ArrayBuffer)
 					//	this.fromBuf (In as ArrayBuffer);
 					else

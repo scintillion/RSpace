@@ -106,12 +106,13 @@ export async function InitClient () {
 
     //  let InPack = await RS1.ReqPack (OutPack);
     let OutRSD = new RS1.qList ();
-    OutRSD.from$ ('|Client|XYZ|ABC|123|');
+    OutRSD.from$ ('|Client:XYZ|ABC:123|Serial:897|#:456|');
     OutRSD.qSet ('H',RS1.myVilla);
     OutRSD.mark;
 
     let outBBI = OutRSD.toBBI;
-    let newOut = new RS1.qList (outBBI);
+    // let newOut = new RS1.qList (outBBI);
+    let newOut = RS1.newRSD ('',outBBI);
     console.log ('newOut='+newOut.to$+' OutRSD='+OutRSD.to$);
     if (newOut.to$ !== OutRSD.to$)
         console.log ('Mismatch');

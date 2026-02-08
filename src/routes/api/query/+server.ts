@@ -255,10 +255,14 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 	let Client = InRSD.qGet ('Client');
 	let ABC = InRSD.qGet ('ABC');
 
+	console.log ('Server Receives Client Request #' + Serial,
+		 ' Client = ' + Client + ' ABC=' + ABC + 'RSD=' +
+		 InRSD.to$ + '  RSD.expand=\n' + InRSD.expand + '\n** End Expand');
+
 	if (!Serial)
 	{
-		console.log ('NO Client Serial:\n' + InRSD.expand);
-		throw "No Client Serial!";
+		console.log ('ReqRSD NO Client Serial:\n' + InRSD.expand);
+		throw "ReqRSD No Client Serial!";
 	}
 	console.log ('Server Receives Client Request #' + Serial,
 		 ' Client = ' + Client + ' ABC=' + ABC);
@@ -281,8 +285,8 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 
 	if (!Serial)
 	{
-		console.log ('NO Client Serial:\n' + InPack.expand);
-		throw "No Client Serial!";
+		console.log ('ReqPack NO Client Serial:\n' + InPack.expand);
+		throw "ReqPack No Client Serial!";
 	}
 	console.log ('Server Receives Client Request #' + Serial.toString (),
 		 ' Client = ' + Client + ' ABC=' + ABC);
@@ -333,14 +337,14 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 
 async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	console.log ('Entering ReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
+	let str = RS1.ab2str (AB);
+	console.log ('AB = ' + str);
+	let Buf = RS1.newBuf (AB);
 
-	let Buf = RS1.ab2bb (AB);
-	let str = RS1.bb2str (Buf);
-	console.log ('Buf = ' + str);
-	
-	let rsd = new RS1.RSD (Buf);
+	let rsd = RS1.newRSD ('', Buf);
+	// rsd.constructRSD (RS1.newBuf (AB));
 
-	console.log ('Calling ReqPack in ReqAB/server.ts')
+	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.to$ + '\n' + rsd.expand)
 	let ResultRSD = await RS1.ReqRSD (rsd);
 
 	console.log ('Returned from ReqRSD with ResultPack/server.ts');
@@ -348,23 +352,6 @@ async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);
 	return ResultAB;
 }
-
-
-/*
-async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
-	console.log ('Entering ReqAB in Server.ts');
-	let BP = new RS1.BufPack ();
-	BP.bufIn (AB);
-
-	console.log ('Calling ReqPack in ReqAB/server.ts')
-	let ResultPack = await RS1.ReqPack (BP);
-
-	console.log ('Returned from ReqPack with ResultPack/server.ts');
-
-	let ResultAB = ResultPack.bufOut ();
-	return ResultAB;
-}
-*/
 
 export const POST = (async ({ request, url }) => {
 
@@ -376,52 +363,3 @@ export const POST = (async ({ request, url }) => {
 
 	return new Response(ServerAB);
 }) satisfies RequestHandler;
-
-
-/*
- async function (OLD)ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
-	let Serial = InPack.fNum ('#');
-	let OutPack : RS1.BufPack;
-
-	if (!Serial)
-	{
-		console.log ('NO Client Serial:\n' + InPack.expand);
-		throw "No Client Serial!";
-	}
-	console.log ('Server Receives Client Request #' + Serial.toString ());
-
-	let QF = InPack.xField;
-	if (!QF)
-		return RS1.NILPack;
-
-	console.log ('-----------\nInPack=' + InPack.info + 'Q=' + QF?.Str + '\n-----------\n'
-		 + InPack.desc);
-
-		 
-	switch (QF.Name) {
-		case '!Q' :
-			RSS.myTile = InPack.fStr('.T');
-			console.log ('  Query Tile --> ' + RSS.myTile);
-			
-			let Params = RSS.DBK.buildQ (InPack);
-			OutPack = RSS.DBK.execQ (InPack, Params);
-
-			OutPack.addArgs (['#',Serial]);
-
-			console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
-			return OutPack;
-
-		case '!H' :
-			OutPack = new RS1.BufPack ();
-			OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
-			console.log ('  Starting Session #' + RSS.mySession);
-			return OutPack;
-			break;
-
-		default : return RS1.NILPack;
-	}
-	
-	return RS1.NILPack;
-}
-
-*/
