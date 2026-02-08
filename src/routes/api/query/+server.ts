@@ -271,10 +271,38 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 	// Real processing here 
 	let OutList = new RS1.qList ();
 	OutList.qSetFast (['!H',++(RSS.nextSession),'#',Serial]);
+	OutList.qSet ('GHQ','Server says L2 - sent by server!');
 	console.log ('*** Session = **' + RSS.mySession + '**');
-	console.log ('  Starting Session #' + RSS.mySession);
+	console.log ('  Serving Session #' + RSS.mySession);
 	return OutList;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
@@ -347,7 +375,7 @@ async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.to$ + '\n' + rsd.expand)
 	let ResultRSD = await RS1.ReqRSD (rsd);
 
-	console.log ('Returned from ReqRSD with ResultPack/server.ts');
+	console.log ('Returned from ReqRSD with ResultRSD/server.ts, ResultRSD=' + ResultRSD.to$);
 
 	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);
 	return ResultAB;
@@ -357,7 +385,8 @@ export const POST = (async ({ request, url }) => {
 
 	const ClientAB = await request.arrayBuffer();
 
-	console.log ('ClientAB received in POST/server.ts');
+	console.log ('ClientAB received in POST/server.ts, Bytes = ' + 
+		ClientAB.byteLength.toString () + ' str=' + RS1.ab2str (ClientAB));
 
 	let ServerAB = await RS1.ReqAB (ClientAB);
 

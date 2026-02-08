@@ -4,7 +4,9 @@ var Serial : number = 0;
 
 async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
     
-    console.log ('AB sent by Client, bytes = ' + AB.byteLength.toString ());
+    console.log ('ABRequest sent by Client, bytes = ' + AB.byteLength.toString () +
+        '  str=' + RS1.ab2str (AB));
+
     const req = await fetch(
         `/api/query`,
         {
@@ -17,6 +19,9 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
     );
 
     const response = await req.arrayBuffer();
+
+    console.log ('Response AB from server, bytes = ' + response.byteLength.toString () + 
+        '  str =' + RS1.ab2str (response));
 
     return response;
 }
@@ -32,7 +37,7 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 
   BP.bufIn (recvAB);
 
-  console.log (' ---- Received Server reply #' + BP.fNum ('#').toString () + '\n' + BP.desc);
+  console.log (' ---- Pack Received Server reply #' + BP.fNum ('#').toString () + '---' + '\n' + BP.desc);
 
   return BP;
 }
@@ -48,10 +53,12 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
   if (AB) {
     let recvAB = await RS1.ReqAB (AB);
 
+    console.log ('client receives recvAB from server, str=' + RS1.ab2str (recvAB));
+
     let newRSD = new RS1.rList (recvAB);
     // BP.bufIn (recvAB);
 
-    console.log (' ---- Received Server reply #' + newRSD.qGet ('#').toString () + '\n' + newRSD.expand);
+    console.log (' ---- RSD Received newRSD from Server reply #' + newRSD.qGet ('#').toString () + 'to$=' + newRSD.to$ + '\n' + newRSD.expand);
     return newRSD;
   }
 
