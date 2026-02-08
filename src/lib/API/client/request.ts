@@ -42,17 +42,13 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
   rsd.qSet ('#', ++Serial);
   rsd.qSet ('Client','XYZ');
 
-  let AB = rsd.toBBI;
-  console.log ('Sending Client Request #' + Serial.toString ());
+  let AB = RS1.bb2ab (rsd.toBBI);
+  console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI));
 
   if (AB) {
-    let ABuffer = new ArrayBuffer (AB.byteLength);
-    let newAB = RS1.newBuf (ABuffer);
-    newAB.set (AB);
+    let recvAB = await RS1.ReqAB (AB);
 
-    let recvAB = await RS1.ReqAB (ABuffer);
-
-    let newRSD = new RS1.rList (ABuffer);
+    let newRSD = new RS1.rList (recvAB);
     // BP.bufIn (recvAB);
 
     console.log (' ---- Received Server reply #' + newRSD.qGet ('#').toString () + '\n' + newRSD.expand);
@@ -106,9 +102,27 @@ export async function InitClient () {
     OutPack.xAdd ('H',RS1.myVilla);
     OutPack.addArgs (['Client', 'XYZ']);
     OutPack.addArgs (['ABC', '123']);
-    let InPack = await RS1.ReqPack (OutPack);
-    RS1.mySession = InPack.fNum('!H');
-    let ServeReply = InPack.fStr ('ServeReply');
+
+
+    //  let InPack = await RS1.ReqPack (OutPack);
+    let OutRSD = new RS1.qList ();
+    OutRSD.from$ ('|Client|XYZ|ABC|123|');
+    OutRSD.qSet ('H',RS1.myVilla);
+    OutRSD.mark;
+
+    let outBBI = OutRSD.toBBI;
+    let newOut = new RS1.qList (outBBI);
+    console.log ('newOut='+newOut.to$+' OutRSD='+OutRSD.to$);
+    if (newOut.to$ !== OutRSD.to$)
+        console.log ('Mismatch');
+    
+    let InRSD = await RS1.ReqRSD (OutRSD);
+    let ServeReply = InRSD.qGet ('ServeReply');
+    RS1.mySession = InRSD.qGetNum ('!H');
+
+ //   RS1.mySession = InPack.fNum('!H');
+ //   let ServeReply = InPack.fStr ('ServeReply');
+
     console.log ('mySession = ' + RS1.mySession.toString () + ' ServeReply =' + ServeReply);
 
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');

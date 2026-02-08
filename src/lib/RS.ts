@@ -194,7 +194,7 @@ export namespace RS1 {
 
 			let prefixes = prefix.split (',');
 
-			console.log (prefixes.length.toString () + ' bufToPB='+prefix);
+			console.log (prefixes.length.toString () + ' bufToPB='+prefix + '\n' + prefixes.join('\n')+'\n');
 
 			let first = prefixes[0];
 			prefixes = prefixes.slice (1,-1);
@@ -208,15 +208,24 @@ export namespace RS1 {
 			}
 			else if (!RSDName)
 				RSDName = first;
+
+			console.log ('RSDName=' + RSDName + ',FieldRSD=' + FieldRSD + 'Buf=' + bb2str (Buf));
 	
 			let count = prefixes.length, 
 				Fields = Array<RSF> (count), i = 0;
 	
 			for (const P of prefixes) {
-				let nBytes = prefixBytes (P), bbi;
-				if (nBytes)
-					bbi = Buf.slice (offset,nBytes);
-	
+				let nBytes = prefixBytes (P), bbi, bbistr ='';
+				if (nBytes) {
+					bbi = Buf.slice (offset,offset + nBytes);
+					offset += nBytes;
+					bbistr = bb2str (bbi);
+				}
+
+				if (nBytes) 
+					console.log ('  processing ' + nBytes.toString () + ' bytes, Buf Str=' +
+						bbi?.byteLength.toString () + '=' + bb2str (bbi) + 'BBIStr=' + bbistr);
+
 				let F = new RSF ();
 				F.fromPrefix (P,bbi,FieldRSD);
 				Fields[i++] = F;
@@ -689,6 +698,10 @@ export namespace RS1 {
 				field.setData (Str);
 				field.setName ('.$');
 				Fields.push (field);
+
+				let bbtest = str2bbi (Str);
+				if (bbtest.byteLength !== Str.length)
+					throw 'Mismatched length!!';
 			}
 
 			if (x) {
@@ -765,7 +778,7 @@ export namespace RS1 {
 			let pb = new PB (Buf, RSDName, KidName), k = this.K;
 
 			for (const F of pb.Fields) {
-				let name = F.Name;
+				let name = F.name;
 
 				switch (name) {
 					case '.$' : this.from$ (F.Data as string); break;
@@ -2831,7 +2844,6 @@ export namespace RS1 {
 		prefix='';
 		type='';
 //		bbi:BBI;
-		data:any;
 		arr=false;
 		RSDName='';
 		dims='';
@@ -2843,7 +2855,7 @@ export namespace RS1 {
 			this.prefix='';
 			this.type='';
 			this._bbi=undefined;
-			this.data=undefined;
+			this.Data=undefined;
 			this.arr=false;
 			this.RSDName='';
 			this.dims='';
@@ -2860,7 +2872,7 @@ export namespace RS1 {
 			this.dims = '';
 			this.prefix='';
 			this._bbi=undefined;
-			this.data = data;
+			this.Data = data;
 			this.RSDName = conName;
 
 			if (!data) return;
@@ -2916,15 +2928,17 @@ export namespace RS1 {
 			let arrStr = '', cName, bbi:BBI;
 			switch (this.type) {
 				case tStr:
-					bbi = str2bbi (this.data as string);
+					bbi = str2bbi (this.Data as string);
+					if (bbi.byteLength !== (this.Data as string).length)
+						throw 'Mismatch!';
 					break;
 
 				case tNum :
-					bbi = num2bb (this.data as number);
+					bbi = num2bb (this.Data as number);
 					break;
 
 				case tRSD :
-					let rsd = this.data as RSD, rPrefix = rsd.toPrefix (RSDName);
+					let rsd = this.Data as RSD, rPrefix = rsd.toPrefix (RSDName);
 					
 					cName = rsd.cl;
 					bbi = rsd._bbi;
@@ -2933,12 +2947,12 @@ export namespace RS1 {
 					break;
 
 				case tStrs:
-					bbi = str2bbi ((this.data as string[]).join (EndStr) + EndStr);
+					bbi = str2bbi ((this.Data as string[]).join (EndStr) + EndStr);
 					arrStr = '[]';
 					break;
 
 				case tNums:
-					let Nums = this.data as number[];
+					let Nums = this.Data as number[];
 					let AB = new ArrayBuffer (Nums.length * Float64Array.BYTES_PER_ELEMENT),
 						newNums = new Float64Array (AB);
 					bbi = newBuf (AB);
@@ -2948,7 +2962,7 @@ export namespace RS1 {
 					break;
 
 				case tRSDs:
-					let Arr = this.data as RSD[];
+					let Arr = this.Data as RSD[];
 					let dims = '', nBytes = 0,	offset = 0, count = 0, Ps:string[]=[], Bs:BBI[]=[];
 					for (const r of Arr)
 						if (r) {
@@ -3025,9 +3039,10 @@ export namespace RS1 {
 				if (offset >= 0)
 					bbi = bbi.slice (offset, nBytes);
 				if (nBytes != bbi.byteLength)
-					throw 'fromPrefix Bytes mismatch!';
+					throw 'fromPrefix Bytes mismatch! nBytes = ' + nBytes.toString () + 
+						', bbi =' + bbi.byteLength.toString () + ' bbistr=' + bb2str (bbi) + '=';
 				}
-			else return;	// tragic error
+			else { throw 'NIL bbi to fromPrefix!'; return;	}	// tragic error 
 			
 
 			if (isArray) {
@@ -3035,16 +3050,16 @@ export namespace RS1 {
 					case tNum :
 						this.type = tNums;
 						if (nBytes)
-							this.data = new Float64Array (bbi);
-						else this.data = new Float64Array ();
+							this.Data = new Float64Array (bbi);
+						else this.Data = new Float64Array ();
 						break;
 
 					case tStr :
 						this.type = tStrs;
 						if (nBytes)
-							this.data = bb2str (bbi).split ('\n').slice (0,-1);
-						else this.data = new Array<string> ();
-						this.data = bb2str (bbi);
+							this.Data = bb2str (bbi).split ('\n').slice (0,-1);
+						else this.Data = new Array<string> ();
+						this.Data = bb2str (bbi);
 						break;
 
 					case tRSD :
@@ -3072,15 +3087,15 @@ export namespace RS1 {
 			else {	// non Array types
 				switch (type) {
 					case tNum :
-						this.data = bb2num (bbi);
+						this.Data = bb2num (bbi);
 						break;
 
 					case tStr :
-						this.data = bb2str (bbi);
+						this.Data = bb2str (bbi);
 						break;
 
 					case tRSD :
-						this.data = newRSD ('', bbi);
+						this.Data = newRSD ('', bbi);
 						break;
 
 					default : throw 'Undefined Type in fromPrefix!'
@@ -3091,6 +3106,7 @@ export namespace RS1 {
 			
 
 			this._bbi = bbi;
+			this.name = name;
 		}
 	}
 

@@ -332,6 +332,26 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 }
 
 async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
+	console.log ('Entering ReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
+
+	let Buf = RS1.ab2bb (AB);
+	let str = RS1.bb2str (Buf);
+	console.log ('Buf = ' + str);
+	
+	let rsd = new RS1.RSD (Buf);
+
+	console.log ('Calling ReqPack in ReqAB/server.ts')
+	let ResultRSD = await RS1.ReqRSD (rsd);
+
+	console.log ('Returned from ReqRSD with ResultPack/server.ts');
+
+	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);
+	return ResultAB;
+}
+
+
+/*
+async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	console.log ('Entering ReqAB in Server.ts');
 	let BP = new RS1.BufPack ();
 	BP.bufIn (AB);
@@ -344,6 +364,7 @@ async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	let ResultAB = ResultPack.bufOut ();
 	return ResultAB;
 }
+*/
 
 export const POST = (async ({ request, url }) => {
 
