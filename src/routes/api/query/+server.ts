@@ -369,7 +369,7 @@ async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	console.log ('AB = ' + str);
 	let Buf = RS1.newBuf (AB);
 
-	let rsd = RS1.newRSD ('', Buf);
+	let rsd = RS1.newRSD (Buf);
 	// rsd.constructRSD (RS1.newBuf (AB));
 
 	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.to$ + '\n' + rsd.expand)

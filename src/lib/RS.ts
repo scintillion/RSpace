@@ -385,7 +385,7 @@ export namespace RS1 {
 
 		copy (NewName = '') : RSD {
 			let pb = this.toPB ();
-			let newRS = newRSD (this.cl, pb.bbi);
+			let newRS = newRSD (pb.bbi, this.cl);
 			if (NewName)
 				newRS.Name = NewName;
 			return newRS;
@@ -1742,7 +1742,7 @@ export namespace RS1 {
 
 	export const NILRSD = new RSD ();
 
-	export function newRSD (name:string,x:RSArgs=undefined) : RSD {
+	export function newRSD (x:RSArgs=undefined,name='') : RSD {
 		let R = undefined;
 
 		if (!name) {
@@ -3083,7 +3083,7 @@ export namespace RS1 {
 								if (bytes) {
 									let buf = bbi.slice (off, bytes);
 									off += bytes;
-									RSDs[count++] = newRSD ('',buf);
+									RSDs[count++] = newRSD (buf);
 								}
 							}
 
@@ -3103,7 +3103,7 @@ export namespace RS1 {
 						break;
 
 					case tRSD :
-						this.Data = newRSD ('', bbi);
+						this.Data = newRSD (bbi);
 						break;
 
 					default : throw 'Undefined Type in fromPrefix!'

@@ -55,8 +55,7 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
 
     console.log ('client receives recvAB from server, str=' + RS1.ab2str (recvAB));
 
-    let newRSD = new RS1.rList (recvAB);
-    // BP.bufIn (recvAB);
+    let newRSD = RS1.newRSD (recvAB,'');
 
     console.log (' ---- RSD Received newRSD from Server reply #' + newRSD.qGet ('#').toString () + 'to$=' + newRSD.to$ + '\n' + newRSD.expand);
     return newRSD;
@@ -119,7 +118,7 @@ export async function InitClient () {
 
     let outBBI = OutRSD.toBBI;
     // let newOut = new RS1.qList (outBBI);
-    let newOut = RS1.newRSD ('',outBBI);
+    let newOut = RS1.newRSD (outBBI);
     console.log ('newOut='+newOut.to$+' OutRSD='+OutRSD.to$);
     if (newOut.to$ !== OutRSD.to$)
         console.log ('Mismatch');
