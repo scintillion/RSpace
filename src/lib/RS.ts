@@ -583,11 +583,12 @@ export namespace RS1 {
 				if (!str)
 					str = '|';
 
-				last = str.slice (-1);
-				if (last === '|') 		// simple case, qList
+				// last = str.slice (-1);
+				last = str[str. length-1];
+				if (last === EndStr) 	// delim case
+					Splits = str.split (EndStr).slice (0,-1);
+				else if (last === '|') 		// simple case, qList
 					return this.qstr = str;
-				else if (last === EndStr) 	// delim case
-					Splits = str.split (EndStr);
 				else if (last < ' ')
 					Strs = str.split (last).slice (0,-1);
 				else if (str.indexOf ('\n') >= 0)
@@ -597,28 +598,27 @@ export namespace RS1 {
 			}
 			else Strs = S as string[];
 
-			if (!Strs  ||	!Strs.length)
-				return '';
-
-			let remain:string[] = [], i, first = Strs[0];
-			if (first) {
-				if (first.slice (-1) === '|') {
-					this.qstr = first;
-					Strs = Strs.slice (1);
+			let remain:string[] = [], first;
+			if (Strs  &&	Strs.length) {
+				if (first=Strs[0]) {
+					if (first.slice (-1) === '|') {
+						this.qstr = first;
+						Strs = Strs.slice (1);
+					}
+					else if (first.indexOf ('|') >= 0) {
+						this.qstr = first + '|';
+						Strs = Strs.slice (1);
+					}
 				}
-				else if (first.indexOf ('|') >= 0) {
-					this.qstr = first + '|';
-					Strs = Strs.slice (1);
-				}
-			}
-			else Strs = Strs.slice (1);
+				else Strs = Strs.slice (1);
 
-			let k = this.K;
-			if (k) {
-				k.clear;
-				for (const S of Strs)
-					if (S)
-						k.add (newList (S),false);
+				let k = this.K;
+				if (k) {
+					k.clear;
+					for (const S of Strs)
+						if (S)
+							k.add (newList (S),false);
+				}
 			}
 
 			if (Splits) {
@@ -626,10 +626,15 @@ export namespace RS1 {
 					if (!str)
 						continue;
 
-					last = str.slice (-1); first = str.slice (0,-1);
+
+					let last = str[str.length-1], first = str.slice (0,-1);
+
+					console.log('str.length:', str.length, 'str:', JSON.stringify(str));
+					console.log('last:', JSON.stringify(last), 'first:', JSON.stringify(first));
+
 					switch (last) {
 						case 'I' :
-							if (str.slice(-1) !== '|')
+							if (first.slice(-1) !== '|')
 								first += '|';
 							this.qstr = first;
 							break;
@@ -872,10 +877,10 @@ export namespace RS1 {
 							(In as Uint8Array).byteLength.toString ());
 						this.fromBuf (In);
 					}
-					//else if (In instanceof ArrayBuffer)
-					//	this.fromBuf (In as ArrayBuffer);
+					else if (In instanceof ArrayBuffer)
+						this.fromBuf (newBuf (In as ArrayBuffer));
 					else
-						log ('Illegal input to RSD construct!');
+						log ('Illegal input to RSD construct!=' + In.constructor.name);
 					break;
 			}
 		}
@@ -1743,37 +1748,51 @@ export namespace RS1 {
 	export const NILRSD = new RSD ();
 
 	export class RSDCmd {
-		Serial = '';
+		NumberStr = '';
 		SessionID = 0;
+		SessionStr='';
 		SerialID = 0;
+		SerialIDStr = '';
 		cmdstr = '';
+		command = '';
+		cmdXtra = '';
 		commands : string[] = [];
 
 		constructor (rsd : RSD, serving = true) {
-			let serial = this.Serial = rsd.qGet ('#');
+			let serial = this.NumberStr = rsd.qGet ('#');
 			let colon = serial.indexOf (':');
-			if (this.Serial) {
+
+			if (this.NumberStr) {
 				if (colon >= 0) {
-					this.SessionID = Number (serial.slice (colon + 1));
-					this.SerialID = Number (serial.slice (0,colon));
+					this.SessionID = Number (this.SessionStr = serial.slice (colon + 1));
+					this.SerialID = Number (this.SerialIDStr = serial.slice (0,colon));
 				}
-				else this.SerialID = Number (serial);
+				else this.SerialID = Number (this.SerialIDStr = serial);
 			}
 
 			let cmdstr = this.cmdstr = rsd.qGet (serving ? '?' : '.'), commands:string[] = [];
 			if (cmdstr) {
 				commands = cmdstr.split (':');
-				cmdstr = commands[0];
+				this.command = commands[0];
+				this.cmdXtra = commands[1];
 				commands = commands.slice (1);
 			}
 
+			console.log ('RSDcmd RSD=' + rsd.to$ + '\n Receives Message #' + this.SerialIDStr + '/' + this.SerialID.toString () +
+			' Session=' + this.SessionStr + '/' + this.SessionID.toString () +
+		 		'\n  CmdStr = ' + this.cmdstr + ' CmdXtra = ' + this.cmdXtra + ' NumberStr =' + this.NumberStr);
 
-			console.log ('Receives Message #' + serial,
-		 		' SerialID = ' + this.SerialID.toString () + ' SessionID = ' + this.SessionID.toString () +
-		 		' CmdStr = ' + cmdstr + ' CmdXtra = ' + commands[0]);
-
-			if (serial)
-				console.log ('ReqRSD NO Client Serial:\n' + rsd.expand);
+/*
+		NumberStr = '';
+		SessionID = 0;
+		SessionStr='';
+		SerialID = 0;
+		SerialIDStr = '';
+		cmdstr = '';
+		command = '';
+		cmdXtra = '';
+		commands : string[] = [];
+*/
 		}
 	}
 
@@ -2313,10 +2332,8 @@ export namespace RS1 {
 		return args;
 	}
 
-	// Note: these variables ONLY used by Client, should be set to ''
-	// or '!ERROR' on Server just to be safe!
 	export var myServer='';
-	export var mySession=0;
+	export var mySession=0;		// this is the LAST session # on the server
 	export var myTile='S';
 	export var myVilla='S';
 

@@ -232,7 +232,7 @@ class RServer {
 	DBK : DBKit;
 	myVilla='S';
 	myTile='';
-	mySession='ABC';
+	myServerName='ABC';
 
 	nextSession=0;
 
@@ -251,18 +251,28 @@ const Q = new DBKit ('q.sqlite3');
 const RSS = new RServer ('tile.sqlite3');
 
 async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
-	let cmd = new RS1.RSDCmd (InRSD);
-
-	if (!cmd.Serial)
-		throw "ReqRSD No Client Serial!";
+	let cmd = new RS1.RSDCmd (InRSD), initStr = '|.:?|';	// default is confused reply
 
 	// Real processing here 
-	let OutList = new RS1.qList ();
-	OutList.qSetFast (['!H',++(RSS.nextSession),'#',cmd.Serial]);
-	OutList.qSet ('GHQ','Server says L2 - sent by server!');
-	console.log ('*** Session = **' + RSS.mySession + '**');
-	console.log ('  Serving Session #' + RSS.mySession);
-	return OutList;
+	if (cmd.SerialID) {
+
+
+
+
+
+
+	}
+	else {	// first 
+		++RSS.nextSession;
+		initStr = '|.:Hello:'+ RSS.nextSession.toString () + ':' + RSS.myServerName+ '|';
+	}
+
+
+
+	let Numbers = '#:'+cmd.SerialIDStr+':'+cmd.SessionStr+'|',
+		OutRSD = new RS1.RSD ('|.:HI:' + cmd.NumberStr);
+
+	return OutRSD;
 }
 
 
@@ -308,10 +318,13 @@ async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
 		 ' Client = ' + Client + ' ABC=' + ABC);
 
 	OutPack = new RS1.BufPack ();
+
+/*
 	OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
 	OutPack.addArgs (['ServeReply','987']);
 	console.log ('*** Session = **' + RSS.mySession + '**');
 	console.log ('  Starting Session #' + RSS.mySession);
+*/
 	return OutPack;
 
 /*
