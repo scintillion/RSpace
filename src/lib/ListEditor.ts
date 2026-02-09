@@ -2,11 +2,11 @@ import { RS1 } from './RS';
 
 export class ListEditor {
 	public list: RS1.xList;
-	public rList: RS1.rList | null;
+	public rList?: RS1.rList;
 	private formats: RS1.qList;
 	private TypeArray: string[];
 
-	constructor(list: RS1.xList, rList: RS1.rList | null = null) {
+	constructor(list: RS1.xList, rList: RS1.rList | undefined = undefined) {
 		this.list = list;
 		this.rList = rList;
 		this.formats = RS1.rLoL.FT as RS1.qList;
@@ -19,9 +19,9 @@ export class ListEditor {
 		// Get fresh vIDs from the list
 		let freshVIDs: RS1.vID[];
 		if ('toSortedVIDs' in this.list && typeof this.list.toSortedVIDs !== 'undefined') {
-			freshVIDs = this.list.toSortedVIDs;
+			freshVIDs = this.list.qToSortedVIDs;
 		} else {
-			freshVIDs = this.list.toVIDs;
+			freshVIDs = this.list.qToVIDs;
 		}
 		// Create a new array to trigger reactivity
 		return [...freshVIDs];
@@ -49,7 +49,7 @@ export class ListEditor {
 		const value = rawFMT.Value?._Str as string || '';
 		const fmtstr = rawFMT.Xtra || '';
 		
-		const formatDesc = this.formats?.descByName(rawFMT.Ch) as string;
+		const formatDesc = this.formats?.qDescByName(rawFMT.Ch) as string;
 		
 		let listSelect = '';
 		let vIDSelect = '';
@@ -131,8 +131,7 @@ export class ListEditor {
 		fmtstr: string,
 		listSelect: string,
 		vIDSelect: string,
-		selectedVID: RS1.vID | null
-	): { success: boolean; updatedVID?: RS1.vID; listStr: string } {
+		selectedVID?: RS1.vID): { success: boolean; updatedVID?: RS1.vID; listStr: string } {
 		if (!name) {
 			alert('Name is required');
 			return { success: false, listStr: this.list.to$ };
@@ -170,10 +169,10 @@ export class ListEditor {
 			vID.Desc = description;
 		}
 
-		const wasEditing = selectedVID !== null;
+		const wasEditing = selectedVID;
 		const savedName = name;
 		
-		this.list.setVID(vID);
+		this.list.qSetVID(vID);
 		
 		// If we were editing an existing vID, get the updated one
 		let updatedVID: RS1.vID | undefined;
@@ -181,9 +180,9 @@ export class ListEditor {
 			// Get fresh vIDs after update
 			let freshVIDs: RS1.vID[];
 			if ('toSortedVIDs' in this.list && typeof this.list.toSortedVIDs !== 'undefined') {
-				freshVIDs = this.list.toSortedVIDs;
+				freshVIDs = this.list.qToSortedVIDs;
 			} else {
-				freshVIDs = this.list.toVIDs;
+				freshVIDs = this.list.qToVIDs;
 			}
 			updatedVID = freshVIDs.find(v => v.Name === savedName);
 		}
@@ -199,20 +198,20 @@ export class ListEditor {
 	}
 
 	public deleteVID(vID: RS1.vID): void {
-		this.list.del(vID.Name);
+		this.list.qDel(vID.Name);
 	}
 
 	public copyVID(vID: RS1.vID): RS1.vID {
 		const newVID = vID.copy;
 		newVID.Name = `${newVID.Name} Copy`;
 		newVID.List = this.list;
-		this.list.setVID(newVID);
+		this.list.qSetVID(newVID);
 		return newVID;
 	}
 
 	public moveVID(vID: RS1.vID, direction: 'up' | 'down'): void {
 		const dir = direction === 'up' ? -1 : 1;
-		this.list.bubble(vID.Name, dir);
+		this.list.qBubble(vID.Name, dir);
 	}
 
 	public getTypeArray(): string[] {

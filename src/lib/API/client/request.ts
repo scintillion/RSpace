@@ -1,10 +1,12 @@
 import { RS1 } from '$lib/RS';
 
-var Serial : number = 0;
+var Serial = 0;
 
 async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
     
-    // console.log ('AB sent by Client, bytes = ' + AB.byteLength.toString ());
+    console.log ('ABRequest sent by Client, bytes = ' + AB.byteLength.toString () +
+        '  str=' + RS1.ab2str (AB));
+
     const req = await fetch(
         `/api/query`,
         {
@@ -18,11 +20,14 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 
     const response = await req.arrayBuffer();
 
+    console.log ('Response AB from server, bytes = ' + response.byteLength.toString () + 
+        '  str =' + RS1.ab2str (response));
+
     return response;
 }
 
 async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
-  // console.log ('PackRequest Incoming = \n' + BP.Desc ());
+  console.log ('PackRequest Incoming = \n' + BP.desc);
   BP.addArgs (['#',++Serial]);
 
   let AB = BP.bufOut ();
@@ -32,13 +37,38 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
 
   BP.bufIn (recvAB);
 
-  console.log (' ---- Received Server reply #' + BP.fNum ('#').toString () + '\n' + BP.desc);
+  console.log (' ---- Pack Received Server reply #' + BP.fNum ('#').toString () + '---' + '\n' + BP.desc);
 
   return BP;
 }
 
+
+async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
+    console.log ('Incoming RSDRequest ='+rsd.to$);
+
+    let testRSD = RS1.newRSD (rsd.to$);
+
+    rsd.qSet ('#', (++Serial).toString () + ':' + RS1.mySession.toString ());
+
+    let AB = RS1.bb2ab (rsd.toBBI);
+    console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI));
+
+    if (AB) {
+        let recvAB = await RS1.ReqAB (AB);
+        // console.log ('client receives recvAB from server, str=' + RS1.ab2str (recvAB));
+        let newRSD = RS1.newRSD (recvAB,''), cmd = new RS1.RSDCmd (newRSD, false);
+        //  console.log (' ---- RSD Received newRSD from Server reply #' + newRSD.qGet ('#').toString () + 'to$=' + newRSD.to$ + '\n' + newRSD.expand);
+        return newRSD;
+    }
+
+  return RS1.NILRSD;
+}
+
+
+
+
 export async function InitClient () {
-   RS1.InitReq (ABRequest,packRequest);
+   RS1.InitReq (ABRequest,packRequest,RSDRequest);
 
    let newVID = new RS1.vID ('Name:Desc');
    let newFmt = new RS1.IFmt ('');
@@ -69,29 +99,32 @@ export async function InitClient () {
 
     let F = new RS1.PackField ('Num',123);
     F.clear;
-    let List = new RS1.vList ();
+    let List = new RS1.qList ();
     let v = new RS1.vID ('ABC:DEF');
-    List.x.UpdateVID (v);
-    console.log ('List=' + List.toStr);
+    List.qSetVID (v);
+    console.log ('List=' + List.to$);
 
-    let OutPack = new RS1.BufPack ();
-    OutPack.xAdd ('H',RS1.myVilla);
-    let InPack = await RS1.ReqPack (OutPack);
-    RS1.mySession = InPack.fNum('!H');
-    console.log ('mySession = ' + RS1.mySession.toString ());
+    //  let InPack = await RS1.ReqPack (OutPack);
+    let OutRSD = new RS1.RSD ('|?:Hello:LoginID|Client:XYZ|ABC:123|Serial:897|');
+
+    let InRSD = await RS1.ReqRSD (OutRSD);
+    let ServeReply = InRSD.qGet ('ServeReply');
+    RS1.mySession = InRSD.qGetNum ('!H');
+
+    console.log ('mySession = ' + RS1.mySession.toString () + ' ServeReply =' + ServeReply);
 
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
-    console.log (Q.descByName ('XYZ'));
-    console.log (Q.num ('ABC').toString ());
-    console.log (Q.count.toString ());
-    console.log ('Names=' + Q.names);
-    let ND = Q.splitNames;
+    console.log (Q.qDescByName ('XYZ'));
+    console.log (Q.qNum ('ABC').toString ());
+    console.log (Q.qCount.toString ());
+    console.log ('Names=' + Q.qNames);
+    let ND = Q.qSplitNames;
     console.log ('ND=' + ND.b);
     console.log ('As=' + ND.a);
     let V = new RS1.vID ('DEF:ghq');
-    Q.set ('DEF','ghq');
-    Q.set ('XYZ',987);
-    ND = Q.splitNames;
+    Q.qSet ('DEF','ghq');
+    Q.qSet ('XYZ',987);
+    ND = Q.qSplitNames;
     console.log ('ND=' + ND.b);
 
     let XYZ = new RS1.qList ();
@@ -133,9 +166,9 @@ export async function InitClient () {
     console.log  ('ABCRootList = ' + ABCRootList.expand);
     console.log  ('ABCRSIList = ' + ABCRSIList.expand);
     
-    ABCRootList.mergeList (ABCRSIList);
+    ABCRootList.rMergeList (ABCRSIList);
     console.log  ('ABCRootList after RSIList merge = ' + ABCRootList.expand);
-    targetList.mergeList (ABCRootList, false);
+    targetList.rMergeList (ABCRootList, false);
     
     targetList._bbi = undefined; // force rebuild
     let newBBI = targetList.toBBI,bbstr = RS1.bb2str (targetList.toBBI) ;
@@ -157,9 +190,9 @@ export async function InitClient () {
     console.log ('B.to$=' + B.to$);
 
     console.log ('Prebubble = ' + Q.to$);
-    Q.bubble ('DEF');
+    Q.qBubble ('DEF');
     console.log ('Postbubble = ' + Q.to$);
-    Q.bubble ('DEF',1);
+    Q.qBubble ('DEF',1);
     console.log ('Bubble again = ',Q.to$);
 
     let RList = new RS1.rList (TileStrings);
@@ -167,8 +200,8 @@ export async function InitClient () {
     let SS = RList.to$;
     console.log ('toStr =  ' + '\nRList.toStr=\n' + RList.to$+ '!');
     console.log ('RList.EXPAND=\n' + RList.expand);
-    if (RList.Tree)
-        console.log ('RList.TREE!!\n' + RList.Tree.expand);
+    if (RList.kidTree)
+        console.log ('RList.TREE!!\n' + RList.kidTree.expand);
     let ABC:RS1.RSD = RList;
         console.log ('RList.RSD.constructor=' + ABC.constructor.name);
 
