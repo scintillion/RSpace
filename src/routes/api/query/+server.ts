@@ -251,26 +251,14 @@ const Q = new DBKit ('q.sqlite3');
 const RSS = new RServer ('tile.sqlite3');
 
 async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
-	let Serial = InRSD.qGet ('#');
-	let Client = InRSD.qGet ('Client');
-	let ABC = InRSD.qGet ('ABC');
+	let cmd = new RS1.RSDCmd (InRSD);
 
-	console.log ('Server Receives Client Request #' + Serial,
-		 ' Client = ' + Client + ' ABC=' + ABC + 'RSD=' +
-		 InRSD.to$ + '  RSD.expand=\n' + InRSD.expand + '\n** End Expand');
-
-	if (!Serial)
-	{
-		console.log ('ReqRSD NO Client Serial:\n' + InRSD.expand);
+	if (!cmd.Serial)
 		throw "ReqRSD No Client Serial!";
-	}
-	console.log ('Server Receives Client Request #' + Serial,
-		 ' Client = ' + Client + ' ABC=' + ABC);
-
 
 	// Real processing here 
 	let OutList = new RS1.qList ();
-	OutList.qSetFast (['!H',++(RSS.nextSession),'#',Serial]);
+	OutList.qSetFast (['!H',++(RSS.nextSession),'#',cmd.Serial]);
 	OutList.qSet ('GHQ','Server says L2 - sent by server!');
 	console.log ('*** Session = **' + RSS.mySession + '**');
 	console.log ('  Serving Session #' + RSS.mySession);

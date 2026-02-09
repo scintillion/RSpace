@@ -840,9 +840,6 @@ export namespace RS1 {
 
 
 
-
-
-
 		constructRSD (In:RSArgs, clear = true) {
 			if (clear)
 				this.clear;
@@ -932,6 +929,9 @@ export namespace RS1 {
 		qGetNum (s:string) { return Number (this.qGet (s)); }
 
 		qSetStr (name:string,val:string) { this.qSet (name,val); }
+
+		get qGetQStr () { return this.qstr; }
+		qSetQStr (str = '|') { this.qstr = str; }
 
 		qMerge (add1 : qList|string, overlay=false) {
 			if (this.notIList)
@@ -1741,6 +1741,41 @@ export namespace RS1 {
 	}
 
 	export const NILRSD = new RSD ();
+
+	export class RSDCmd {
+		Serial = '';
+		SessionID = 0;
+		SerialID = 0;
+		cmdstr = '';
+		commands : string[] = [];
+
+		constructor (rsd : RSD, serving = true) {
+			let serial = this.Serial = rsd.qGet ('#');
+			let colon = serial.indexOf (':');
+			if (this.Serial) {
+				if (colon >= 0) {
+					this.SessionID = Number (serial.slice (colon + 1));
+					this.SerialID = Number (serial.slice (0,colon));
+				}
+				else this.SerialID = Number (serial);
+			}
+
+			let cmdstr = this.cmdstr = rsd.qGet (serving ? '?' : '.'), commands:string[] = [];
+			if (cmdstr) {
+				commands = cmdstr.split (':');
+				cmdstr = commands[0];
+				commands = commands.slice (1);
+			}
+
+
+			console.log ('Receives Message #' + serial,
+		 		' SerialID = ' + this.SerialID.toString () + ' SessionID = ' + this.SessionID.toString () +
+		 		' CmdStr = ' + cmdstr + ' CmdXtra = ' + commands[0]);
+
+			if (serial)
+				console.log ('ReqRSD NO Client Serial:\n' + rsd.expand);
+		}
+	}
 
 	export function newRSD (x:RSArgs=undefined,name='') : RSD {
 		let R = undefined;

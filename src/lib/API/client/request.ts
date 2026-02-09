@@ -1,6 +1,6 @@
 import { RS1 } from '$lib/RS';
 
-var Serial : number = 0;
+var Serial = 0;
 
 async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
     
@@ -42,24 +42,33 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
   return BP;
 }
 
+
+/*
+	// Note: these variables ONLY used by Client, should be set to ''
+	// or '!ERROR' on Server just to be safe!
+	export var myServer='';
+	export var mySession=0;
+	export var myTile='S';
+	export var myVilla='S';
+*/
+
+
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
-  console.log ('RSDRequest Incoming = \n' + rsd.expand);
-  rsd.qSet ('#', ++Serial);
-  rsd.qSet ('Client','XYZ');
+    let cmd = new RS1.RSDCmd (rsd, false);
 
-  let AB = RS1.bb2ab (rsd.toBBI);
-  console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI));
+    rsd.qSet ('#', ++Serial);
+    rsd.qSet ('Client','XYZ');
 
-  if (AB) {
-    let recvAB = await RS1.ReqAB (AB);
+    let AB = RS1.bb2ab (rsd.toBBI);
+    console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI));
 
-    console.log ('client receives recvAB from server, str=' + RS1.ab2str (recvAB));
-
-    let newRSD = RS1.newRSD (recvAB,'');
-
-    console.log (' ---- RSD Received newRSD from Server reply #' + newRSD.qGet ('#').toString () + 'to$=' + newRSD.to$ + '\n' + newRSD.expand);
-    return newRSD;
-  }
+    if (AB) {
+        let recvAB = await RS1.ReqAB (AB);
+        // console.log ('client receives recvAB from server, str=' + RS1.ab2str (recvAB));
+        let newRSD = RS1.newRSD (recvAB,''), cmd = new RS1.RSDCmd (newRSD, false);
+        //  console.log (' ---- RSD Received newRSD from Server reply #' + newRSD.qGet ('#').toString () + 'to$=' + newRSD.to$ + '\n' + newRSD.expand);
+        return newRSD;
+    }
 
   return RS1.NILRSD;
 }
@@ -112,7 +121,7 @@ export async function InitClient () {
 
     //  let InPack = await RS1.ReqPack (OutPack);
     let OutRSD = new RS1.qList ();
-    OutRSD.from$ ('|Client:XYZ|ABC:123|Serial:897|#:456|');
+    OutRSD.from$ ('|#:1:0|?:Hello:When in doubt, take a pawn.|Client:XYZ|ABC:123|Serial:897|');
     OutRSD.qSet ('H',RS1.myVilla);
     OutRSD.mark;
 
