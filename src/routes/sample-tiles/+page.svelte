@@ -4,9 +4,7 @@
 	import { RS1 } from '$lib/RS';
 	import TileEditorModal from './TileEditorModal.svelte';
 
-	const initialTileStrings: string[] = [
-		'TS3:SampleTiles',
-		'T\ta|name:grid|\ts|display:grid|grid-template-columns:repeat(auto-fill, minmax(200px, 1fr))|gap:20|width:100%|padding:40px 24px|box-sizing:border-box|\t',
+	const tileStrings: string[] = [
 		' T\ta|name:basic-div|inner:Basic Div|\ts|width:200|height:200|background:#667eea|color:white|display:flex|align-items:center|justify-content:center|border-radius:8|\t',
 		' T\ta|name:basic-button|inner:Basic Button|element:button|\ts|width:200|height:200|background:#f093fb|color:white|border:none|border-radius:8|cursor:pointer|font-size:16|\t',
 		' T\ta|name:redirect-tile|inner:Redirect|clickAction:Redirect|redirect:https://google.com|\ts|width:200|height:200|background:#4facfe|color:white|display:flex|align-items:center|justify-content:center|border-radius:8|cursor:pointer|\t',
@@ -27,6 +25,12 @@
 		' T\ta|name:delete-tile|inner:Delete|\ts|width:200|height:200|background:#f093fb|color:white|display:flex|align-items:center|justify-content:center|border-radius:8|position:relative|\t',
 		' T\ta|name:full-featured|inner:Full Featured|drag:true|resize:true|hover:true|clickAction:Alert|alertContent:Full featured tile!|\ts|width:200|height:200|background:#667eea|color:white|display:flex|align-items:center|justify-content:center|border-radius:8|position:relative|cursor:move|\t'
 	];
+
+	const initialTileStrings: string[] = [
+		'TS3:SampleTiles',
+		'T\ta|name:grid|\ts|display:grid|grid-template-columns:repeat(auto-fill, minmax(200px, 1fr))|gap:20|width:100%|padding:40px 24px|box-sizing:border-box|\t',
+		...tileStrings
+		];
 
 	// TileStrings[0] = header, TileStrings[1..] = data rows; DOM id tile-N === TileStrings[N]
 	let TileStrings = $state([...initialTileStrings]);
