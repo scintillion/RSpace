@@ -363,7 +363,7 @@ export namespace RS1 {
 
 	export class RSD {
 		Mom? : RSD;
-		_bbi : BBI;
+		_bbi? : BBI;
 		protected qstr = '';
 
 		get iList () { return true; }
@@ -903,6 +903,7 @@ export namespace RS1 {
 		}
 
 		qSetNameValues (nv :(string|number|undefined)[]=[]) {
+			this.mark;
 			let i = 0, name = 0, NVs : string[] = Array ((nv.length+1) >> 1);
 			for (const v of nv) {
 				if (++name & 1) 	// name
@@ -920,6 +921,7 @@ export namespace RS1 {
 		}
 
 		qSetFastValues (ValueStr='') {
+			this.mark;
 			let firstDelim = this.qstr.indexOf ('|');
 			if (ValueStr.slice (-1) !== '|')
 				ValueStr += '|';
@@ -936,11 +938,13 @@ export namespace RS1 {
 		qSetStr (name:string,val:string) { this.qSet (name,val); }
 
 		get qGetQStr () { return this.qstr; }
-		qSetQStr (str = '|') { this.qstr = str; }
+		qSetQStr (str = '|') { this.mark; this.qstr = str; }
 
 		qMerge (add1 : qList|string, overlay=false) {
 			if (this.notIList)
 				return;
+
+			this.mark;
 
 			let addend = ((typeof add1) === 'string') ? newList (add1 as string) : add1;
 			let cl = addend.cl;
@@ -1015,6 +1019,7 @@ export namespace RS1 {
 		}
 
 		protected setNameDesc (name:string,desc='') {
+			this.mark;
 			if (desc===name)
 				desc = '';
 
@@ -1022,7 +1027,6 @@ export namespace RS1 {
 			if (D === '|')
 				this.qstr = str + this.qstr.slice (this.qstr.indexOf ('|'));
 			else this.qstr = str;
-			this.mark;
 		}
 
 		namedesc (start=0) {
@@ -1034,13 +1038,13 @@ export namespace RS1 {
 			let str = this.namedesc ().a.trim ();
 			return str;
 		}
-		set qName (s:string) { this.setNameOrDesc (s); }
+		set qName (s:string) { this.mark; this.setNameOrDesc (s); }
 
 		get qDesc () {
 			let pair = this.namedesc ();
 			return pair.b ? pair.b : pair.a.trim ();
 		}
-		set qDesc (s:string) { this.setNameOrDesc (s,true); }
+		set qDesc (s:string) { this.mark; this.setNameOrDesc (s,true); }
 
 		getNFD (start=0) {
 			return new NFD (this.namedescstr (start));
@@ -1053,6 +1057,7 @@ export namespace RS1 {
 			}
 			else pair.a = name;
 
+			this.mark;
 			this.setNameDesc (pair.a, pair.b);
 		}
 
@@ -1077,6 +1082,7 @@ export namespace RS1 {
 		//
 
 		qSetFast (Args:any[]) {
+			this.mark;
 			let str = '|', len = Args.length;
 			if (len & 1)
 				throw 'setFast requires Name:Value pairs';
@@ -1093,6 +1099,7 @@ export namespace RS1 {
 		}
 
 		qBubble (name:string|number, dir=0) {
+			this.mark;
 			let start = this.qFindName (name);
 			if (start < 0)
 				return false;
@@ -1188,12 +1195,14 @@ export namespace RS1 {
 		}
 
 		qDel (name:string|number) {
+			this.mark;
 			let pair = this.qPrePost (name);
 			if (pair.a)
 				this.qstr = pair.a + pair.b;
 		}
 
 		qSet (name:string|number,desc:string|number='') {
+			this.mark;
 			let vStr = desc ? (name.toString () + ':' + desc.toString ()) : name.toString ();
 			let pair = this.qPrePost(name);
 
@@ -1263,6 +1272,7 @@ export namespace RS1 {
 		}
 
 		qSetVID (VID:vID) {
+			this.mark;
 			let str = VID.to$, pos = str.indexOf(':');
 			if (str) {
 				if (pos < 0) // no desc
@@ -1383,6 +1393,7 @@ export namespace RS1 {
 		}
 
 		qFromRaw (VIDStrs:string[]=[]) {
+			this.mark;
 			let NameDesc = this.qstr.slice (0,this.qstr.indexOf('|')+1);
 			let VIDStr = VIDStrs.join ('|');
 			this.qstr = NameDesc + (VIDStr ? (VIDStr + '|') : '');
@@ -1408,6 +1419,7 @@ export namespace RS1 {
 		// **** Kid functions (general, excluding rList) ****
 
 		get kidTree () : RSTree|undefined {
+			this.mark;
 			let k = this.K;
 			if (!k)
 				return;
@@ -1433,11 +1445,13 @@ export namespace RS1 {
 		}
 
 		get kidsClear () {
+			this.mark;
 			let k = this.K
 			return k ? k.clear : false;
 		}
 
 		kidDel (list:string|RSD) {
+			this.mark;
 			let K = this.K;
 			if (K)
 				return K.del (list as string|RSD);
@@ -1445,6 +1459,7 @@ export namespace RS1 {
 		}
 
 		kidSet (kid1:RSD|RSD[],replace=true) {
+			this.mark;
 			let K = this.K;
 			if (K)
 				return K.Set (kid1,replace);
@@ -1452,6 +1467,7 @@ export namespace RS1 {
 		}
 
 		kidAdd (kid1:RSD|RSD[]) {
+			this.mark;
 			return this.kidSet (kid1, false);
 		}
 
@@ -1526,6 +1542,7 @@ export namespace RS1 {
 		}		
 
 		rMergeList (list : xList|rList|RSR|string, overlay=true) {
+			this.mark;
 			let rsi, rsr, rsd, cl, merged = false;
 
 			if (typeof list === 'string')
@@ -1589,6 +1606,7 @@ export namespace RS1 {
 		}
 
 		rReplaceList (list : xList|rList|RSR|string, single = true) {
+			this.mark;
 			let i=-1, xL:xList, replaced = 0;
 			
 			if (typeof list === 'string') 
@@ -1623,6 +1641,7 @@ export namespace RS1 {
 		}
 
 		rBubbleKid (nameOrList:string|RSD,dir=0) {
+			this.mark;
 			let k = this.K;
 			if (k)
 				return k.bubble (nameOrList as string|RSD,dir);
@@ -1633,6 +1652,7 @@ export namespace RS1 {
 			if (!Str)
 				return;	
 
+			this.mark;
 			if (desc === name)
 				desc = '';
 			let ND = desc ? (name + ':' + desc) : name;
@@ -1704,6 +1724,7 @@ export namespace RS1 {
 		}
 
 		rAddList (Str:string|string[]|xList) : qList|rList|undefined {
+			this.mark;
 			let k, list;
 			if (!(k = this.K))
 				return undefined;

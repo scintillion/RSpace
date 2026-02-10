@@ -251,27 +251,26 @@ const Q = new DBKit ('q.sqlite3');
 const RSS = new RServer ('tile.sqlite3');
 
 async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
-	let cmd = new RS1.RSDCmd (InRSD), initStr = '|.:?|';	// default is confused reply
+	let cmd = new RS1.RSDCmd (InRSD), initStr = '?|';	// default is confused reply
 
 	// Real processing here 
 	if (cmd.SessionID) {
-
-
-
-
-
-
+		switch (cmd.command) {
+			case 'Bye' : console.log ('User logs out.');
+				initStr = 'Bye:Thanks for playing.';
+				break;
+		}
 	}
 	else {	// first 
 		cmd.SessionStr = (cmd.SessionID = ++RSS.nextSession).toString ();
 		cmd.NumberStr = '1:' + cmd.SessionStr;
-		initStr = '|.:Hi:'+ cmd.SessionStr + ':' + RSS.myServerName;
+		initStr = 'Hi:'+ cmd.SessionStr + ':' + RSS.myServerName;
 	}
 
 
 
 	let Numbers = '#:'+cmd.SerialIDStr+':'+cmd.SessionStr,
-		OutRSD = new RS1.RSD (initStr + '|' + cmd.NumberStr + '|');
+		OutRSD = new RS1.RSD ('|.:' + initStr + '|#:' + cmd.NumberStr + '|');
 
 	return OutRSD;
 }

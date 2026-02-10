@@ -49,7 +49,8 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     let testRSD = RS1.newRSD (rsd.to$);
 
     rsd.qSet ('#', (++Serial).toString () + ':' + RS1.mySession.toString ());
-
+    rsd.mark;
+    
     let AB = RS1.bb2ab (rsd.toBBI);
     console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI));
 
@@ -114,8 +115,9 @@ export async function InitClient () {
 
     let InRSD = await RS1.ReqRSD (OutRSD);
 
+    OutRSD.from$ ('|?:Bye:Riding into the sunset.|');
+    InRSD = await RS1.ReqRSD (OutRSD);
 
-    
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
     console.log (Q.qDescByName ('XYZ'));
     console.log (Q.qNum ('ABC').toString ());
