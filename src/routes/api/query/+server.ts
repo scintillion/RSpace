@@ -254,7 +254,7 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 	let cmd = new RS1.RSDCmd (InRSD), initStr = '|.:?|';	// default is confused reply
 
 	// Real processing here 
-	if (cmd.SerialID) {
+	if (cmd.SessionID) {
 
 
 
@@ -263,14 +263,15 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 
 	}
 	else {	// first 
-		++RSS.nextSession;
-		initStr = '|.:Hello:'+ RSS.nextSession.toString () + ':' + RSS.myServerName+ '|';
+		cmd.SessionStr = (cmd.SessionID = ++RSS.nextSession).toString ();
+		cmd.NumberStr = '1:' + cmd.SessionStr;
+		initStr = '|.:Hi:'+ cmd.SessionStr + ':' + RSS.myServerName;
 	}
 
 
 
-	let Numbers = '#:'+cmd.SerialIDStr+':'+cmd.SessionStr+'|',
-		OutRSD = new RS1.RSD ('|.:HI:' + cmd.NumberStr);
+	let Numbers = '#:'+cmd.SerialIDStr+':'+cmd.SessionStr,
+		OutRSD = new RS1.RSD (initStr + '|' + cmd.NumberStr + '|');
 
 	return OutRSD;
 }

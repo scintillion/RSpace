@@ -1781,18 +1781,6 @@ export namespace RS1 {
 			console.log ('RSDcmd RSD=' + rsd.to$ + '\n Receives Message #' + this.SerialIDStr + '/' + this.SerialID.toString () +
 			' Session=' + this.SessionStr + '/' + this.SessionID.toString () +
 		 		'\n  CmdStr = ' + this.cmdstr + ' CmdXtra = ' + this.cmdXtra + ' NumberStr =' + this.NumberStr);
-
-/*
-		NumberStr = '';
-		SessionID = 0;
-		SessionStr='';
-		SerialID = 0;
-		SerialIDStr = '';
-		cmdstr = '';
-		command = '';
-		cmdXtra = '';
-		commands : string[] = [];
-*/
 		}
 	}
 
@@ -7373,7 +7361,7 @@ export namespace RS1 {
 			return -1;		// not found
 
 		let NLpos = z.indexOf ('\n');
-		if (pos < NLpos)
+		if ((pos < NLpos)  &&  (pos < endpos))
 			return pos;		// found name within the target line
 
 		return -1;			// not found within target line
@@ -7385,7 +7373,7 @@ export namespace RS1 {
 		if (pos < 0)
 			return	'';
 
-		let endpos = z.indexOf ('|',pos);
+		let endpos = z.indexOf ('|',++pos);
 		return (endpos >= 0) ? z.slice (pos, endpos) : ''
 	}
 

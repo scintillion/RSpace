@@ -57,7 +57,12 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
         let recvAB = await RS1.ReqAB (AB);
         // console.log ('client receives recvAB from server, str=' + RS1.ab2str (recvAB));
         let newRSD = RS1.newRSD (recvAB,''), cmd = new RS1.RSDCmd (newRSD, false);
-        //  console.log (' ---- RSD Received newRSD from Server reply #' + newRSD.qGet ('#').toString () + 'to$=' + newRSD.to$ + '\n' + newRSD.expand);
+        if (!RS1.mySession) { //looking for first message
+            let CmdStr = newRSD.qGet ('.'), cmds = CmdStr.split (':');
+            RS1.mySession = Number (cmds[1]);
+            RS1.myServer = cmds[2];
+            console.log ('Server connected, Session ' + RS1.mySession + ' Server=' + RS1.myServer);
+        }
         return newRSD;
     }
 
@@ -108,11 +113,9 @@ export async function InitClient () {
     let OutRSD = new RS1.RSD ('|?:Hello:LoginID|Client:XYZ|ABC:123|Serial:897|');
 
     let InRSD = await RS1.ReqRSD (OutRSD);
-    let ServeReply = InRSD.qGet ('ServeReply');
-    RS1.mySession = InRSD.qGetNum ('!H');
 
-    console.log ('mySession = ' + RS1.mySession.toString () + ' ServeReply =' + ServeReply);
 
+    
     let Q = new RS1.qList ('Test:Desc|ABC:123|DEF:789|XYZ:xyz|');
     console.log (Q.qDescByName ('XYZ'));
     console.log (Q.qNum ('ABC').toString ());
