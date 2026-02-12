@@ -14,7 +14,7 @@ export namespace RS1 {
 
 	type RPArgs = string|number|RSD|string[]|number[]|RSD[];
 
-	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',
+	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+', tBBI='%',
 		tDisk='*',tArray='[',tArrayStr=':[]:', tStrs='$[', tNums='#[', tRSDs='+[', RSDArrayCh='!';
 
 	export class RP {
@@ -120,11 +120,11 @@ export namespace RS1 {
 	type UBuf=Uint8Array;
 	type ABI=UBuf|ArrayBuffer|string|undefined;
 	type BBI=UBuf|undefined;
-	type RSFldData=string|string[]|number|number[]|RSD|RSD[]|undefined;
+	type RSFldData=string|string[]|number|number[]|RSD|RSD[]|UBuf|undefined;
 	
 	export class PB {	// prefix-buffer
 		prefix='';
-		bbi:BBI;
+		bbi?:BBI;
 		Fields:RSF[]=[];
 		RSDName='';
 		FieldRSD='';
@@ -252,7 +252,7 @@ export namespace RS1 {
 		RSDName='';
 		KidName='';
 		PBs:PB[]=[];
-		bbi:BBI;
+		bbi? :BBI;
 
 
 	}
@@ -268,7 +268,7 @@ export namespace RS1 {
 		prefix='';
 		format='';
 		RSDName='';
-		bbi:BBI;
+		bbi?:BBI;
 		start=0;
 		nBytes=0;
 		k:RSK|undefined;
@@ -284,7 +284,7 @@ export namespace RS1 {
 		nBytes = 0;
 		RSDName ='';
 		KidName ='';
-		bbi:BBI;
+		bbi?:BBI;
 
 		get clear () {
 			this.Prefixes = [];
@@ -382,6 +382,7 @@ export namespace RS1 {
 		T?	:	string;
 		X?	:	RSD;
 		Data? : any;
+		BLOB? :	UBuf;
 
 		copy (NewName = '') : RSD {
 			let pb = this.toPB ();
@@ -678,8 +679,9 @@ export namespace RS1 {
 					case '.$' : this.from$ (field.Data as string); break;
 					case '.x' : this.X = field.Data as RSD; break;
 					case '.p' : this.P = field.Data as RSPack; break;
+					case '.b' : this.BLOB = field.Data as UBuf; break;
 					default : if (k  &&  name  &&  name[0] != '.')
-						k.add (field.Data as RSD,false);
+									k.add (field.Data as RSD,false);
 				}
 			}
 
@@ -730,6 +732,13 @@ export namespace RS1 {
 			if (this.N) {	// number array!
 					field = new RSF ();
 					field.setData (this.N)
+					Fields.push (field);
+			}
+
+			if (this.BLOB) {
+					field = new RSF ();
+					field.setName ('.b');
+					field.setData (this.BLOB,'Uint8Array');
 					Fields.push (field);
 			}
 
@@ -2979,21 +2988,29 @@ export namespace RS1 {
 					this.arr = true;
 					
 					if (!conName) {
-						let Q = data as Array<any>;
-						for (const q of Q)
-							if (q) {
-								conName = typeof q;
-								if ((conName !== 'string')  &&  (conName !== 'number'))
-									conName = (q as RSD).cl;
+						if (data instanceof Uint8Array) {
+							conName = 'UBuf';
 
-								break;
-							}
+
+						}
+						else {
+							let Q = data as Array<any>;
+							for (const q of Q)
+								if (q) {
+									conName = typeof q;
+									if ((conName !== 'string')  &&  (conName !== 'number'))
+										conName = (q as RSD).cl;
+
+									break;
+								}
+						}
 					}
 
 					switch (conName) {
 						case '' : this.type = tStrs; data = undefined; return;
 						case tStr : case 'tStrs' : case 'string' : return this.type = tStrs; return;
 						case tNum : case 'tNums' : case 'number' : return this.type = tNums; return;
+						case tBBI : return this.RSDName = conName; this.type = tBBI; return;
 						default : this.RSDName = conName; return this.type = tRSDs;
 					}
 					break;
@@ -3042,6 +3059,11 @@ export namespace RS1 {
 					newNums.fill (NaN);
 					newNums.set (Nums);
 					arrStr='[]';
+					break;
+
+				case tBBI:
+					bbi = newBuf ((this.Data as UBuf).byteLength);
+					bbi.set (this.Data as UBuf);
 					break;
 
 				case tRSDs:
@@ -3179,6 +3201,11 @@ export namespace RS1 {
 
 					case tRSD :
 						this.Data = newRSD (bbi);
+						break;
+
+					case tBBI :
+						this.Data = newBuf (bbi.byteLength);
+						(this.Data as UBuf).set (bbi);
 						break;
 
 					default : throw 'Undefined Type in fromPrefix!'

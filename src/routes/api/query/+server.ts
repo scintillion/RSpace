@@ -23,13 +23,13 @@ class DBKit {
 		RS1.ReqRSD = ReqRSD;
 		RS1._RegRID = 'S';
 
-		let rsd = new RS1.RSD ('|?QSQL:U|?Type:SampleType|?Group:MyGroup|?#:123|?Row:TableName|?ID:789|ABC:DEF|XYZ:123|');
+		let rsd = new RS1.RSD ('|?QSQL:UPDATE|?Type:SampleType|?Group:MyGroup|?#:123|?Row:S|?ID:789|ABC:DEF|XYZ:123|');
 		this.newBuildQ (rsd);
-		rsd = new RS1.RSD ('|?QSQL:D|?Type:SampleType|?Group:MyGroup|?#:123|?Row:TableName|?ID:789|ABC:DEF|XYZ:123|');
+		rsd = new RS1.RSD ('|?QSQL:DELETE|?Type:SampleType|?Group:MyGroup|?#:123|?Row:S|?ID:789|ABC:DEF|XYZ:123|');
 		this.newBuildQ (rsd);
-		rsd = new RS1.RSD ('|?QSQL:I|?Type:SampleType|?Group:MyGroup|?#:123|?Row:TableName|?ID:789|ABC:DEF|XYZ:123|');
+		rsd = new RS1.RSD ('|?QSQL:INSERT|?Type:SampleType|?Group:MyGroup|?#:123|?Row:S|?ID:789|ABC:DEF|XYZ:123|');
 		this.newBuildQ (rsd);
-		rsd = new RS1.RSD ('|?QSQL:S|?Type:SampleType|?Group:MyGroup|?#:123|?Row:TableName|?ID:789|ABC:DEF|XYZ:123|');
+		rsd = new RS1.RSD ('|?QSQL:SELECT|?Type:SampleType|?Group:MyGroup|?#:123|?Row:S|?ID:789|ABC:DEF|XYZ:123|');
 		this.newBuildQ (rsd);
 	}
 
@@ -46,14 +46,21 @@ class DBKit {
 	}
 
 	newBuildQ (rsd : RS1.RSD) : any[] {
-		let VIDs = rsd.qToVIDs, table = 'S', tile = 0, ID = 0;		// default Table Name (if not specified)
+		let Raw = rsd.qToRaw;
+		let table = 'S', tile = 0, ID = 0;		// default Table Name (if not specified)
 		let qType = '!Error', Type = '', SQLCmd, Wheres:string[]=[];
 		let qStr = '', vStr = '', Name, Values : any[] =[];
 
-		for (const v of VIDs) {
-			let vName = v.Name, first = vName[0], vDesc = v.Desc, str;
+		for (const r of Raw) {
+			let colon = r.indexOf (':'), vName, first, vDesc, str;
+			if (colon >= 0) {
+				vName = r.slice (0,colon);
+				vDesc = r.slice (colon+1);
+			}
+			else { vName = r; vDesc = ''; }
+
 			console.log (' ::: vName=' + vName + ', vDesc=' + vDesc);
-			if (first === '?') {
+			if ((first=vName[0]) === '?') {
 				switch (vName[1]) {
 					case '?' : Wheres.push (vDesc);	break;
 					case 'T' : case 'G' : case 'C' :
