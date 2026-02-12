@@ -897,7 +897,21 @@ export namespace RS1 {
 
 
 		//	qList (intrinsic) functions
+		qGetStrNull (s:string) {
+			let pos = this.qFindName (s);
+			if (pos < 0)
+				return null;
 
+			let endpos = this.qstr.indexOf ('|',pos);
+			if (endpos < 0)
+				return null;
+			
+			let str = this.qstr.slice (pos, endpos), colon = this.qstr.indexOf (':');
+			if (colon >= 0) 
+				return str.slice (colon+1)
+			else return str;
+		}
+		
 		qGet (s:string) {
 			return this.qDescByName (s);
 		}
@@ -1151,8 +1165,8 @@ export namespace RS1 {
 		qFindName (name:string|number) {
 			let str = '|' + name.toString ()+':';
 			let nPos = this.qstr.indexOf (str);
-			if (nPos >= 0)
-				return nPos+1;
+			if (++nPos > 0)
+				return nPos;
 
 			str = str.slice (0,-1) + '|';
 			nPos = this.qstr.indexOf (str);
@@ -3790,7 +3804,11 @@ export namespace RS1 {
 
 
 
-	export class RID {		// Relational ID, used for all RSData records
+	export class RID {	// Relational ID = record,tile,villa,world
+						// where each can be string or numeric ID
+						//	,db,Oracle   is "db" tile in "Oracle" villa
+						//	,db	is "db" tile in current villa
+						//	123 is recordID 123 in current villa
 		villa='';
 		tile='';
 		type='';

@@ -22,6 +22,15 @@ class DBKit {
 		RS1.ReqPack = ReqPack;
 		RS1.ReqRSD = ReqRSD;
 		RS1._RegRID = 'S';
+
+		let rsd = new RS1.RSD ('|?QSQL:U|?Type:SampleType|?Group:MyGroup|?#:123|?Row:TableName|?ID:789|ABC:DEF|XYZ:123|');
+		this.newBuildQ (rsd);
+		rsd = new RS1.RSD ('|?QSQL:D|?Type:SampleType|?Group:MyGroup|?#:123|?Row:TableName|?ID:789|ABC:DEF|XYZ:123|');
+		this.newBuildQ (rsd);
+		rsd = new RS1.RSD ('|?QSQL:I|?Type:SampleType|?Group:MyGroup|?#:123|?Row:TableName|?ID:789|ABC:DEF|XYZ:123|');
+		this.newBuildQ (rsd);
+		rsd = new RS1.RSD ('|?QSQL:S|?Type:SampleType|?Group:MyGroup|?#:123|?Row:TableName|?ID:789|ABC:DEF|XYZ:123|');
+		this.newBuildQ (rsd);
 	}
 
 	get db() {
@@ -34,6 +43,101 @@ class DBKit {
 
 	public close() {
 		this._db.close();
+	}
+
+	newBuildQ (rsd : RS1.RSD) : any[] {
+		let VIDs = rsd.qToVIDs, table = 'S', tile = 0, ID = 0;		// default Table Name (if not specified)
+		let qType = '!Error', Type = '', SQLCmd, Wheres:string[]=[];
+		let qStr = '', vStr = '', Name, Values : any[] =[];
+
+		for (const v of VIDs) {
+			let vName = v.Name, first = vName[0], vDesc = v.Desc, str;
+			console.log (' ::: vName=' + vName + ', vDesc=' + vDesc);
+			if (first === '?') {
+				switch (vName[1]) {
+					case '?' : Wheres.push (vDesc);	break;
+					case 'T' : case 'G' : case 'C' :
+						switch (vName[1]) {
+							case 'T' : str = 'Type'; break;
+							case 'G' : str = 'Group'; break;
+							case 'C' : str = 'Class'; break;
+						}
+						Wheres.push (str + ' = ' + vDesc);
+						break;
+
+					case 'Q' :	
+						switch (qType = vDesc[0]) {
+							case 'I'	: SQLCmd = 'INSERT '; break;
+							case 'S'	: SQLCmd = 'SELECT '; break;
+							case 'U'	: SQLCmd = 'UPDATE '; break;
+							case 'D'	: SQLCmd = 'DELETE '; break;
+							default : qType = 'ABC Error!';
+						}
+						break;
+
+					case '#' :	tile = Number (vDesc);	break;	// tileID
+
+					case 'R' :	table = vDesc; break;	// Row (Record) Type == Table
+
+					case 'I' :	ID = Number (vDesc);	Wheres.push ('ID = ' + vDesc); break;	// recordID (unique for this table)
+				}
+			}
+			else {
+				if (qType === 'I') {
+					qStr += vName + ',';
+					vStr += '?,';
+				}
+				else {
+					qStr += vName + '=?,';
+				}
+				Values.push (vDesc);
+				console.log ('  adding ' + vName + ', Value =' + vDesc);
+			}
+		}
+
+
+		vStr = vStr.slice (0,-1); qStr = qStr.slice (0,-1);
+
+		console.log ('table=' + table + ' ID=' + ID.toString () + ' tile=' + tile.toString () +
+					' qType=' + qType + '  qStr=' + qStr + ' vStr=' + vStr);
+		for (var w of Wheres) 
+			console.log ('  where= ' + (w = '(' + w + ')') );
+
+
+		switch (qType) {
+			case	'I'	:
+				qStr = 'INSERT INTO ' + table + ' (' + qStr + 
+						') VALUES (' + vStr + ')';
+				break;
+
+			case	'U' :
+				qStr = 'UPDATE ' + table + ' SET ' + qStr + ' WHERE ';
+				qStr += Wheres.join (' AND ') + ';';
+				break;
+
+			case	'D'	:
+				qStr = 'DELETE FROM ' + table + ' WHERE ID = ' + ID.toString () + ';';
+				break;
+
+			case	'S'	:
+				qStr = 'SELECT * FROM ' + table;
+				if (Wheres.length)
+					qStr += ' WHERE ' + Wheres.join (' AND ') + ';';
+				else qStr += ';';
+				break;
+
+			default :
+				qStr = '&&=' + qType + '&&' + SQLCmd + table + ' SET (' + qStr + ') VALUES (' + vStr + ') WHERE ID=' + ID.toString () + ';';
+				break;
+		}
+		console.log ('I/U qStr =' + qStr + ' ... vStr =' + vStr );
+
+		console.log ('buildQ nValues = ' + Values.length.toString ());
+		console.log ('qStr=' + qStr + '  ... vStr =' + vStr);
+
+		rsd.T = qStr;
+
+		return Values;
 	}
 
 	buildQ (QBuf : RS1.BufPack) : any[] {
