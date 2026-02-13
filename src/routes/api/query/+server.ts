@@ -147,6 +147,273 @@ class DBKit {
 		return Values;
 	}
 
+	newExecQ (rsd : RS1.RSD, Params : any[]) : RS1.RSD {
+		let query = rsd.T as string;
+		console.log ('ExecQ QUERY=' + rsd.T + '.');
+		const statement = this._db.prepare (rsd.T as string) as unknown as Statement;
+
+		let dbResponse;
+
+		if (query[0] !== 'S')
+		{
+			let reply = new RS1.RSD ();
+
+			dbResponse = statement.run (Params);
+			reply.objectIn (dbResponse);
+
+			console.log (dbResponse);
+			return reply;
+		}
+
+		dbResponse = statement.all (Params); // run  for update/?delete // (Params);
+		let ObjArray = dbResponse as unknown as object[], Mom = new RS1.RSD (rsd.qGetQStr);
+		Mom.K = new RS1.RSK (Mom);	// let them have kids! 
+
+		for (const each of ObjArray) {
+			let reply = new RS1.RSD ();
+
+			reply.objectIn (each as Object);
+			Mom.kidAdd (reply);
+		}
+
+		return Mom;
+	}
+
+}
+
+// const DBK = new DBKit('tile.sqlite3');
+
+class RServer {
+	DBK : DBKit;
+	myVilla='S';
+	myTile='';
+	myServerName='ABC';
+
+	nextSession=0;
+
+	constructor (Path : string) {
+		this.DBK = new DBKit (Path);
+
+		RS1.myVilla = '!Error';
+		RS1.myServer = '!Error';
+		RS1.myTile = '!Error';
+	}
+
+}
+
+const Q = new DBKit ('q.sqlite3');
+
+const RSS = new RServer ('tile.sqlite3');
+
+async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
+	let cmd = new RS1.RSDCmd (InRSD), initStr = '?|';	// default is confused reply
+
+	// Real processing here 
+	if (cmd.SessionID) {
+		switch (cmd.command[1]) {		// command[0]  is ? | .   (server vs. client)
+			case 'B' : console.log ('User logs out.');
+				initStr = 'Bye:Thanks for playing.';
+				break;
+
+			case 'Q' : 
+				let Params = RSS.DBK.newBuildQ (InRSD);
+				let outRSD = RSS.DBK.newExecQ (InRSD, Params);
+				return outRSD;
+		}
+
+	}
+	else {	// first 
+		cmd.SessionStr = (cmd.SessionID = ++RSS.nextSession).toString ();
+		cmd.NumberStr = '1:' + cmd.SessionStr;
+		initStr = 'Hi:'+ cmd.SessionStr + ':' + RSS.myServerName;
+	}
+
+
+
+	let Numbers = '#:'+cmd.SerialIDStr+':'+cmd.SessionStr,
+		OutRSD = new RS1.RSD ('|.:' + initStr + '|#:' + cmd.NumberStr + '|');
+
+	return OutRSD;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
+	console.log ('Entering ReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
+	let str = RS1.ab2str (AB);
+	console.log ('AB = ' + str);
+	let Buf = RS1.newBuf (AB);
+
+	let rsd = RS1.newRSD (Buf);
+	// rsd.constructRSD (RS1.newBuf (AB));
+
+	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.to$ + '\n' + rsd.expand)
+	let ResultRSD = await RS1.ReqRSD (rsd);
+
+	console.log ('Returned from ReqRSD with ResultRSD/server.ts, ResultRSD=' + ResultRSD.to$);
+
+	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);
+	return ResultAB;
+}
+
+export const POST = (async ({ request, url }) => {
+
+	const ClientAB = await request.arrayBuffer();
+
+	console.log ('ClientAB received in POST/server.ts, Bytes = ' + 
+		ClientAB.byteLength.toString () + ' str=' + RS1.ab2str (ClientAB));
+
+	let ServerAB = await RS1.ReqAB (ClientAB);
+
+	return new Response(ServerAB);
+}) satisfies RequestHandler;
+
+
+
+
+async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
+	let Serial = InPack.fNum ('#');
+	let Client = InPack.fStr ('Client');
+	let ABC = InPack.fStr ('ABC');
+	let OutPack : RS1.BufPack;
+
+	if (!Serial)
+	{
+		console.log ('ReqPack NO Client Serial:\n' + InPack.expand);
+		throw "ReqPack No Client Serial!";
+	}
+	console.log ('Server Receives Client Request #' + Serial.toString (),
+		 ' Client = ' + Client + ' ABC=' + ABC);
+
+	OutPack = new RS1.BufPack ();
+
+	return OutPack;
+
+/*
+
+	let QF = InPack.xField;
+	if (!QF)
+		return RS1.NILPack;
+
+	console.log ('-----------\nInPack=' + InPack.info + 'Q=' + QF?.Str + '\n-----------\n'
+		 + InPack.desc);
+
+		 
+	switch (QF.Name) {
+		case '!Q' :
+			RSS.myTile = InPack.fStr('.T');
+			console.log ('  Query Tile --> ' + RSS.myTile);
+			
+			let Params = RSS.DBK.buildQ (InPack);
+			OutPack = RSS.DBK.execQ (InPack, Params);
+
+			OutPack.addArgs (['#',Serial]);
+
+			console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
+			return OutPack;
+
+		case '!H' :
+			OutPack = new RS1.BufPack ();
+			OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
+			console.log ('  Starting Session #' + RSS.mySession);
+			return OutPack;
+			break;
+
+		default : return RS1.NILPack;
+	}
+*/
+
+	return RS1.NILPack;
+}
+
+/*
+	public execQ (Pack : RS1.BufPack, Params : any[]) : RS1.BufPack {
+		let Query = Pack.fStr ('!Q');
+		console.log ('ExecQ QUERY=' + Query + '.');
+		// Query = "SELECT name FROM sqlite_master";	// retrieve all tables
+		const statement = this._db.prepare (Query) as unknown as Statement;
+
+		let dbResponse;
+		if (Query[0].toUpperCase () === 'S') {
+			dbResponse = statement.all (Params); // run  for update/?delete // (Params);
+			let RecArray = dbResponse as unknown as object[];
+			console.log ("RecArray: length = " + RecArray.length.toString () + '\n' + RecArray);
+			console.log (RecArray);
+
+			let RIDSuffix = '_' + RSS.myTile + ',' + RSS.myVilla;
+			RS1.log ('----- RIDSuffix='+ RIDSuffix, ' tile = ' + RSS.myTile + ' villa = ' + RSS.myVilla);
+
+			let RID = new RS1.RID (RIDSuffix);
+
+			let BPs = Array (RecArray.length);
+			let countBP = 0;
+			console.log ('Server receives Record Array from Query, length = ' + RecArray.length.toString ());
+			for (let Each of RecArray) {
+				let Obj = Each as object;
+				let BP = new RS1.BufPack ();
+				BP.objectIn (Obj);
+				RID.ID = BP.fNum('id');
+				BP.addArgs (['.rid', RID.to$]);
+
+				console.log ('   Adding RID ' + RID.to$ + '\n' + BP.expand);
+
+				let BPCopy = new RS1.BufPack ();
+				BPCopy.bufIn (BP.bufOut ());
+				console.log ('   BPCopy =' + BPCopy.expand);
+
+				BPs[countBP++] = BP;
+				}
+				// Pack.Cs = [];
+				Pack.packArray (BPs);
+				console.log ('Server packs ' + BPs.length.toString () + ' records to send to client');
+				console.log (Pack.expand);
+				let newBPs = new RS1.BufPack ();
+				newBPs.bufIn (Pack.bufOut ());
+			}
+		else {
+			// console.log ('Dumping dbResponse after run');
+			dbResponse = statement.run (Params);
+			Pack.objectIn (dbResponse);
+
+			console.log (dbResponse);
+		}
+
+
+		return Pack;
+
+		// return dbResponse;
+	}
+*/
+
+
+
+/*
 	buildQ (QBuf : RS1.BufPack) : any[] {
 		// select, insert, update, delete
 		console.log ('SQL buildQ QBuf=\n' + QBuf.desc);
@@ -277,230 +544,4 @@ class DBKit {
 
 		return	Values;
 	}	// BuildQ
-
-	public execQ (Pack : RS1.BufPack, Params : any[]) : RS1.BufPack {
-		let Query = Pack.fStr ('!Q');
-		console.log ('ExecQ QUERY=' + Query + '.');
-		// Query = "SELECT name FROM sqlite_master";	// retrieve all tables
-		const statement = this._db.prepare (Query) as unknown as Statement;
-
-		let dbResponse;
-		if (Query[0].toUpperCase () === 'S') {
-			dbResponse = statement.all (Params); // run  for update/?delete // (Params);
-			let RecArray = dbResponse as unknown as object[];
-			console.log ("RecArray: length = " + RecArray.length.toString () + '\n' + RecArray);
-			console.log (RecArray);
-
-			let RIDSuffix = '_' + RSS.myTile + ',' + RSS.myVilla;
-			RS1.log ('----- RIDSuffix='+ RIDSuffix, ' tile = ' + RSS.myTile + ' villa = ' + RSS.myVilla);
-
-			let RID = new RS1.RID (RIDSuffix);
-
-			let BPs = Array (RecArray.length);
-			let countBP = 0;
-			console.log ('Server receives Record Array from Query, length = ' + RecArray.length.toString ());
-			for (let Each of RecArray) {
-				let Obj = Each as object;
-				let BP = new RS1.BufPack ();
-				BP.objectIn (Obj);
-				RID.ID = BP.fNum('id');
-				BP.addArgs (['.rid', RID.to$]);
-
-				console.log ('   Adding RID ' + RID.to$ + '\n' + BP.expand);
-
-				let BPCopy = new RS1.BufPack ();
-				BPCopy.bufIn (BP.bufOut ());
-				console.log ('   BPCopy =' + BPCopy.expand);
-
-				BPs[countBP++] = BP;
-				}
-				// Pack.Cs = [];
-				Pack.packArray (BPs);
-				console.log ('Server packs ' + BPs.length.toString () + ' records to send to client');
-				console.log (Pack.expand);
-				let newBPs = new RS1.BufPack ();
-				newBPs.bufIn (Pack.bufOut ());
-			}
-		else {
-			// console.log ('Dumping dbResponse after run');
-			dbResponse = statement.run (Params);
-			Pack.objectIn (dbResponse);
-
-			console.log (dbResponse);
-		}
-
-
-		return Pack;
-
-		// return dbResponse;
-	}
-
-}
-
-// const DBK = new DBKit('tile.sqlite3');
-
-class RServer {
-	DBK : DBKit;
-	myVilla='S';
-	myTile='';
-	myServerName='ABC';
-
-	nextSession=0;
-
-	constructor (Path : string) {
-		this.DBK = new DBKit (Path);
-
-		RS1.myVilla = '!Error';
-		RS1.myServer = '!Error';
-		RS1.myTile = '!Error';
-	}
-
-}
-
-const Q = new DBKit ('q.sqlite3');
-
-const RSS = new RServer ('tile.sqlite3');
-
-async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
-	let cmd = new RS1.RSDCmd (InRSD), initStr = '?|';	// default is confused reply
-
-	// Real processing here 
-	if (cmd.SessionID) {
-		switch (cmd.command) {
-			case 'Bye' : console.log ('User logs out.');
-				initStr = 'Bye:Thanks for playing.';
-				break;
-		}
-	}
-	else {	// first 
-		cmd.SessionStr = (cmd.SessionID = ++RSS.nextSession).toString ();
-		cmd.NumberStr = '1:' + cmd.SessionStr;
-		initStr = 'Hi:'+ cmd.SessionStr + ':' + RSS.myServerName;
-	}
-
-
-
-	let Numbers = '#:'+cmd.SerialIDStr+':'+cmd.SessionStr,
-		OutRSD = new RS1.RSD ('|.:' + initStr + '|#:' + cmd.NumberStr + '|');
-
-	return OutRSD;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
-	let Serial = InPack.fNum ('#');
-	let Client = InPack.fStr ('Client');
-	let ABC = InPack.fStr ('ABC');
-	let OutPack : RS1.BufPack;
-
-	if (!Serial)
-	{
-		console.log ('ReqPack NO Client Serial:\n' + InPack.expand);
-		throw "ReqPack No Client Serial!";
-	}
-	console.log ('Server Receives Client Request #' + Serial.toString (),
-		 ' Client = ' + Client + ' ABC=' + ABC);
-
-	OutPack = new RS1.BufPack ();
-
-/*
-	OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
-	OutPack.addArgs (['ServeReply','987']);
-	console.log ('*** Session = **' + RSS.mySession + '**');
-	console.log ('  Starting Session #' + RSS.mySession);
 */
-	return OutPack;
-
-/*
-
-	let QF = InPack.xField;
-	if (!QF)
-		return RS1.NILPack;
-
-	console.log ('-----------\nInPack=' + InPack.info + 'Q=' + QF?.Str + '\n-----------\n'
-		 + InPack.desc);
-
-		 
-	switch (QF.Name) {
-		case '!Q' :
-			RSS.myTile = InPack.fStr('.T');
-			console.log ('  Query Tile --> ' + RSS.myTile);
-			
-			let Params = RSS.DBK.buildQ (InPack);
-			OutPack = RSS.DBK.execQ (InPack, Params);
-
-			OutPack.addArgs (['#',Serial]);
-
-			console.log ('Server Sends Result #' + Serial.toString () + ' BP:\n' + OutPack.desc);
-			return OutPack;
-
-		case '!H' :
-			OutPack = new RS1.BufPack ();
-			OutPack.addArgs (['!H',++(RSS.nextSession),'#',Serial]);
-			console.log ('  Starting Session #' + RSS.mySession);
-			return OutPack;
-			break;
-
-		default : return RS1.NILPack;
-	}
-*/
-
-	return RS1.NILPack;
-}
-
-async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
-	console.log ('Entering ReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
-	let str = RS1.ab2str (AB);
-	console.log ('AB = ' + str);
-	let Buf = RS1.newBuf (AB);
-
-	let rsd = RS1.newRSD (Buf);
-	// rsd.constructRSD (RS1.newBuf (AB));
-
-	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.to$ + '\n' + rsd.expand)
-	let ResultRSD = await RS1.ReqRSD (rsd);
-
-	console.log ('Returned from ReqRSD with ResultRSD/server.ts, ResultRSD=' + ResultRSD.to$);
-
-	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);
-	return ResultAB;
-}
-
-export const POST = (async ({ request, url }) => {
-
-	const ClientAB = await request.arrayBuffer();
-
-	console.log ('ClientAB received in POST/server.ts, Bytes = ' + 
-		ClientAB.byteLength.toString () + ' str=' + RS1.ab2str (ClientAB));
-
-	let ServerAB = await RS1.ReqAB (ClientAB);
-
-	return new Response(ServerAB);
-}) satisfies RequestHandler;

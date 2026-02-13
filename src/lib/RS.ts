@@ -1787,6 +1787,45 @@ export namespace RS1 {
 
 			return L;
 		}
+
+
+		objectIn (O : Object) {
+			this.clear;
+			
+			console.log ('ObjectIn:Adding entries!');
+
+			let entries = Object.entries (O), Strs = [], Type, raw, count=0;
+
+			for (let entry of entries) {
+				Type = typeof (entry[1]);
+				if (Type !== 'object')
+					Strs.push (entry[0] + ':' + entry[1].toString ());
+				else this.Data = entry[1];
+				console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
+			}
+
+			this.qFromRaw (Strs);
+			console.log ('ObjectIn Resultant RSD:' + '\n' + this.expand);
+		}
+
+		objectOut () : Object {
+			let o = new Object (), Raws = this.qToRaw, Type, colon;
+
+			for (const r of Raws) {
+				let colon = r.indexOf (':'), name, desc;
+				if (colon >= 0) 
+				{	name = r.slice (0,colon); desc = r.slice (colon+1);	}
+				else {	name = r; desc = '';	}
+
+				Object.assign (o, { name : desc });
+			}
+
+			if (this.Data)
+				Object.assign (o, { 'Data' : this.Data });
+
+			console.log ('New Object = ' + o);
+			return o; 
+		}
 	}
 
 	export const NILRSD = new RSD ();
