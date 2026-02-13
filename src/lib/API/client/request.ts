@@ -112,8 +112,12 @@ export async function InitClient () {
 
     //  let InPack = await RS1.ReqPack (OutPack);
     let OutRSD = new RS1.RSD ('|?:Hello:LoginID|Client:XYZ|ABC:123|Serial:897|');
-
+    
     let InRSD = await RS1.ReqRSD (OutRSD);
+
+	OutRSD.from$ ('|?QSQL:SELECT|?Type:List|?Row:S|');
+    let SQLRSD = await RS1.ReqRSD (OutRSD);
+
 
     OutRSD.from$ ('|?:Bye:Riding into the sunset.|');
     InRSD = await RS1.ReqRSD (OutRSD);

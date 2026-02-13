@@ -1842,9 +1842,20 @@ export namespace RS1 {
 		commands : string[] = [];
 
 		constructor (rsd : RSD, serving = true) {
-			let serial = this.NumberStr = rsd.qGet ('#');
-			let colon = serial.indexOf (':');
+			let qstr = rsd.qGetQStr, pos = qstr.indexOf ('|#:'), serial='', colon = -1, 
+				commands, endpos, cmdstr;
 
+			if (pos >= 0) {
+				serial = qstr.slice (pos + 3);
+				console.log ('serial1=' + serial);
+				endpos = serial.indexOf ('|');
+				if (endpos >= 0)
+					serial = this.NumberStr = serial.slice (0,endpos);
+				console.log ('serial2 =' + serial);
+			}
+			colon = serial.indexOf (':');
+
+			console.log ('NumberStr=' + this.NumberStr);
 			if (this.NumberStr) {
 				if (colon >= 0) {
 					this.SessionID = Number (this.SessionStr = serial.slice (colon + 1));
@@ -1853,13 +1864,18 @@ export namespace RS1 {
 				else this.SerialID = Number (this.SerialIDStr = serial);
 			}
 
-			let cmdstr = this.cmdstr = rsd.qGet (serving ? '?' : '.'), commands:string[] = [];
-			if (cmdstr) {
+			let cmdpos = qstr.indexOf ('|' + (serving ? '?' : '.'));	// find the FIRST command
+			if (cmdpos >= 0) {
+				endpos = qstr.indexOf ('|', ++cmdpos);
+				console.log ('cmdstr0=' + qstr.slice (cmdpos));
+				cmdstr = qstr.slice (cmdpos, endpos >= 0 ? endpos : -1);
+
 				commands = cmdstr.split (':');
 				this.command = commands[0];
 				this.cmdXtra = commands[1];
 				commands = commands.slice (1);
 			}
+			else commands = [];
 
 			console.log ('RSDcmd RSD=' + rsd.to$ + '\n Receives Message #' + this.SerialIDStr + '/' + this.SerialID.toString () +
 			' Session=' + this.SessionStr + '/' + this.SessionID.toString () +

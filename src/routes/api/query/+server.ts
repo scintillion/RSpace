@@ -48,7 +48,7 @@ class DBKit {
 	newBuildQ (rsd : RS1.RSD) : any[] {
 		let Raw = rsd.qToRaw;
 		let table = 'S', tile = 0, ID = 0;		// default Table Name (if not specified)
-		let qType = '!Error', Type = '', SQLCmd, Wheres:string[]=[];
+		let qType = '!BadQType', Type = '', SQLCmd, Wheres:string[]=[];
 		let qStr = '', vStr = '', Name, Values : any[] =[];
 
 		for (const r of Raw) {
@@ -59,37 +59,39 @@ class DBKit {
 			}
 			else { vName = r; vDesc = ''; }
 
-			console.log (' ::: vName=' + vName + ', vDesc=' + vDesc);
-			if ((first=vName[0]) === '?') {
-				switch (vName[1]) {
-					case '?' : Wheres.push (vDesc);	break;
-					case 'T' : case 'G' : case 'C' :
-						switch (vName[1]) {
-							case 'T' : str = 'Type'; break;
-							case 'G' : str = 'Group'; break;
-							case 'C' : str = 'Class'; break;
-						}
-						Wheres.push (str + ' = ' + vDesc);
-						break;
+			console.log (' :::RAW line=' + r + ', newBuildQ, vName=' + vName + ', vDesc=' + vDesc);
+			if ((first = vName[0]) < 'A') {		// not a legal field name, must be control
+				if (first === '?') {
+					switch (vName[1]) {
+						case '?' : Wheres.push (vDesc);	break;
+						case 'T' : case 'G' : case 'C' :
+							switch (vName[1]) {
+								case 'T' : str = 'Type'; break;
+								case 'G' : str = 'Group'; break;
+								case 'C' : str = 'Class'; break;
+							}
+							Wheres.push (str + "='" + vDesc + "'");
+							break;
 
-					case 'Q' :	
-						switch (qType = vDesc[0]) {
-							case 'I'	: SQLCmd = 'INSERT '; break;
-							case 'S'	: SQLCmd = 'SELECT '; break;
-							case 'U'	: SQLCmd = 'UPDATE '; break;
-							case 'D'	: SQLCmd = 'DELETE '; break;
-							default : qType = 'ABC Error!';
-						}
-						break;
+						case 'Q' :	
+							switch (qType = vDesc[0]) {
+								case 'I'	: SQLCmd = 'INSERT '; break;
+								case 'S'	: SQLCmd = 'SELECT '; break;
+								case 'U'	: SQLCmd = 'UPDATE '; break;
+								case 'D'	: SQLCmd = 'DELETE '; break;
+								default : qType = 'ABC Error!';
+							}
+							break;
 
-					case '#' :	tile = Number (vDesc);	break;	// tileID
+						case '#' :	tile = Number (vDesc);	break;	// tileID
 
-					case 'R' :	table = vDesc; break;	// Row (Record) Type == Table
+						case 'R' :	table = vDesc; break;	// Row (Record) Type == Table
 
-					case 'I' :	ID = Number (vDesc);	Wheres.push ('ID = ' + vDesc); break;	// recordID (unique for this table)
+						case 'I' :	ID = Number (vDesc);	Wheres.push ('ID = ' + vDesc); break;	// recordID (unique for this table)
+					}
 				}
 			}
-			else {
+			else {	// legal name:value pair
 				if (qType === 'I') {
 					qStr += vName + ',';
 					vStr += '?,';
@@ -134,7 +136,7 @@ class DBKit {
 				break;
 
 			default :
-				qStr = '&&=' + qType + '&&' + SQLCmd + table + ' SET (' + qStr + ') VALUES (' + vStr + ') WHERE ID=' + ID.toString () + ';';
+				qStr = 'Error:&&qType=' + qType + '&&' + SQLCmd + table + ' SET (' + qStr + ') VALUES (' + vStr + ') WHERE ID=' + ID.toString () + ';';
 				break;
 		}
 		console.log ('I/U qStr =' + qStr + ' ... vStr =' + vStr );
@@ -208,6 +210,7 @@ const RSS = new RServer ('tile.sqlite3');
 async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 	let cmd = new RS1.RSDCmd (InRSD), initStr = '?|';	// default is confused reply
 
+	console.log ('ReqRSD, InRSD=' + InRSD.to$ + ', cmd.SessionID=' + cmd.SessionID.toString () + ', cmd.command=' + cmd.command);
 	// Real processing here 
 	if (cmd.SessionID) {
 		switch (cmd.command[1]) {		// command[0]  is ? | .   (server vs. client)
@@ -215,8 +218,10 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 				initStr = 'Bye:Thanks for playing.';
 				break;
 
-			case 'Q' : 
+			case 'Q' :
+				console.log ('Calling newBuildQ'); 
 				let Params = RSS.DBK.newBuildQ (InRSD);
+				console.log ('Calling newExecQ');
 				let outRSD = RSS.DBK.newExecQ (InRSD, Params);
 				return outRSD;
 		}
