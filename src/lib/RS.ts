@@ -448,7 +448,7 @@ export namespace RS1 {
 				this.X.clear;
 			
 			if (this.Data)
-				this.Data = NILAB;
+				this.Data = undefined;
 			return true; 
 		}
 
@@ -461,7 +461,7 @@ export namespace RS1 {
 					return true;
 			}
 
-			return this.Q || this.R || this.N ||  this.P  || this.S ||  this.T || this.X  ||  this.Data;
+			return this.Q || this.R || this.N ||  this.P  || this.S ||  this.T || this.X  ||  this.Data  ||  this.BLOB;
 		}
 
 		//	Info on RSD
@@ -1792,6 +1792,7 @@ export namespace RS1 {
 
 
 		objectIn (O : Object) {
+			let Buf : BBI;
 			this.clear;
 			
 			console.log ('ObjectIn:Adding entries!');
@@ -1802,12 +1803,15 @@ export namespace RS1 {
 				Type = typeof (entry[1]);
 				if (Type !== 'object')
 					Strs.push (entry[0] + ':' + entry[1].toString ());
-				else this.Data = entry[1];
+				else Buf = this.BLOB = entry[1];
 				console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
 			}
 
 			this.qFromRaw (Strs);
+			if (Buf)
+				console.log ('<--- Objectin DATA Bytes =' + Buf.byteLength.toString ());
 			console.log ('ObjectIn Resultant RSD:' + '\n' + this.expand);
+			return Buf;
 		}
 
 		objectOut () : Object {
@@ -1822,8 +1826,8 @@ export namespace RS1 {
 				Object.assign (o, { name : desc });
 			}
 
-			if (this.Data)
-				Object.assign (o, { 'Data' : this.Data });
+			if (this.BLOB)
+				Object.assign (o, { 'BLOB' : this.BLOB });
 
 			console.log ('New Object = ' + o);
 			return o; 
@@ -7561,10 +7565,12 @@ export namespace RS1 {
 	}
 
 
-	export function DBSelect (NumOrStr :number|string = '|Type|List|') {
+	export function DBSelect (IDOrStr :number|string = '|Type:List|') {
+		let Q = '|?Q:S' + (typeof IDOrStr === 'string') ? IDOrStr as string : ('|ID:' + IDOrStr.toString () + '|'),
+			rsd = new RSD (Q);
 
 
-
+		let outRSD = ReqRSD (rsd);
 	}
 
 	export function DBUpdate (rsd:RSD) {

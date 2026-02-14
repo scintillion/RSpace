@@ -66,7 +66,7 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
         if (str.length > 2000)
             console.log ('BIG BATCH!');
 
-        let newRSD = RS1.newRSD (recvAB,''), cmd = new RS1.RSDCmd (newRSD, false);
+        let newRSD = RS1.newRSD (recvAB), cmd = new RS1.RSDCmd (newRSD, false);
         if (!RS1.mySession) { //looking for first message
             let CmdStr = newRSD.qGet ('.'), cmds = CmdStr.split (':');
             RS1.mySession = Number (cmds[1]);

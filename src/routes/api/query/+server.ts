@@ -104,17 +104,17 @@ class DBKit {
 			}
 		}
 
-		if (rsd.Data)	{		// need to push BLOB data
+		if (rsd.BLOB)	{		// need to push BLOB data
 			switch (qType) {
 				case 'I'	:
-					qStr += 'Data,';
+					qStr += 'BLOB,';
 					vStr += '?,';
-					Values.push (rsd.Data );
+					Values.push (rsd.BLOB);
 					break;
 				
 				case 'U'	:
-					qStr += 'Data=?,';
-					Values.push (rsd.Data);
+					qStr += 'BLOB=?,';
+					Values.push (rsd.BLOB);
 					break;
 			}
 		}
