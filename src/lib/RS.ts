@@ -487,7 +487,9 @@ export namespace RS1 {
 			if (this.Group)
 				lines += ' G=' + this.Group;
 
-			lines += ']';
+			lines += '] CS=' + checkSum8 (this.qstr);
+			if (this.kidCount (true))
+				lines += '  Kids =' + this.kidCount (true).toString ();
 			return lines;
 		}
 
@@ -882,7 +884,7 @@ export namespace RS1 {
 						}
 					}
 					else if (In instanceof Uint8Array) {
-						console.log ('ConstructRSD on server, bytes = ' +
+						console.log ('ConstructRSD bytes = ' +
 							(In as Uint8Array).byteLength.toString ());
 						this.fromBuf (In);
 					}
@@ -1887,23 +1889,33 @@ export namespace RS1 {
 		let R = undefined;
 
 		if (!name) {
-			if (x) {
-				let cName = x.constructor.name;
+			let Type = typeof (x), str;
+			if (Type === 'object') {
+				let bbi;
 
-				if (cName === 'Uint8Array') {
-					let bbi = x as Uint8Array, str = bb2str (bbi.slice (0,99)), comma = str.indexOf (',');
-					if (comma >= 0) {
-						let nameStr = str.slice (0,comma), colon = nameStr.indexOf (':');
-						name = (colon >= 0) ? nameStr.slice (0,colon) : nameStr;
-					}
-					else throw 'Bad Buffer, no comma!'
+				if (x instanceof ArrayBuffer) 
+					bbi = new Uint8Array (x as ArrayBuffer);
+				else if (x instanceof Uint8Array) 
+					bbi = x as Uint8Array;
+
+				if (bbi)
+					str = bb2str (bbi.slice (0,99));
+			}
+			else if (Type === 'string')
+					str = (x as string).slice (0,49);
+
+			if (str) {
+				let comma = str.indexOf (',');
+				if (comma >= 0) {
+					let nameStr = str.slice (0,comma), colon = nameStr.indexOf (':');
+					name = (colon >= 0) ? nameStr.slice (0,colon) : nameStr;
 				}
 			}
 		}
 
 		switch (name) {
 			case 'RSD' : return new RSD (x);
-			case 'xList' : return new xList (x);
+			case 'rList' : return new xList (x);
 			case 'qList' : return new qList (x);
 			case 'RSLeaf' : return new RSLeaf (x as RSD);
 			case 'RSTree' : return new RSTree (x as RSD);
@@ -1913,8 +1925,6 @@ export namespace RS1 {
 			case 'rList' : return new rList (x as string|string[]|ListTypes[]);
 			case 'rLOL' : return new rLOL (x as string|string[]|ListTypes[]);
 			case 'TDE' : return new TDE (x as string|rList);
-			// case 'PackField' : return new PackField (x,);
-			// case 'RSField' : return new RSField ();
 			default : return new RSD (x);
 		}
 	}
@@ -7531,6 +7541,48 @@ export namespace RS1 {
 		return z;
 	}
 
+	export function checkSum8(input: string): string {
+		let hash = 0 >>> 0; // force unsigned 32-bit
+
+		for (let i = 0; i < input.length; i++) {
+			hash = (hash + input.charCodeAt(i)) >>> 0;
+			// simple mixing
+			hash = (hash + ((hash << 10) >>> 0)) >>> 0;
+			hash ^= hash >>> 6;
+		}
+
+		// final avalanche
+		hash = (hash + ((hash << 3) >>> 0)) >>> 0;
+		hash ^= hash >>> 11;
+		hash = (hash + ((hash << 15) >>> 0)) >>> 0;
+
+		// convert to 8-char hex
+		return hash.toString(16).toUpperCase().padStart(8, "0");
+	}
+
+
+	export function DBSelect (NumOrStr :number|string = '|Type|List|') {
+
+
+
+	}
+
+	export function DBUpdate (rsd:RSD) {
+
+
+
+	}
+
+	export function DBDelete (IDorRSD:number|RSD) {
+
+
+
+	}
+
+	export function DBInsert (rsd:RSD) {
+
+
+	}
 } // namespace RS1
 
 

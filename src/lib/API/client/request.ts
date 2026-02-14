@@ -27,6 +27,7 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 }
 
 async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
+/*
   console.log ('PackRequest Incoming = \n' + BP.desc);
   BP.addArgs (['#',++Serial]);
 
@@ -40,6 +41,8 @@ async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
   console.log (' ---- Pack Received Server reply #' + BP.fNum ('#').toString () + '---' + '\n' + BP.desc);
 
   return BP;
+*/
+  return new RS1.BufPack ();
 }
 
 
@@ -52,11 +55,17 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     rsd.mark;
     
     let AB = RS1.bb2ab (rsd.toBBI);
-    console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI));
+    console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI) + ' BYTES=' + AB.byteLength.toString ());
 
     if (AB) {
         let recvAB = await RS1.ReqAB (AB);
-        // console.log ('client receives recvAB from server, str=' + RS1.ab2str (recvAB));
+        console.log ('client receives recvAB from server, bytes=' + recvAB.byteLength.toString ());
+        let str = RS1.ab2str (recvAB);
+        console.log ('recvAB =\n' + str);
+
+        if (str.length > 2000)
+            console.log ('BIG BATCH!');
+
         let newRSD = RS1.newRSD (recvAB,''), cmd = new RS1.RSDCmd (newRSD, false);
         if (!RS1.mySession) { //looking for first message
             let CmdStr = newRSD.qGet ('.'), cmds = CmdStr.split (':');
@@ -116,7 +125,10 @@ export async function InitClient () {
     let InRSD = await RS1.ReqRSD (OutRSD);
 
 	OutRSD.from$ ('|?QSQL:SELECT|?Type:List|?Row:S|');
-    let SQLRSD = await RS1.ReqRSD (OutRSD);
+    let newRSD = await RS1.ReqRSD (OutRSD);
+    let SQLRSD = new RS1.RSD (newRSD.BLOB);
+
+    console.log ('\f\n\n\n\n\n\n\nSQLRSD nKids=' + SQLRSD.kidCount (true).toString () + '  ===\n' + SQLRSD.expand);
 
 
     OutRSD.from$ ('|?:Bye:Riding into the sunset.|');
@@ -170,6 +182,8 @@ export async function InitClient () {
     let targetList = new RS1.rList (TestTileStrings);
     let ABCRootList = new RS1.rList (ABCRootStr);
     let ABCRSIList = new RS1.qList (ABCRSI);
+    let ABCstr = RS1.bb2str (ABCRSIList.toBBI);
+    console.log ('ABC bbi=' + ABCstr + ' ABC.to$=' + ABCRSIList.to$);
 
     console.log  ('targetList = ' + targetList.expand);
     console.log  ('ABCRootList = ' + ABCRootList.expand);
