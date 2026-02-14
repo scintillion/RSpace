@@ -1,4 +1,6 @@
 <script lang="ts">
+	import '../app.css';
+
 	let title = 'Relational Spaces';
 </script>
 
@@ -15,30 +17,41 @@
 		rel="stylesheet"
 	/>
 	<style>
+		/* Don't reset padding: 0 on * — it overrides Tailwind padding utilities */
 		* {
 			margin: 0;
-			padding: 0;
 			box-sizing: border-box;
 			font-family: 'Montserrat', sans-serif;
-			overflow: hidden;
+		}
+		/* Avoid overflow: hidden on * so fixed modals and their buttons aren't clipped or blocked */
+		html, body {
+			overflow-x: hidden;
 		}
 	</style>
 </svelte:head>
 
 <div class="container">
-	<slot />
+	<div class="slot-full-width">
+		<slot />
+	</div>
 </div>
 
 <style lang="scss">
 	.container {
 		display: flex;
-		align-items: center;
 		flex-direction: column;
-		flex-wrap: wrap;
-		justify-content: center;
 		width: 100vw;
-		height: 100vh;
+		min-height: 100vh;
 		background: #1e1e1e;
 		color: white;
+	}
+
+	/* Let page content (e.g. sample-tiles) fill width; pages that want centering can add it themselves */
+	.slot-full-width {
+		flex: 1;
+		width: 100%;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
 	}
 </style>

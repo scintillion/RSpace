@@ -1,7 +1,6 @@
 import type { RS1 } from "./RS";
 import * as components from "../components/tiles/index";
-import type { SvelteComponent } from "svelte";
-import { mount } from "svelte";
+import { mount, unmount } from "svelte";
 
 export class Plotter {
   container: HTMLDivElement;
@@ -73,6 +72,11 @@ export class Plotter {
     const link = tile.aList?.qDescByName("link");
     if (link) {
       props.link = link;
+    }
+
+    const element = tile.aList?.qDescByName("element");
+    if (element === "button" || element === "div") {
+      props.element = element;
     }
 
     // Interactions - convert string 'true'/'false' to boolean
@@ -188,8 +192,10 @@ export class Plotter {
   // Cleanup method to destroy all mounted components
   public destroy() {
     this.mountedComponents.forEach((component) => {
-      if (component && typeof component.$destroy === 'function') {
-        component.$destroy();
+      try {
+        unmount(component);
+      } catch (_) {
+        // already unmounted or invalid
       }
     });
     this.mountedComponents.clear();
