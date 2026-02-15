@@ -352,29 +352,41 @@ export namespace RS1 {
 			else this.qSet ('Name',N);
 		}
 
-		get Desc () { return this.qGet ('Desc@'); }
+		get Desc () { return zGet$ (this.qstr, 'Desc'); }
 		set Desc (N:string) {
-			this.qSet ('Desc',N);
+			this.qSet (':Desc',N);
 		}
 
-		get Group () { return this.qGet ('Group@'); }
+		get Group () { return zGet$ (this.qstr, 'Group'); }
 		set Group (N:string) {
-			this.qSet ('Group',N);
+			this.qSet (':Group',N);
 		}
 
-		get Type () { return this.qGet ('Type@'); }
+		get Type () {
+			let cl = this.cl;
+
+			if (cl.indexOf ('List') >= 0)
+				return 'List';
+
+			switch (cl) {
+				case 'Bead' : case 'RSD' : case 'TileDef' : return cl;
+			}
+			
+			return zGet$ (this.qstr, 'Type');
+		}
+
 		set Type (N:string) {
 			if (!this.Type)
-				this.qSet ('Type',N);
+				this.qSet (':Type',N);
 		}
 
-		get Sub () { return this.qGet ('Sub@'); }
+		get Sub () { return zGet$ (this.qstr,'Sub'); }
 		set Sub (N:string) {
-			this.qSet ('Sub',N);
+			this.qSet (':Sub',N);
 		}
 
-		get Error () { return ''; }
-		set Error (N:string) { this.qSet ('Error',N); }
+		get Error () { return this.qGet (':Error'); }
+		set Error (N:string) { this.qSet (':Error',N); }
 
 		get clear () {
 			this.qstr = '|';
@@ -451,6 +463,9 @@ export namespace RS1 {
 		get expand () {
 			let lines = this.info, count = 0, k = this.K;
 			
+			if (this.BLOB)
+				lines += '\n  BLOB=' + bb2str (this.BLOB) + ' Bytes=' + this.BLOB.byteLength.toString ();
+
 			if (!k)
 				return lines;
 			
@@ -750,16 +765,20 @@ export namespace RS1 {
 		fromBuf (Buf : UBuf, RSDName='', KidName='') {
 			let pb = new PB (Buf, RSDName, KidName), k = this.K;
 
-			console.log ('FromBuf # Fields = ' + pb.Fields.length.toString ());
+			console.log ('\n\n\n\n\n\n\n\nFromBuf # Fields = ' + pb.Fields.length.toString ());
 			for (const F of pb.Fields) {
 				let name = F.name;
 
+				console.log ('   restoring name=' + name + ' prefix =' + F.prefix + ' bytes=' + F._bbi?.byteLength.toString ());
 				switch (name) {
 					case '.$' : 
 						console.log ('from$, str = ' + typeof (F.Data) + ':' + (F.Data as string))
 						this.from$ (F.Data as string); break;
 					case '.x' : this.X = F.Data; break;
 					case '.p' : this.fromPack (F.Data as RSPack); break;
+					case '.b' : this.BLOB = F.Data as BBI; 
+						console.log ('Setting BLOB =' + bb2str (F.Data as BBI));
+						break;
 					// case '.q' : this.Q = F.Data as RSI; break;
 					// case '.r' : this.R = F.Data as RSr; break;
 					default :	// child
@@ -1804,11 +1823,11 @@ export namespace RS1 {
 		commands : string[] = [];
 
 		constructor (rsd : RSD, serving = true) {
-			let qstr = rsd.qGetQStr, pos = qstr.indexOf ('|#:'), serial='', colon = -1, 
+			let qstr = rsd.qGetQStr, pos = qstr.indexOf ('|:#:'), serial='', colon = -1, 
 				commands, endpos, cmdstr;
 
 			if (pos >= 0) {
-				serial = qstr.slice (pos + 3);
+				serial = qstr.slice (pos + 4);
 				console.log ('serial1=' + serial);
 				endpos = serial.indexOf ('|');
 				if (endpos >= 0)
@@ -1858,8 +1877,11 @@ export namespace RS1 {
 				else if (x instanceof Uint8Array) 
 					bbi = x as Uint8Array;
 
-				if (bbi)
-					str = bb2str (bbi.slice (0,99));
+				if (bbi) {
+					str = bb2str (bbi.slice (0,199));
+					console.log ('newRSD, BBI =' + str);
+				}
+
 			}
 			else if (Type === 'string')
 					str = (x as string).slice (0,49);
@@ -1873,6 +1895,7 @@ export namespace RS1 {
 			}
 		}
 
+		console.log (' newRSD, name =' + name);
 		switch (name) {
 			case 'RSD' : return new RSD (x);
 			case 'rList' : return new xList (x);
@@ -2916,6 +2939,13 @@ export namespace RS1 {
 	export class xList extends RSD {
 		get cl () { return 'xList'; }
 		get isList () { return true; }
+
+		get Name () { return this.listName; }
+		get Desc () {
+			let pair = this.namedesc ();
+
+			return pair.b;
+		}
 	}
 
 	export function newList (S='|') {
@@ -3379,8 +3409,9 @@ export namespace RS1 {
 
 		copy (NewName='') {
 			let list = new rList (this.to$);
-			if (NewName)
-				list.Name = NewName;
+			if (NewName) {
+				list.setNameDesc (list.listName, NewName);
+			}
 			return list;
 		}
 	}
@@ -7511,6 +7542,32 @@ export namespace RS1 {
 		return z;
 	}
 
+	export function zGet$ (z:string, name:string, start=0)
+	{
+		let namestr = '|:' + name + ':', len = namestr.length, pos = z.indexOf (namestr,start);
+		if (pos >= 0) {
+			pos += len;
+			let endpos = z.indexOf ('|', pos);
+			if (endpos >= 0)
+				return z.slice (pos, endpos);
+			else return z.slice (pos);	// no terminating |, should not happen
+		}
+
+		return '';
+	}
+
+	export function zSet$ (z:string, name:string, newValue:string|number, start=0) {
+		let namestr = '|:' + name + ':', len = namestr.length, pos = z.indexOf (namestr,start);
+
+		if (pos >= 0) {
+			pos += len;
+			let endpos = z.indexOf ('|', pos);
+			return z.slice (0,pos) + newValue.toString () + z.slice (endpos);
+		}
+
+		return z;	// unchanged
+	}
+
 	export function checkSum8(input: string): string {
 		let hash = 0 >>> 0; // force unsigned 32-bit
 
@@ -7537,6 +7594,8 @@ export namespace RS1 {
 
 
 		let outRSD = ReqRSD (rsd);
+		// console.log ('OutRSD.BLOB Bytes=' + outRSD.BLOB.byteLength.toString ());
+		return outRSD;
 	}
 
 	export function DBUpdate (rsd:RSD) {
@@ -7567,1182 +7626,3 @@ export namespace RS1 {
 	}
 } // namespace RS1
 
-
-
-/*
-
-	class vListXtra {
-		vL? : qList;
-		qL? :qList;
-
-		count=0;
-		IDs?: number[];
-		NameIDs='';
-		Childs?:qList[];
-		_firstDelim = -1;
-		Delim = '|';
-		_indent=0;
-		LType: CLType = CLType.None;
-		Name=''
-		Desc=''
-
-		get _Indent () { return this._indent; }
-
-		constructor (vL = NILList) { this.vL = vL; }
-
-		InitList(Str1: string | string[]) {
-			if (!Str1)
-				Str1 = '|';
-
-			this.NameIDs = '';
-			this._indent = 0;
-
-			if (Array.isArray(Str1)) Str1 = Str1.join('\n') + '\n';
-
-			let StrLen = Str1.length;
-
-			let NamePos = 0; // default start of Name
-			let Ch = Str1[0];
-			if (Ch <= '9') {
-				if (Ch <= ' ') {
-					while (Ch === ' ' || Ch === '\t') {
-						this._indent++;
-						Ch = Str1[++NamePos];
-					}
-				} else if (Ch >= '0') {
-					let Zero = '0'.charCodeAt(0);
-					this._indent = Ch.charCodeAt(0) - Zero;
-					if ((Ch = Str1[++NamePos]) >= '0' && Ch <= '9') {
-						// second digit (only two allowed)
-						this._indent = this._indent * 10 + Ch.charCodeAt(0) - Zero;
-						++NamePos;
-					}
-				}
-			}
-
-			let Delim1 = Str1[StrLen - 1];
-
-			this._firstDelim = -1;
-
-			if (!isDelim(Delim1)) {
-				let i = NamePos;
-				while (i < StrLen)
-					if (isDelim((Delim1 = Str1[i]))) {
-						this._firstDelim = i;
-						Str1 += Delim1; // add (missing) delim to end of string
-						++StrLen;
-						break;
-					} else ++i;
-
-				if (i >= StrLen) return; // panic, no Delim
-			}
-
-			this.Delim = Delim1;
-			// Note that delimiter is typically '|', placed at end of string, but \0 could
-			// be used if one wished to allow '|' to appear within the const description
-
-			console.log ('InitList (' + Str1 + ')');
-
-			this.Childs = undefined;
-			this.IDs = undefined;
-
-			if (this.vL.firstDelim <= 0) this._firstDelim = Str1.indexOf(Delim1, NamePos);
-
-			if (Delim1 < ' ') {
-				// special case, embedded vLists!
-				this.count = 0;
-				this.LType = CLType.Pack;
-
-				let Strs = Str1.split(Delim1);
-				let limit = Strs.length;
-
-				if (limit  <= 0) return; // panic, no strings, should never happen
-
-				Str1 = '';
-				--limit;
-				for (let i = 0; ++i < limit; ) {
-					if (Strs[i][0] === '/' || !Strs[i].trim()) continue; //	ignore comment lines
-
-					let Child: qList = new qList(Strs[i]);
-					if (Child) {
-						if (!this.Childs) this.Childs = [];
-						this.Childs.push(Child);
-
-						if (!Str1) Str1 = Strs[0] + Delim1; // we are just finding the first line (Name:Desc)
-					}
-				}
-			}
-		
-			//let NameStr = Str1.slice(NamePos, this.vL.firstDelim);
-			let NameStr = Str1.slice(NamePos, this._firstDelim);
-		
-			//let i = NameStr.indexOf(':');
-			let i = NameStr.indexOf('|');
-			if (i >= 0) {
-				this.Desc = NameStr.slice(i + 1);
-				this.Name = NameStr.slice(0, i);
-			} else {
-				for (let lim = NameStr.length, i = 0; i < lim; ++i)
-					if (NameStr[i] <= ' ') {
-						NameStr = NameStr.slice(0, i);
-						if ((NameStr = '')) NameStr = 'Q';
-						break;
-					}
-
-				this.Desc = this.Name = NameStr;	
-			}
-
-			console.log('InitList (' + this.Name + '), NameStr =' + NameStr + '.');
-
-			this.vL.from$ (Str1);
-
-			//			console.log ('InitList ' + this._Name + ' Indent = ' + this._Indent.toString () + ' #C =' +
-			//				this.ChildCount.toString () + ' Count = ' + this.Count.toString () + ' Str=' + this._Str);
-
-			if (Delim1 < ' ') return; // done processing, vList with kids...
-
-			let FirstChar = Str1[this.vL.firstDelim + 1];
-
-			let IDList = isDigit(FirstChar);
-			this.LType = IDList ? CLType.ID : CLType.Std;
-
-			if (IDList) {
-				let N = 0, limit = StrLen - 1;
-				let Pos: number[] = Array(99);
-				Pos[0] = 0;
-
-				for (let i = this.vL.firstDelim - 1; ++i < limit; ) {
-					if (Str1[i] === Delim1) {
-						Pos[++N] = Number(Str1.slice(i + 1, i + 25));
-					}
-				}
-				this.count = N;
-				Pos.length = N + 1;
-				this.IDs = Pos;
-			}
-
-			this.NameList();
-		}
-
-		get firstDelim () {
-			// if (this._firstDelim < 0)
-			//	this._firstDelim = this.vL.x.toStr.indexOf (this.vL.x.Delim);
-
-			return this.vL.firstDelim;
-		}
-
-		get qstr () {
-			if (this.vL)
-				return this.vL.to$;
-			else if (!this.qL)
-				return 'NILList';
-			else return '|';
-		}
-
-		get toRaw () : string[] {
-			let Strs = this.qstr.split (this.Delim);
-			return Strs.slice (1,-1);
-		}
-
-		fromRaw (VIDStrs:string[]=[]) {
-			let D = this.Delim, NameDesc = this.qstr.slice (0,this.qstr.indexOf(D)+1);
-			let VIDStr = VIDStrs.join (D);
-			if (this.vL)
-				this.vL.from$ (NameDesc + (VIDStr ? (VIDStr + D) : ''));
-		}
-
-		get toVIDs () {
-			let Strs = this.toRaw;
-			let VIDs = new Array<vID> (Strs.length);
-
-			let count = 0;
-			for (const S of Strs) {
-				VIDs[count++] = new vID (S);
-			}
-			return VIDs;
-		}
-
-		static VIDsToLines(VIDs: vID[], Delim: string): string[] {
-			let i = VIDs.length;
-			let Lines: string[] = new Array(i);
-
-			while (--i >= 0) Lines[i] = VIDs[i].ToLine(Delim);
-
-			return Lines;
-		}
-
-//		get toVList () {
-//			return new vList (this.qstr);
-//		}
-
-		toVIDList (Sep=';',Delim='') {
-			if (!Delim)
-				Delim = ':';
-
-			let VIDs = this.toVIDs, Str = '';
-
-			for (const v of VIDs)
-				Str += v.Name + Delim + v.Desc + Sep;
-
-			return Str.slice (0,-1);
-		}
-
-		fromVList (L : vList) {
-			this.InitList (L.x.toStr);
-		}
-
-		GetNamePos(Name: string|number): number {
-            return this.vL  ? this.vL.qFindName (Name) : -1;
-			}
-
-	   get size () {
-            return this.vL.count;
-  	   }
-
-		get toStr() : string {
-			if ((this.LType != CLType.Pack)  &&  this.vL)
-				return this.vL.to$;
-
-			if (!this.Childs) return '';
-
-			let Strs = [this.qstr.slice(0, -1)];
-			let limit = Strs.length;
-			for (let i = 0; i < limit; ) {
-				let Child = this.Childs[i++];
-				if (Child) Strs.push(Child.to$);
-			}
-
-			return Strs.join(this.Delim) + this.Delim;
-		}
-
-		get FirstChild(): qList {
-			return (this.Childs) ? this.Childs[0] : NILList;
-		}
-
-		Merge(AddList: qList | undefined): boolean {
-			let DestStrs = this.qstr.split(this.Delim);
-			DestStrs.length = DestStrs.length - 1;
-			let Destlimit = DestStrs.length;
-			let Appended = 0, Replaced = 0;
-			
-			console.log('Merging Dest:');
-
-			for (let i = 0; i < Destlimit; ++i) console.log('Q1  ' + DestStrs[i]);
-
-			if (!AddList) return false;
-
-			let AddStrs = AddList.to$.split('|');
-
-			let Addlimit = AddStrs.length - 1; // don't use last!
-			console.log('Adding List');
-			for (let i = 0; i < Addlimit; ++i) console.log('Q2  ' + AddStrs[i]);
- 
-			let NameD, Name;
-
-			for (let i = 0; ++i < Addlimit; ) {
-				let Pos = AddStrs[i].indexOf(':');
-				let Replacer = Pos >= 0;
-				Name = Replacer ? AddStrs[i].slice(0, Pos) : AddStrs[i];
-				NameD = Name + ':';
-
-				for (let j = 0; ++j < Destlimit; ) {
-					if (DestStrs[j].startsWith(Name)) {
-						// at least partial match, is it full?
-						if  (DestStrs[j].startsWith(NameD) || DestStrs[j] == Name) {
-							// TRUE match
-							if (Replacer || DestStrs[j] == Name) {
-								// need to replace
-								// console.log('Replacing with ' + AddStrs[i]);
-								DestStrs[j] = AddStrs[i];
-								++Replaced;
-								Name = ''; // done, no more processing
-							} else {
-								Name = '';
-								break; // TRUE match, not replaced, we are done
-							}
-						}
-					}
-				}
-
-				// not found, need to add at end...
-				if (Name) {
-					// still active
-					// console.log('Appending ' + AddStrs[i]);
-					++Appended;
-					DestStrs.push(AddStrs[i]);
-				}
-			}
-
-			if (Replaced || Appended) {
-				let NewStr = DestStrs.join(this.Delim) + this.Delim;
-				this.InitList(NewStr);
-			}
-
-			return false;
-		}
-
-		private SetDelim(NewDelim: string): boolean {
-				let OldDelim = this.Delim;
-
-			if (!NewDelim || NewDelim.length != 1 || NewDelim == OldDelim || isDigit(NewDelim))
-				return false;
-
-			this.qstr.replaceAll(OldDelim, NewDelim);
-			this.Delim = NewDelim;
-			return true;
-		}
-
-		private VIDByPos(Pos1: number): vID | undefined {
-			if (Pos1 < 0) return undefined;
-
-			let EndPos = this.qstr.indexOf(this.Delim, Pos1);
-			if (EndPos < 0) return undefined;
-
-			let FoundStr = this.qstr.slice(Pos1, EndPos);
-			return new vID(FoundStr);
-		}
-
-		ByIDs(IDs: number[], Sort: boolean = false): vID[] {
-			if (!IDs) {
-				// copy all in list
-				let i = this.count;
-				IDs = new Array(i);
-				while (--i >= 0) IDs[i] = i + 1;
-			}
-
-			let VIDs: vID[] = [];
-			for (let i = IDs.length; --i >= 0; ) {
-				let VID = this.GetVID(IDs[i]);
-				if (VID) VIDs.push(VID);
-			}
-
-			if (Sort) 
-				qList.qSortVIDs(VIDs);
-
-			return VIDs;
-		}
-
-		NameList(UseList = 1): string {
-			if (UseList && this.NameIDs) return this.NameIDs;
-
-			let Str1 = this.qstr;
-			let Start = this.firstDelim - 1;
-			let Delim1 = this.Delim;
-			let ID = 0;
-			let NameStr = Delim1;
-
-			while ((Start = Str1.indexOf(Delim1, Start)) >= 0) {
-				let EndDelim = Str1.indexOf(Delim1, ++Start);
-				if (EndDelim < 0) break;
-				let NewStr = Str1.slice(Start, EndDelim);
-
-				let EndName = NewStr.indexOf(':');
-				if (EndName >= 0) NewStr = NewStr.slice(0, EndName);
-
-				++ID;
-				NameStr += NewStr + ':' + ID.toString() + Delim1;
-			}
-
-			this.NameIDs = NameStr;
-			this.count = ID;
-			return NameStr;
-		}
-
-
-		GetDesc(Name: string): string | undefined {
-			let SearchStr = this.Delim + Name + ':'; // e.g. '|NameXYZ:''
-			let Pos1 = this.qstr.indexOf(SearchStr, this.firstDelim);
-			if (Pos1 >= 0) {
-				let StartPos = Pos1 + SearchStr.length;
-				let EndPos = this.qstr.indexOf(this.Delim, StartPos);
-
-				if (EndPos > 0) return this.qstr.slice(StartPos, EndPos);
-			}
-			return undefined;
-		}
-
-		GetNum(Name: string): number | undefined {
-			let Str = this.GetDesc(Name);
-			return Str ? Number(Str) : undefined;
-		}
-
-		GetStr(Name: string) {
-			let Str = this.GetDesc(Name);
-			console.log('GetStr (' + Name + ') GetDesc returns "' + Str + '"');
-
-			if (Str) {
-				if (Str[0] === '[') {
-					let EndPos = Str.indexOf(']', 1);
-
-					if (EndPos > 0) return Str.slice(EndPos + 1);
-					else console.log(']' + ' not present!');
-				} else return Str;
-			}
-			return '';
-		}
-
-		UpdateVID(VID: vID, Delete = false) {
-			if (!VID) return;
-
-			let Delim = this.Delim;
-			let Str = this.qstr;
-
-			let SearchStr = Delim + VID.Name;
-			let Pos = Str.indexOf(SearchStr + Delim, this.firstDelim);
-			if (Pos < 0) {
-				Pos = Str.indexOf(SearchStr + ':', this.firstDelim);
-			}
-
-			if (Pos >= 0) {
-				let EndPos = Pos;
-
-				while (Str[++EndPos] !== Delim);
-
-				//if (EndPos < Str.length - 1) {
-				// not the last element in list!
-				if (Delete) Str = Str.slice(0, Pos) + Str.slice(EndPos);
-				else Str = Str.slice(0, Pos + 1) + VID.to$ + Str.slice(EndPos);
-
-			} else {
-				if (Delete) return; //	ABORT, should not happen!
-
-				// VID not found, we must add to the end!
-				Str += VID.to$ + Delim;
-			}
-
-			this.InitList(Str);
-		}
-
-		Bubble(Name: string, dir: number) {
-			// check for special easy case - list of Childs
-			if (this.LType == CLType.Pack) {
-				if (!this.Childs) return;
-
-				for (let i = this.Childs.length; --i >= 0; )
-					if (this.Childs[i].Name === Name) {
-						le t First, Second;
-
-						if (dir <= 0) {
-							Second = i;
-							First = i - 1;
-							if (First < 0) return;
-						} else {
-							First = i;
-							Second = i + 1;
-							if (Second >= this.Childs.length) return;
-						}
-
-						let TempList = this.Childs[First];
-						this.Childs[First] = this.Childs[Second];
-						this.Childs[Second] = TempList;
-						return;
-					}
-
-				return; // no match found
-			}
-
-			let Pos = this.GetNamePos(Name);
-			if (Pos < 0) return -1; // cannot find, we are done
-
-			let StartPos, EndPos;
-
-			let First = '', Second = '';
-
-			if (dir <= 0) {
-				// bubble up
-				for (StartPos = Pos; --StartPos >= 0; ) if (this.qstr[StartPos] == this.Delim) break;
-
-				if (StartPos < 0) return -1; // cannot find previous
-
-				EndPos = this.qstr.indexOf(this.Delim, Pos + 1);
-				if (EndPos < 0) return -1;
-
-				Second = this.qstr.slice(Pos, EndPos);
-				First = this.qstr.slice(StartPos, Pos);
-			} else {
-				// bubble down
-				StartPos = Pos;
-				EndPos = this.qstr.indexOf(this.Delim, Pos + 1);
-				let NextEnd;
-
-				if (EndPos >= 0) {
-					// found end of first
-					First = this.qstr.slice(Pos, EndPos);
-					NextEnd = this.qstr.indexOf(this.Delim, EndPos + 1);
-
-					if (NextEnd < 0) return; // cannot find next
-
-					Second = this.qstr.slice(EndPos, NextEnd);
-					EndPos = NextEnd;
-				} else return;
-			}
-
-			if (!First || !Second) return -1;
-
-			let NewStr = this.qstr.slice(0, StartPos) + Second + First + this.qstr.slice(EndPos);
-			this.InitList(NewStr);
-		}
-
-		GetVID(IDorName: string | number): vID | undefined {
-			// let Name: string = (typeof IDorName !== 'number') ? IDorName : this.NameByID(IDorName);
-
-			let Pos1 = this.GetNamePos(IDorName);
-
-			if (Pos1 >= 0) {
-				// we found it
-				return this.VIDByPos(Pos1 + 1);
-			} else return undefined;
-		} 
-
-		ChildByName(Name1: string) {
-			if (!this.Childs) return undefined;
-
-			let limit = this.Childs.length;
-
-			for (let i = 0; i < limit; ++i) {
-				if (this.Childs[i].Name == Name1) return this.Childs[i];
-			}
-
-			return undefined;
-		}
-
-		GetLine(ID: any, Delim1: string = ''): string {
-			let VID: vID | undefined = this.GetVID(ID);
-			return VID ? VID.ToLine(Delim1) : '';
-		}
-
-		IDsToRefList(IDs: number[]): vList | undefined {
-			if (IDs) {
-				let Delim = this.Delim;
-				let Ret = this.Name + Delim;
-				for (let i = IDs.length; --i >= 0; ) {
-					Ret += IDs[i].toString() + Delim;
-				}
-
-				return new vList(Ret);
-			}
-			return undefined;
-		}
-
-		VIDsToRefList(VIDs: vID[] | undefined): vList | undefined {
-			if (VIDs) {
-				let IDs: number[] = new Array(VIDs.length);
-
-				for (let i = VIDs.length; --i >= 0; ) {
-					IDs[i] = VIDs[i].ID;
-				}
-
-				return this.IDsToRefList(IDs);
-			} else return undefined;
-		}
-
-		ToSortedVIDs(): vID[] {
-			let VIDs = this.toVIDs;
-			qList.qSortVIDs(VIDs);
-			return VIDs;
-		}
-
-		ToDC(): string {
-			let VIDs = this.ToSortedVIDs();
-			let limit = VIDs.length, FmtStr = '';
-
-			let LineStr = '// ' + this.Name + ':' + this.Desc + '="' + this.qstr + '"\n';
-			let Line = 'export const ';
-			for (let i = 0; i < limit; ++i) {
-				Line += VIDs[i].ToDC(this.Name) + ',';
-
-				let VID = VIDs[i];
-				if (VID.Fmt) {
-					// print out format
-					FmtStr += '//\t' + VID.Name + ' ~' + VID.Fmt.Ch;
-
-					if (VID.Fmt.Xtra) FmtStr += ' Xtra="' + VID.Fmt.Xtra + '"';
-
-					if (VID.Fmt.Num) FmtStr += ' Num=' + VID.Fmt.Num.toString();
-
-					if (VID.Fmt.Type) FmtStr += ' Type=' + VID.Fmt.Type.toString();
-
-					FmtStr += '\n';
-				}
-			}
-
-			Line = Line.slice(0, Line.length - 1) + ';';
-			while (Line.length > 70) {
-				let i = 70;
-				while (--i && Line[i] !== ',');
-
-				LineStr += Line.slice(0, ++i) + '\n\t';
-				Line = Line.slice(i);
-			}
-			LineStr += Line + '\n';
-
-			LineStr += FmtStr;
-
-			return LineStr;
-		}
-
-		toSelect(Select: HTMLSelectElement | HTMLOListElement | HTMLUListElement) {
-			let VIDs = this.toVIDs;
-			let VIDLen = VIDs.length;
-
-			if (Select instanceof HTMLSelectElement) {
-				Select.options.length = 0;
-				for (let i = 0; i < VIDLen; ) VIDs[i++].ToSelect(Select);
-			} else if (Select instanceof HTMLOListElement || Select instanceof HTMLUListElement) {
-				for (let i = 0; i < VIDLen; ) VIDs[i++].ToList(Select);
-			}
-		}
-
-		NewThis () : vList { return new vList (this.toStr); }
-
-		get copy () {
-			return new vList (this.toStr);
-		}
-
-	}
-
-/*
-	class zList extends qList {
-		// qL = null;
-
-		// _count=0;
-		// IDs: number[] | undefined;
-		// NameIDs='';
-		Childs:vList[]=[];
-		// _firstDelim = -1;
-		Delim = '|';
-		// Indent=0;
-		// LType: CLType = CLType.None;
-		// Name=''
-		// Desc=''
-
-		// constructor (vL = NILList) { this.vL = vL; }
-
-
-		get toStr() {
-			if (!this.Childs) return '';
-
-			let Strs = [this.qstr.slice(0, -1)];
-			let limit = Strs.length;
-			for (let i = 0; i < limit; ) {
-				let Child  = this.Childs[i++];
-				if (Child) Strs.push(Child.qstr);
-			}
-
-			return Strs.join(this.Delim) + this.Delim;
-		}
-
-		get FirstChild(): vList {
-			return (this.Childs) ? this.Childs[0] : NILList;
-		}
-	}
-*/
-
-/*
-	export class xvList extends RSData {
-		x = NILvLX;
-		_type = 'List';
-		qstr = '';
-
-		Init (str='|') { this.qstr = str; }
-
-		get indent () {
-			let ind = 0;
-
-			let NamePos = 0; // default start of Name
-			let Ch = this.qstr[0];
-			if (Ch <= '9') {
-				if (Ch <= ' ') {
-					while (Ch === ' ' || Ch === '\t') {
-						ind++;
-						Ch = this.qstr[++NamePos];
-					}
-				} else if (Ch >= '0') {
-					let Zero = '0'.charCodeAt(0);
-					ind = Ch.charCodeAt(0) - Zero;
-					Ch = this.qstr[++NamePos];
-					if ((Ch >= '0') && (Ch <= '9')) {
-						// second digit (only two allowed)
-						ind = (ind * 10) + Ch.charCodeAt(0) - Zero;
-					}
-				}
-			}
-			return ind;
-		}
-
-		get Indent () { return this.indent; }
-			// return (this.x !== NILvLX) ? this.x._Indent : 0; }
-
-		get toStr () {
-			return (this.x === NILvLX)  ||  (this.x.Delim === '|') ? this.qstr : this.x.toStr;
-		}
-
-		constructor(Str1: string | string[] | BufPack = '') {
-			//	, First: vList | undefined = undefined) {
-			let Str, Strs, BP;
-			
-			super ();
-
-			this.x = new vListXtra (this);
-
-			if ((typeof Str1) === 'string') {
-				this.x.InitList (Str1 as string);
-			}
-			else if (Array.isArray (Str1)) {
-				this.x.InitList (Str1 as string[]);
-			}
-			else {
-				let BP = Str1 as BufPack;
-				this.x.InitList (BP.fStr ('data'));
-			}
-
-		}
-
-		PostSave (P : BufPack) { P.addArgs (['data', this.toStr]); }
-		PostLoad (P : BufPack) { this.qstr = P.fStr ('data'); this.Data = NILAB; console.log ('PostLoad vList'); }
-
-// ------------------ qList functions ---------------------
-
-
-        fromStr (Str='|') {
-            this.qstr = Str;
-        }
-
-        get d () { return this.qstr.slice(-1); }
-
-        get size () { return (this.qstr.length > 1) ? 1 : 0; }	// not NULL list
-
-        get firstDelim () { return this.qstr.indexOf(this.d); }
-
-        get descStr () {
-            let Type = this.desc1 ('Type');
-            return this.listName + '[Type=' + Type + ']' + (this.listDesc? (':'+this.listDesc):''); 
-        }
-
-        get count () {
-            let n = this.qstr.split (this.d).length - 2;
-            return n > 0 ? n : 0;
-        }
-
-        namedescstr (start=0) {
-            return this.qstr.slice(start,this.qstr.indexOf(this.d,start));
-        }
-
-
-        namedesc (start=0) {
-            let str = this.namedescstr (start);
-            return strPair.namedesc(str);
-        }
-
-        getNFD (start=0) {
-            return new NFD (this.namedescstr (start));
-        }
-
-        setNameOrDesc (name='',ifDesc=false) {
-            let pos = this.qstr.indexOf(this.d);
-            let head = this.qstr.slice (0,pos), tail = this.qstr.slice (pos);
-            let nd = strPair.namedesc(head);
-            let desc = nd.b;
-
-            if (ifDesc) {
-                desc = name;
-                name = nd.a;
-            }
-
-            this.fromStr (name + (desc ? (':' + desc) : '') + tail);
-        }
-
-        get listName() { return this.namedesc().a; }
-
-        get listDesc () { return this.namedesc().b; }
-
-        num (name:string|number) {
-            return Number (this.desc1 (name));
-        }
-
-        find (name:string|number) {
-            let D = this.d, str = D + name.toString ()+':';
-            let nPos = this.qstr.indexOf (str);
-            if (nPos >= 0)
-                return nPos;
-
-            str = str.slice (0,-1) + D;
-            return this.qstr.indexOf (str);
-        }
-
-        prepost (name:string|number) {
-            let nPos = this.find (name);
-            if (nPos >= 0) {
-                let dPos = this.qstr.indexOf (this.d,++nPos);
-                if (dPos >= 0)
-                    return new strPair (this.qstr.slice (0,nPos),this.qstr.slice (dPos));
-            }
-
-            return new strPair ('','');
-        }
-
-        del (name:string|number) {
-            let pair = this.prepost (name);
-            if (pair.a)
-                this.qstr = pair.a + pair.b;
-        }
-
-        add (name:string|number,desc:string|number) {
-            let vStr = name.toString () + ':' + desc.toString (), pair = this.prepost(name);
-
-            if (pair.a)
-                this.qstr = pair.a + vStr + pair.b;
-            else this.qstr += vStr + this.d;
-        }
-
-        set (name:string|number,desc:string|number) {
-            this.add (name,desc);
-        }
-
-        getVID (name:string|number) {
-            let nPos = this.find (name);
-            if (nPos >= 0) {
-	            let endPos = this.qstr.indexOf(this.d,nPos+1);
-    	        if (endPos >= 0)
-	                return new vID (this.qstr.slice (nPos,endPos));
-			}
-        }
-
-        desc1 (name:string|number) {
-            let nPos = this.find (name);
-            if (nPos < 0)
-                return '';
-
-            let endPos = this.qstr.indexOf (this.d,nPos);
-            if (endPos >= 0)
-                return this.qstr.slice (nPos,endPos);
-            return '';
-        }
-
-        nameByDesc (desc:string|number) {
-            let D=this.d, str = ':' + desc.toString () + D;
-            let vPos = this.qstr.indexOf (str);
-            if (vPos < 0)
-                return '';
-
-            for (let nPos = vPos; --nPos >= 0;)
-                if (this.qstr[nPos] === D)
-                    return this.qstr.slice (nPos + 1,vPos);
-
-            return '';
-        }
-
-        get VIDStrs () : string[] {
-            let Strs = this.qstr.split (this.d);
-            return Strs.sl ice (1,-1);
-        }
-
-        get toVIDs () {
-            let Strs = this.VIDStrs;
-            let VIDs = new Array<vID> (Strs.length);
-
-            let count = 0;
-            for (const S of Strs) {
-                VIDs[count ++] = new vID (S);
-            }
-            return VIDs;
-        }
-
-        static VIDsToLines(VIDs: vID[], Delim: string): string[] {
-            let i = VIDs.length;
-            let Lines: string[] = new Array(i);
-
-            while (--i >= 0) Lines[i] = VIDs[i].ToLine(Delim);
-
-            return Lines;
-        }
-
-        fromRaw (vStrs:string[]=[]) {
-            let D = this.d, NameDesc = this.qstr.slice (0,this.qstr.indexOf(D)+1);
-            let VIDStr = vStrs.join (D);
-            this.qstr = NameDesc + (VIDStr ? (VIDStr + D) : '');
-        }
-
-        get splitNames () : strsPair {
-            let raw = this.VIDStrs, names=new Array<string> (raw.length),count=0;
-
-            for (const s of raw) {
-                let dPos = s.indexOf(':');
-                names[count++] = (dPos >= 0) ? s.slice (0,dPos) : s;
-            }
-
-            return new strsPair (names,raw);
-        }
-
-        get names () { return this.splitNames.a; }
-
-        merge (addend : qList) {
-            let dest = this.splitNames, add = addend.qSplitNames;
-
-            for (let lim = add.a.length, i = 0; i < lim;++i) {
-                let j = dest.a.indexOf (add.a[i]);
-                if (j >= 0) 	// need to replace
-                    dest.b[j] = add.b[i];
-                else {
-                    dest.a.push (add.a[i]);
-                    dest.b.push (add.b[i]);
-                }
-            }
-
-            this.fromRaw (dest.b);
-        }
-
-        get toVList () {
-            return new vList (this.qstr);
-        }
-
-        fromVList (L : vList) {
-            this.fromStr (L.x.toStr);
-        }
-
-        toSelect(Select: HTMLSelectElement | HTMLOListElement | HTMLUListElement) {
-            let VIDs = this.toVIDs;
-            let VIDLen = VIDs.length;
-
-            if (Select instanceof HTMLSelectElement) {
-                Select.options.length = 0;
-                for (let i = 0; i < VIDLen; ) VIDs[i++].ToSelect(Select);
-            } else if (Select instanceof HTMLOListElement || Select instanceof HTMLUListElement) {
-                for (let i = 0; i < VIDLen; ) VIDs[i++].ToList(Select);
-            }
-        }
-
-        static SortVIDs(VIDs: vID[]) {
-            let limit = VIDs.length;
-            var Temp: vID;
-
-            for (let i = 0; ++i < limit; ) {
-                for (let j = i; --j >= 0; ) {
-                    if (VIDs[j].Desc > VIDs[j + 1].Desc) {
-                        Temp = VIDs[j];
-                        VIDs[j] = VIDs[j + 1];
-                        VIDs[j + 1] = Temp;
-                    } else break;
-                }
-            }
-        }
-
-        newRef (name='') {
-            return new qList (name+':'+'@'+this.listName);
-        }
-
-
-
-
-
-    } // vList
-
-	export const NILList = new qList ('NIL|');
-	export const NILvLX = new vListXtra (NILList);
-*/
-
-
-
-
-
-
-/*  Documentation Names/Desc	___________________
-
-
-
-List FM(FM)	FM|Num|Int|Dollar|Ord|Range|Pair|Nums|Member|Set|Str|Strs|Upper|
-Dollar	Dollar	ID[Dollar]==3
-Int	Int	ID[Int]==2
-Member	Member	ID[Member]==8
-Num	Num	ID[Num]==1
-Nums	Nums	ID[Nums]==7
-Ord	Ord	ID[Ord]==4
-Pair	Pair	ID[Pair]==6
-Range	Range	ID[Range]==5
-Set	Set	ID[Set]==9
-Str	Str	ID[Str]==10
-Strs	Strs	ID[Strs]==11
-Upper	Upper	ID[Upper]==12
-NameList=|Num:1|Int:2|Dollar:3|Ord:4|Range:5|Pair:6|Nums:7|Member:8|Set:9|Str:10|Strs:11|Upper:12|	12
-
-
-List Ft(Ft)	Ft|#:Num|I:Int|$:Dollar|P:Pair|O:Ord|A:Nums|%:Str|U:Upper|@:Member|R:Range|{:Set|
-$	Dollar	ID[$]==3
-I	Int	ID[I]==2
-@	Member	ID[@]==9
-#	Num	ID[#]==1
-A	Nums	ID[A]==6
-O	Ord	ID[O]==5
-P	Pair	ID[P]==4
-R	Range	ID[R]==10
-{	Set	ID[{]==11
-%	Str	ID[%]==7
-U	Upper	ID[U]==8
-NameList=|#:1|I:2|$:3|P:4|O:5|A:6|%:7|U:8|@:9|R:10|{:11|	11
-
-
-List Ct(ConnectType)	Ct:ConnectType|Data|Event|Action|Queue|DB|SQL:SQLite|Remote|Retail|
-Action	Action	ID[Action]==3
-DB	DB	ID[DB]==5
-Data	Data	ID[Data]==1
-Event	Event	ID[Event]==2
-Queue	Queue	ID[Queue]==4
-Remote	Remote	ID[Remote]==7
-Retail	Retail	ID[Retail]==8
-SQL	SQLite	ID[SQL]==6
-NameList=|Data:1|Event:2|Action:3|Queue:4|DB:5|SQL:6|Remote:7|Retail:8|	8
-
-
-List Lt(ListType)	Lt:ListType|Dt:DataType|Ev:Event|Ac:Action|Rt:Return|Td:TileDef|Ts:TileSize|Pr:Process|Mt:MessageType|Lg:Language|
-Ac	Action	ID[Ac]==3
-Dt	DataType	ID[Dt]==1
-Ev	Event	ID[Ev]==2
-Lg	Language	ID[Lg]==9
-Mt	MessageType	ID[Mt]==8
-Pr	Process	ID[Pr]==7
-Rt	Return	ID[Rt]==4
-Td	TileDef	ID[Td]==5
-Ts	TileSize	ID[Ts]==6
-NameList=|Dt:1|Ev:2|Ac:3|Rt:4|Td:5|Ts:6|Pr:7|Mt:8|Lg:9|	9
-
-
-List Dt(DataType)	Dt:DataType|String:Free format string|Integer:Whole Number|Number:Whole or Real Number|
-String	Free format string	ID[String]==1
-Integer	Whole Number	ID[Integer]==2
-Number	Whole or Real Number	ID[Number]==3
-NameList=|String:1|Integer:2|Number:3|	3
-
-
-List Ev(Event)	Ev:Event|Click|Enter|Exit|DblClick|Swipe|Drop|Drag|
-Click	Click	ID[Click]==1
-DblClick	DblClick	ID[DblClick]==4
-Drag	Drag	ID[Drag]==7
-Drop	Drop	ID[Drop]==6
-Enter	Enter	ID[Enter]==2
-Exit	Exit	ID[Exit]==3
-Swipe	Swipe	ID[Swipe]==5
-NameList=|Click:1|Enter:2|Exit:3|DblClick:4|Swipe:5|Drop:6|Drag:7|	7
-
-
-List Rt(Return)	Rt:Return|Ok|Fail|Equal|Unequal|Queue|
-Equal	Equal	ID[Equal]==3
-Fail	Fail	ID[Fail]==2
-Ok	Ok	ID[Ok]==1
-Queue	Queue	ID[Queue]==5
-Unequal	Unequal	ID[Unequal]==4
-NameList=|Ok:1|Fail:2|Equal:3|Unequal:4|Queue:5|	5
-
-
-List Td(TileDef)	Td:TileDef|Tile|LnEdit|TxtEdit|Btn|Img|Video|
-Btn	Btn	ID[Btn]==4
-Img	Img	ID[Img]==5
-LnEdit	LnEdit	ID[LnEdit]==2
-Tile	Tile	ID[Tile]==1
-TxtEdit	TxtEdit	ID[TxtEdit]==3
-Video	Video	ID[Video]==6
-NameList=|Tile:1|LnEdit:2|TxtEdit:3|Btn:4|Img:5|Video:6|	6
-
-
-List Ts(TileSize)	Ts:TileSize|Fixed|T:Top|TL:Top Left|TR:Top Right|B:Bottom|BL:Bottom Left|BR:Bottom Right|L:Left|R:Right|SH:Shared|
-B	Bottom	ID[B]==5
-BL	Bottom Left	ID[BL]==6
-BR	Bottom Right	ID[BR]==7
-Fixed	Fixed	ID[Fixed]==1
-L	Left	ID[L]==8
-R	Right	ID[R]==9
-SH	Shared	ID[SH]==10
-T	Top	ID[T]==2
-TL	Top Left	ID[TL]==3
-TR	Top Right	ID[TR]==4
-NameList=|Fixed:1|T:2|TL:3|TR:4|B:5|BL:6|BR:7|L:8|R:9|SH:10|	10
-
-
-List Pr(Process)	Pr:Process|Init|Read|Set|Clear|Default|
-Clear	Clear	ID[Clear]==4
-Default	Default	ID[Default]==5
-Init	Init	ID[Init]==1
-Read	Read	ID[Read]==2
-Set	Set	ID[Set]==3
-NameList=|Init:1|Read:2|Set:3|Clear:4|Default:5|	5
-
-
-List Mt(MessageType)	Mt:MessageType|Input|Output|Event|Trigger|Action|
-Action	Action	ID[Action]==5
-Event	Event	ID[Event]==3
-Input	Input	ID[Input]==1
-Output	Output	ID[Output]==2
-Trigger	Trigger	ID[Trigger]==4
-NameList=|Input:1|Output:2|Event:3|Trigger:4|Action:5|	5
-
-
-List Ac(Action)	Ac:Action|Init|Timer|Login|Logout|
-Init	Init	ID[Init]==1
-Login	Login	ID[Login]==3
-Logout	Logout	ID[Logout]==4
-Timer	Timer	ID[Timer]==2
-NameList=|Init:1|Timer:2|Login:3|Logout:4|	4
-
-
-List Lg(Language)	Lg:Language|En:English|Es:Espanol|Cn:Chinese|
-Cn	Chinese	ID[Cn]==3
-En	English	ID[En]==1
-Es	Espanol	ID[Es]==2
-NameList=|En:1|Es:2|Cn:3|	3
-
-
-List Cy(Country)	Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|
-CA	Canada	ID[CA]==3
-IN	India	ID[IN]==5
-RU	Russia	ID[RU]==4
-UK	United Kingdom	ID[UK]==2
-US	United States	ID[US]==1
-NameList=|US:1|UK:2|CA:3|RU:4|IN:5|	5
-
-
-List Test(Test)	Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|
-Cost	~$~Dollar Price	ID[Cost]==3
-NameF	~%12~First Name	ID[NameF]==1
-XY	~P~XY Dim	ID[XY]==2
-NameList=|NameF:1|XY:2|Cost:3|	3
-
- Dump of LongList...
-T	a|name:Full|	s|display:flex|flex-direction:column|align:center|justify:center|background:black|min-width:750px|max-width:750px|min-height:500px|	
- T	a|name:Top|	
-
- End of LongList Dump.  
-LongList Name=T	a|name Desc=Full|	s|display:flex|flex-direction:column|align:center|justify:center|background:black|min-width:750px|max-width:750px|min-height:500px|	
-
-
-T		1.level=0 parent=0 prev=0 next=11 first=2 last=10 #=10 TileID=T
-		 List.Name=a=a|name:Full|
-		 List.Name=s=s|display:flex|flex-direction:column|align:center|justify:center|background:black|min-width:750px|max-width:750px|min-height:500px|
- T		2.level=1 parent=1 prev=0 next=7 first=3 last=6 #=5 TileID=T
-		 List.Name=a=a|name:Top|
-		 List.Name=s=s|background:magenta|min-height:150px|
-  T		3.level=2 parent=2 prev=0 next=6 first=4 last=5 #=3 TileID=T
-		 List.Name=a=a|name:Left|
-		 List.Name=s=s|background:green|min-width:100px|
-   T		4.level=3 parent=3 prev=0 next=5 first=0 last=4 #=1 TileID=T
-		 List.Name=a=a|name:Top|
-		 List.Name=s=s|background:magenta|min-height:50px|
-   T		5.level=3 parent=3 prev=4 next=0 first=0 last=5 #=1 TileID=T
-		 List.Name=a=a|name:Bottom|
-		 List.Name=s=s|background:magenta|min-height:100px|
-  T		6.level=2 parent=2 prev=3 next=0 first=0 last=6 #=1 TileID=T
-		 List.Name=a=a|name:Right|
-		 List.Name=s=s|background:cyan|width:100%|display:flex|
- T		7.level=1 parent=1 prev=2 next=0 first=8 last=10 #=4 TileID=T
-		 List.Name=a=a|name:Bottom|
-		 List.Name=s=s|display:flex|flex-direction:row|background:white|min-height:350px|
-  T		8.level=2 parent=7 prev=0 next=9 first=0 last=8 #=1 TileID=T
-		 List.Name=a=a|name:Left|
-		 List.Name=s=s|background:green|min-width:100px|
-  T		9.level=2 parent=7 prev=8 next=10 first=0 last=9 #=1 TileID=T
-		 List.Name=a=a|name:Middle|
-		 List.Name=s=s|background:cyan|width:100%|display:flex|
-  T		10.level=2 parent=7 prev=9 next=0 first=0 last=10 #=1 TileID=T
-		 List.Name=a=a|name:Right|
-		 List.Name=s=s|background:yellow|min-width:200px|
-@NOLIST@	11.level=0 parent=0 prev=1 next=0 first=0 last=11 #=1 TileID=NONE
-
-*/

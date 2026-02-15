@@ -52,15 +52,28 @@ class DBKit {
 		let qStr = '', vStr = '', Name, Values : any[] =[];
 
 		for (const r of Raw) {
-			let colon = r.indexOf (':'), vName, first, vDesc, str;
-			if (colon >= 0) {
-				vName = r.slice (0,colon);
-				vDesc = r.slice (colon+1);
+			let vName, first, vDesc, str, colon, special = (r[0] === ':');
+			if (special) {
+				colon = r.indexOf (':',1);
+				if (colon >= 0) {
+					vName = r.slice (1,colon); vDesc = r.slice (colon+1);
+				}
+				else { vName = r.slice (1); vDesc = '';	}
 			}
-			else { vName = r; vDesc = ''; }
+			else {
+				colon = r.indexOf (':');
+				if (colon >= 0) {
+					vName = r.slice (0,colon);
+					vDesc = r.slice (colon+1);					
+				}
+				else {	vName = r; vDesc = '';	}
+			}
+
+			if ((vName === 'ID') && (!vDesc  ||  vDesc==='0'))
+				continue;
 
 			console.log (' :::RAW line=' + r + ', newBuildQ, vName=' + vName + ', vDesc=' + vDesc);
-			if ((first = vName[0]) < 'A') {		// not a legal field name, must be control
+			if (((first = vName[0]) < 'A') && (first !== ':'))	{	// not a legal field name, must be control
 				if (first === '?') {
 					switch (vName[1]) {
 						case '?' : Wheres.push (vDesc);	break;
@@ -105,7 +118,11 @@ class DBKit {
 					console.log ('  adding :' + name + ', Value =' + vDesc);
 				}
 			}
-			else if (vName[0] >= 'A') {	// legal name:value pair
+			else {
+				if (first === ':') {
+					vName = vName.slice (1);
+					console.log ('  :Special: detected ' + vName + ':' + vDesc);
+				}
 				if (qType === 'I') {
 					qStr += vName + ',';
 					vStr += '?,';
@@ -120,15 +137,15 @@ class DBKit {
 
 		switch (qType) {
 			case 'U' :
-				qStr += 'BLOB=?,';
-				Values.push (rsd.BLOB = rsd.toBBI);
+				qStr += 'qstr=?,BLOB=?,';
+				Values.push (rsd.qGetQStr, rsd.BLOB = rsd.toBBI);
 				break;
 			
 			case 'I' : 
-				let Now = Date.now () / 1000;	// convert to seconds
-				Values.push (Now, Now, 1, 1, rsd.BLOB = rsd.toBBI);
-				qStr += 'Created,Changed,Owner,Creator,BLOB,';
-				vStr += '?,?,?,?,';
+				let Now = Date.now ();
+				Values.push (Now, Now, 1, 1, rsd.qGetQStr, rsd.BLOB = rsd.toBBI);
+				qStr += 'Created,Changed,Owner,Creator,qstr,BLOB,';
+				vStr += '?,?,?,?,?,?,';
 				break;
 		}
 
@@ -187,7 +204,6 @@ class DBKit {
 
 		if (query[0] !== 'S')
 		{
-
 			dbResponse = statement.run (Params);
 			reply.objectIn (dbResponse);
 
@@ -258,7 +274,7 @@ const RSS = new RServer ('tile.sqlite3');
 async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 	let cmd = new RS1.RSDCmd (InRSD), initStr = '?|';	// default is confused reply
 
-	console.log ('ReqRSD, InRSD=' + InRSD.to$ + ', cmd.SessionID=' + cmd.SessionID.toString () + ', cmd.command=' + cmd.command);
+	console.log ('ReqRSD, InRSD=' + InRSD.expand + '\n   cmd.SessionID=' + cmd.SessionID.toString () + ', cmd.command=' + cmd.command + '\n\n\n');
 	// Real processing here 
 	if (cmd.SessionID) {
 		switch (cmd.command[1]) {		// command[0]  is ? | .   (server vs. client)
@@ -321,7 +337,7 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 
 
 async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
-	console.log ('Entering ReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
+	console.log ('\n\n\nReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
 	let str = RS1.ab2str (AB);
 	console.log ('AB = ' + str);
 	let Buf = RS1.newBuf (AB);
@@ -329,14 +345,13 @@ async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	let rsd = RS1.newRSD (Buf);
 	// rsd.constructRSD (RS1.newBuf (AB));
 
-	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.to$ + '\n' + rsd.expand)
+	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.expand)
 	let ResultRSD = await RS1.ReqRSD (rsd);
 
-	console.log ('Returned from ReqRSD.BLOB = ' + ResultRSD.BLOB?.byteLength.toString () + 
-			' with ResultRSD/server.ts, ResultRSD=' + ResultRSD.to$);
+	console.log ('Returned from ReqRSD, ResultRSD =' + ResultRSD.expand);
 
 	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);
-	console.log ('  ResultAB Bytes=' + ResultAB.byteLength.toString ());
+	console.log ('  leaving ReqAB, returning ResultAB Bytes=' + ResultAB.byteLength.toString ());
 
 	return ResultAB;
 }
@@ -357,24 +372,6 @@ export const POST = (async ({ request, url }) => {
 
 
 async function ReqPack (InPack : RS1.BufPack) : Promise<RS1.BufPack> {
-/*
-	let Serial = InPack.fNum ('#');
-	let Client = InPack.fStr ('Client');
-	let ABC = InPack.fStr ('ABC');
-	let OutPack : RS1.BufPack;
-
-	if (!Serial)
-	{
-		console.log ('ReqPack NO Client Serial:\n' + InPack.expand);
-		throw "ReqPack No Client Serial!";
-	}
-	console.log ('Server Receives Client Request #' + Serial.toString (),
-		 ' Client = ' + Client + ' ABC=' + ABC);
-
-	OutPack = new RS1.BufPack ();
-
-	return OutPack;
-*/
 	return new RS1.BufPack ();
 }
 

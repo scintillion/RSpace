@@ -32,27 +32,26 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
 
     console.log ('Incoming RSDRequest ='+rsd.to$);
 
-    let name, desc, rsdName = rsd.cl, tile=rsd.qGet (':Tile');
+    let rQ = rsd.qGetQStr, name = rsd.Name, desc = rsd.Desc, rsdName = rsd.cl, tile=RS1.zGet$ (rQ, 'Tile'), Type = rsd.Type;
     if (rsd.isList) {
         name = rsd.listName;
         let pair = rsd.namedesc ()
         desc = pair.b;
     }
     else {
-        name = rsd.qGet (':Name');
-        desc = rsd.qGet (':Desc');
+        name = RS1.zGet$ (rQ, 'Name');
+        desc = RS1.zGet$ (rQ, 'Desc');
     }    
 
-    let sysStr = '|:Name:' + name + '|:Desc:' + desc + '|:RSD:' + rsdName + ':Tile:' + tile + '|';
-    let outRSD = RS1.newRSD (/* rsd.qGetQStr + */  sysStr);
+    let outRSD = RS1.newRSD (rsd.qGetQStr + ':#:' + (++Serial).toString () + ':' + RS1.mySession.toString () + 
+            '|:Name:' + name + '|:Desc:' + desc + '|:RSD:' + rsdName + '|:Tile:' + tile + '|');
 
-
-    outRSD.qSet ('#', (++Serial).toString () + ':' + RS1.mySession.toString ());
-    rsd.mark;
     outRSD.BLOB = rsdBBI;
     
     let AB = RS1.bb2ab (outRSD.toBBI);
     console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI) + ' BYTES=' + AB.byteLength.toString ());
+    let testCmd = new RS1.RSDCmd (outRSD);
+
 
     if (AB) {
         let recvAB = await RS1.ReqAB (AB);
@@ -229,28 +228,15 @@ export async function InitClient () {
     let  TList = new RS1.TileList(RList); // remove temporarily
     console.log ('TList.ToString = \n' + TList.toStr);
 
-    RS1.rLoL.SaveLists ();
-    
+    // RS1.rLoL.SaveLists ();
+    let SelectRSD = RS1.DBSelect ('|rsd:RSD|');
+    // console.log ('SelectRSD Bytes =' + SelectRSD.BLOB.byteLength.toString ());
+
 	let L = new RS1.qList ('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
 }
 
 async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
-/*
-  console.log ('PackRequest Incoming = \n' + BP.desc);
-  BP.addArgs (['#',++Serial]);
-
-  let AB = BP.bufOut ();
-  console.log ('Sending Client Request #' + Serial.toString ());
-
-  let recvAB = await RS1.ReqAB (AB);
-
-  BP.bufIn (recvAB);
-
-  console.log (' ---- Pack Received Server reply #' + BP.fNum ('#').toString () + '---' + '\n' + BP.desc);
-
-  return BP;
-*/
-  return new RS1.BufPack ();
+    return new RS1.BufPack ();
 }
 
 
