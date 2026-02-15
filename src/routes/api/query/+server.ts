@@ -88,10 +88,24 @@ class DBKit {
 						case 'R' :	table = vDesc; break;	// Row (Record) Type == Table
 
 						case 'I' :	ID = Number (vDesc);	Wheres.push ('ID = ' + vDesc); break;	// recordID (unique for this table)
+						default : console.log ('Ignoring this line');
 					}
 				}
+				else if (first === ':') {
+					let name = vName.slice (1);
+
+					if (qType === 'I') {
+						qStr += name + ',';
+						vStr += '?,';
+					}
+					else {
+						qStr += name + '=?,';
+					}
+					Values.push (vDesc);
+					console.log ('  adding :' + name + ', Value =' + vDesc);
+				}
 			}
-			else {	// legal name:value pair
+			else if (vName[0] >= 'A') {	// legal name:value pair
 				if (qType === 'I') {
 					qStr += vName + ',';
 					vStr += '?,';
@@ -104,19 +118,18 @@ class DBKit {
 			}
 		}
 
-		if (rsd.BLOB)	{		// need to push BLOB data
-			switch (qType) {
-				case 'I'	:
-					qStr += 'BLOB,';
-					vStr += '?,';
-					Values.push (rsd.BLOB);
-					break;
-				
-				case 'U'	:
-					qStr += 'BLOB=?,';
-					Values.push (rsd.BLOB);
-					break;
-			}
+		switch (qType) {
+			case 'U' :
+				qStr += 'BLOB=?,';
+				Values.push (rsd.BLOB = rsd.toBBI);
+				break;
+			
+			case 'I' : 
+				let Now = Date.now () / 1000;	// convert to seconds
+				Values.push (Now, Now, 1, 1, rsd.BLOB = rsd.toBBI);
+				qStr += 'Created,Changed,Owner,Creator,BLOB,';
+				vStr += '?,?,?,?,';
+				break;
 		}
 
 		vStr = vStr.slice (0,-1); qStr = qStr.slice (0,-1);
@@ -166,39 +179,54 @@ class DBKit {
 	}
 
 	newExecQ (rsd : RS1.RSD, Params : any[]) : RS1.RSD {
-		let query = rsd.T as string;
+		let query = rsd.T as string, count = 0;
 		console.log ('ExecQ QUERY=' + rsd.T + '.');
 		const statement = this._db.prepare (rsd.T as string) as unknown as Statement;
 
-		let dbResponse;
+		let dbResponse, reply = new RS1.RSD ();
 
 		if (query[0] !== 'S')
 		{
-			let reply = new RS1.RSD ();
 
 			dbResponse = statement.run (Params);
 			reply.objectIn (dbResponse);
 
-			console.log (dbResponse);
+			console.log ('Non Select Query returns: ' + dbResponse);
 			return reply;
 		}
 
 		dbResponse = statement.all (Params); // run  for update/?delete // (Params);
-		let ObjArray = dbResponse as unknown as object[], Mom = new RS1.RSD (rsd.qGetQStr);
-		Mom.K = new RS1.RSK (Mom);	// let them have kids! 
+		let ObjArray = dbResponse as unknown as object[], nRecords = ObjArray.length,
+			BLOBS : Uint8Array[] = [], nBytes = 0;
 
-		console.log ('SELECT query =' + rsd.T + ' yields records=' + ObjArray.length.toString());
+		console.log ('SELECT query =' + rsd.T + ' yields records=' + nRecords.toString());
 		for (const each of ObjArray) {
-			console.log ('  each = ' + each);
-			let reply = new RS1.RSD ();
-
 			reply.objectIn (each as Object);
-			Mom.kidAdd (reply);
+
+			if (reply.BLOB) {
+				console.log ('  each nBytes= '  + reply.BLOB?.byteLength.toString () + each);
+				BLOBS.push (reply.BLOB as Uint8Array);
+				++count;
+				nBytes += (reply.BLOB as Uint8Array).byteLength;
+			}
 		}
 
-		console.log ('\n\n\n\n\n\n\nMom RSD=' + Mom.expand);
+		if (count) {
+			console.log ('NewBuf Bytes=' + nBytes.toString ());
+			let newBuf = RS1.newBuf (nBytes), offset = 0;
 
-		return Mom;
+			for (const b of BLOBS) {
+				newBuf.set (b, offset);
+				offset += b.byteLength;
+			}
+			reply.BLOB = newBuf;
+
+			console.log ('RSD.newBuf (BLOB) nBytes =', reply.BLOB.byteLength.toString ());
+		}
+		else reply.BLOB = undefined;
+
+		reply.qSet ('Count',nRecords);
+		return reply;
 	}
 
 }

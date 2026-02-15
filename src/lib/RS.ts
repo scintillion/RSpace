@@ -370,6 +370,7 @@ export namespace RS1 {
 		get notIList () { return false; }
 
 		get isMom () { return false; }
+		get isList () { return false; }
 		get cl () { return 'RSD'; }
 
 		K?	:	RSK;
@@ -392,9 +393,15 @@ export namespace RS1 {
 			return newRS;
 		}
 	
-		get Name () { return this.qGet ('Name@'); }
+		get Name () { 
+			return (this instanceof xList) ? this.listName : this.qGet ('Name@');
+		}
 		set Name (N:string) {
-			this.qSet ('Name',N);
+			if (this instanceof xList) {
+				let ND = this.getNameDesc ();
+				this.setNameDesc (N, ND.b);
+			}
+			else this.qSet ('Name',N);
 		}
 
 		get Desc () { return this.qGet ('Desc@'); }
@@ -1805,6 +1812,7 @@ export namespace RS1 {
 					Strs.push (entry[0] + ':' + entry[1].toString ());
 				else Buf = this.BLOB = entry[1];
 				console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
+				++count;
 			}
 
 			this.qFromRaw (Strs);
@@ -1926,7 +1934,6 @@ export namespace RS1 {
 			case 'RSr' : return new rList (x  as string|string[]|ListTypes[]);
 			case 'RSR' : return new RSR (x);
 			case 'Bead' : return new Bead (x);
-			case 'rList' : return new rList (x as string|string[]|ListTypes[]);
 			case 'rLOL' : return new rLOL (x as string|string[]|ListTypes[]);
 			case 'TDE' : return new TDE (x as string|rList);
 			default : return new RSD (x);
@@ -2960,6 +2967,7 @@ export namespace RS1 {
 
 	export class xList extends RSD {
 		get cl () { return 'xList'; }
+		get isList () { return true; }
 	}
 
 	export function newList (S='|') {
@@ -3343,7 +3351,7 @@ export namespace RS1 {
 		get notIList () { return true; }
 
 		get cl () { return 'rList'; }
-
+		get isList () { return true; }
 		get isMom () { return true; }
 
 /*
@@ -3480,6 +3488,16 @@ export namespace RS1 {
 		Test = this.rAddList('Test|NameF:~%12~First Name|XY:~P~XY Dim|Cost:~$~Dollar Price|');
 
 		get cl () { return 'rLOL'; }
+
+		SaveLists () {
+			let k = this.K;
+
+			for (const L of k._kids) {
+				if (L)
+					DBInsert (L);
+			}
+
+		}
 	}
 
 	export const rLoL = new rLOL ();
@@ -7566,7 +7584,7 @@ export namespace RS1 {
 
 
 	export function DBSelect (IDOrStr :number|string = '|Type:List|') {
-		let Q = '|?Q:S' + (typeof IDOrStr === 'string') ? IDOrStr as string : ('|ID:' + IDOrStr.toString () + '|'),
+		let Q = '|?Q:S' + (typeof IDOrStr === 'string') ? IDOrStr as string : ('|:ID:' + IDOrStr.toString () + '|'),
 			rsd = new RSD (Q);
 
 
@@ -7574,20 +7592,30 @@ export namespace RS1 {
 	}
 
 	export function DBUpdate (rsd:RSD) {
+		let ID = rsd.qGetNum (':ID');
+		if (ID) {
 
 
 
+		}
 	}
 
 	export function DBDelete (IDorRSD:number|RSD) {
+		let ID = (typeof (IDorRSD) === 'number') ? 
+			(IDorRSD as number) : (IDorRSD as RSD).qGetNum (':ID');
 
-
-
+		if (ID) {
+			let OutRSD = new RSD ('|?Q:D|:ID:' + ID + '|');
+			return OutRSD;
+		}
 	}
 
 	export function DBInsert (rsd:RSD) {
-
-
+		let ID = rsd.qGet (':ID');
+		if (!ID  ||  ID == '0') {
+			let OutRSD = new RSD ('|?Q:I|:ID:' + ID + '|');
+			return ReqRSD (OutRSD);
+		}
 	}
 } // namespace RS1
 

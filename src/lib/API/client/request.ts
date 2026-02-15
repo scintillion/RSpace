@@ -26,30 +26,23 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
     return response;
 }
 
-async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
-/*
-  console.log ('PackRequest Incoming = \n' + BP.desc);
-  BP.addArgs (['#',++Serial]);
-
-  let AB = BP.bufOut ();
-  console.log ('Sending Client Request #' + Serial.toString ());
-
-  let recvAB = await RS1.ReqAB (AB);
-
-  BP.bufIn (recvAB);
-
-  console.log (' ---- Pack Received Server reply #' + BP.fNum ('#').toString () + '---' + '\n' + BP.desc);
-
-  return BP;
-*/
-  return new RS1.BufPack ();
-}
-
-
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     console.log ('Incoming RSDRequest ='+rsd.to$);
 
-    let testRSD = RS1.newRSD (rsd.to$);
+    let name, desc, rsdName = rsd.cl, tile=rsd.qGet (':Tile');
+    if (rsd.isList) {
+        name = rsd.listName;
+        let pair = rsd.namedesc ()
+        desc = pair.b;
+    }
+    else {
+        name = rsd.qGet (':Name');
+        desc = rsd.qGet (':Desc');
+    }    
+
+    let sysStr = '|:Name:' + name + '|:Desc:' + desc + '|:RSD:' + rsdName + ':Tile:' + tile + '|';
+    let testRSD = RS1.newRSD (rsd.qGetQStr + sysStr);
+
 
     rsd.qSet ('#', (++Serial).toString () + ':' + RS1.mySession.toString ());
     rsd.mark;
@@ -231,7 +224,29 @@ export async function InitClient () {
     console.log ('Preparing TileList');
     let  TList = new RS1.TileList(RList); // remove temporarily
     console.log ('TList.ToString = \n' + TList.toStr);
+
+    RS1.rLoL.SaveLists ();
     
 	let L = new RS1.qList ('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');
 }
+
+async function packRequest (BP : RS1.BufPack) : Promise<RS1.BufPack>{
+/*
+  console.log ('PackRequest Incoming = \n' + BP.desc);
+  BP.addArgs (['#',++Serial]);
+
+  let AB = BP.bufOut ();
+  console.log ('Sending Client Request #' + Serial.toString ());
+
+  let recvAB = await RS1.ReqAB (AB);
+
+  BP.bufIn (recvAB);
+
+  console.log (' ---- Pack Received Server reply #' + BP.fNum ('#').toString () + '---' + '\n' + BP.desc);
+
+  return BP;
+*/
+  return new RS1.BufPack ();
+}
+
 
