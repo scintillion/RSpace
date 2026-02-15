@@ -27,6 +27,9 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 }
 
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
+    let rsdBBI = rsd.toBBI, rsdstr = RS1.bb2str (rsdBBI);
+
+
     console.log ('Incoming RSDRequest ='+rsd.to$);
 
     let name, desc, rsdName = rsd.cl, tile=rsd.qGet (':Tile');
@@ -41,13 +44,14 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     }    
 
     let sysStr = '|:Name:' + name + '|:Desc:' + desc + '|:RSD:' + rsdName + ':Tile:' + tile + '|';
-    let testRSD = RS1.newRSD (rsd.qGetQStr + sysStr);
+    let outRSD = RS1.newRSD (/* rsd.qGetQStr + */  sysStr);
 
 
-    rsd.qSet ('#', (++Serial).toString () + ':' + RS1.mySession.toString ());
+    outRSD.qSet ('#', (++Serial).toString () + ':' + RS1.mySession.toString ());
     rsd.mark;
+    outRSD.BLOB = rsdBBI;
     
-    let AB = RS1.bb2ab (rsd.toBBI);
+    let AB = RS1.bb2ab (outRSD.toBBI);
     console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI) + ' BYTES=' + AB.byteLength.toString ());
 
     if (AB) {

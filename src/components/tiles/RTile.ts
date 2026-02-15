@@ -46,26 +46,26 @@ class TileDefBuilder {
      
       if (modifications.styles) {
         Object.entries(modifications.styles).forEach(([property, value]) => {
-          const VID = TileDef.sList?.getVID(property);
+          const VID = TileDef.sList?.qGetVID(property);
           if (VID) {
             VID.Desc = value;
-            TileDef.sList?.setVID(VID);
+            TileDef.sList?.qSetVID(VID);
           }
           else {
-            TileDef.sList?.set(property, value);
+            TileDef.sList?.qSet(property, value);
           }
         });
       }
 
       if (modifications.attributes) {
         Object.entries(modifications.attributes).forEach(([property, value]) => {
-          const VID = TileDef.aList?.getVID(property);
+          const VID = TileDef.aList?.qGetVID(property);
           if (VID) {
             VID.Desc = value;
-            TileDef.aList?.setVID(VID);
+            TileDef.aList?.qSetVID(VID);
           }
           else {
-            TileDef.aList?.set(property, value);
+            TileDef.aList?.qSet(property, value);
           }
         });
       }
@@ -197,10 +197,10 @@ export class RTile extends LitElement {
       }
 
       if (changedProperties.has('editMode') && !this.editMode) {
-        const textPreviewVID = this.tile.aList?.getVID('textPreview');
+        const textPreviewVID = this.tile.aList?.qGetVID('textPreview');
         if (textPreviewVID && textPreviewVID.Desc === 'false') {
           textPreviewVID.Desc = 'true';
-          this.tile.aList?.setVID(textPreviewVID);
+          this.tile.aList?.qSetVID(textPreviewVID);
           this._isTextPreview = true;
         }
         this._isEditBg = false;
@@ -333,28 +333,28 @@ export class RTile extends LitElement {
   }
 
   private updateTilePosition(tile: RS1.TDE, element: HTMLElement,x:number,y:number) {
-    const translateVID = tile.sList?.getVID('transform');
-    const positionVID = tile.sList?.getVID('position');
+    const translateVID = tile.sList?.qGetVID('transform');
+    const positionVID = tile.sList?.qGetVID('position');
   
     if (translateVID && positionVID) {
       translateVID.Desc = `translate(${x}px, ${y}px)`;
       positionVID.Desc = 'absolute';
   
-      tile.sList?.setVID(translateVID);
-      tile.sList?.setVID(positionVID);
+      tile.sList?.qSetVID(translateVID);
+      tile.sList?.qSetVID(positionVID);
     }
   }
 
   private updateTileSize(tile: RS1.TDE, width: number, height: number) {
-    const widthVID = tile.sList?.getVID('width');
-    const heightVID = tile.sList?.getVID('height');
+    const widthVID = tile.sList?.qGetVID('width');
+    const heightVID = tile.sList?.qGetVID('height');
 
     if (widthVID && heightVID) {
       widthVID.Desc = `${width}px`;
       heightVID.Desc = `${height}px`;
 
-      tile.sList?.setVID(widthVID);
-      tile.sList?.setVID(heightVID);
+      tile.sList?.qSetVID(widthVID);
+      tile.sList?.qSetVID(heightVID);
     }
   }
 
@@ -434,11 +434,11 @@ private setupTileInteractions(tile: RS1.TDE) {
 
   interact(element).unset();
 
-  const isDrag = this.editMode && tile.aList?.descByName('drag') === 'true';
-  const dragAxis = tile.aList?.descByName('dragAxis')
-  const isResize = this.editMode && tile.aList?.descByName('resize') === 'true';
-  const isSwipe = tile.aList.descByName('swipe') === 'true';
-  const isHold = tile.aList.descByName('hold') === 'true';
+  const isDrag = this.editMode && tile.aList?.qDescByName('drag') === 'true';
+  const dragAxis = tile.aList?.qDescByName('dragAxis')
+  const isResize = this.editMode && tile.aList?.qDescByName('resize') === 'true';
+  const isSwipe = tile.aList?.qDescByName('swipe') === 'true';
+  const isHold = tile.aList?.qDescByName('hold') === 'true';
 
   if (isDrag) {
     this.setupDraggable(tile, dragAxis);
@@ -461,7 +461,7 @@ private setupTileInteractions(tile: RS1.TDE) {
 }
 
   private handleClickAction(tile: RS1.TDE) {
-    const action = tile.aList?.descByName('clickAction');
+    const action = tile.aList?.qDescByName('clickAction');
 
     switch (action) {
         case 'Bold':
@@ -477,7 +477,7 @@ private setupTileInteractions(tile: RS1.TDE) {
           break;
 
         case 'Alert':
-          const alertContent = tile.aList?.descByName('alertContent');
+          const alertContent = tile.aList?.qDescByName('alertContent');
           if (alertContent && alertContent !== '') {
             alert(alertContent);
           } 
@@ -487,12 +487,13 @@ private setupTileInteractions(tile: RS1.TDE) {
           break;
 
         case 'Redirect':
-          const redirectLink = tile.aList?.descByName('redirect');
-          window.location.href = redirectLink;
+          const redirectLink = tile.aList?.qDescByName('redirect');
+          if (redirectLink)
+              window.location.href = redirectLink;
           break;
 
         case 'VillaLink':
-          const link = tile.aList?.descByName('link');
+          const link = tile.aList?.qDescByName('link');
           this.dispatchEvent(
             new CustomEvent('tileLink', {
               detail: { name: `${link}` },
@@ -524,9 +525,9 @@ private setupTileInteractions(tile: RS1.TDE) {
   private handleBackgroundImageUpload(event: Event, tile: RS1.TDE) {
     const input = event.target as HTMLInputElement;
     const files = input.files;
-    const bgImageVID = tile.sList?.getVID('background-image');
-    const bgPositionVID = tile.sList?.getVID('background-position');
-    const bgSizeVID = tile.sList?.getVID('background-size');
+    const bgImageVID = tile.sList?.qGetVID('background-image');
+    const bgPositionVID = tile.sList?.qGetVID('background-position');
+    const bgSizeVID = tile.sList?.qGetVID('background-size');
 
     if (files !== null && files.length > 0 && bgImageVID) {
       try {
@@ -540,16 +541,16 @@ private setupTileInteractions(tile: RS1.TDE) {
         reader.onload = (e) => {
           const imageUrl = `url("${e.target?.result}")`;
           bgImageVID.Desc = imageUrl;
-          tile.sList?.setVID(bgImageVID);
+          tile.sList?.qSetVID(bgImageVID);
 
           if (bgPositionVID) {
             bgPositionVID.Desc = 'center center';
-            tile.sList?.setVID(bgPositionVID);
+            tile.sList?.qSetVID(bgPositionVID);
           }
           
           if (bgSizeVID) {
             bgSizeVID.Desc = 'cover';
-            tile.sList?.setVID(bgSizeVID);
+            tile.sList?.qSetVID(bgSizeVID);
           }
           
           this._backgroundImageState = {
@@ -564,10 +565,10 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private handleRemoveBackgroundImage(tile: RS1.TDE) {
-    const bgImageVID = tile.sList?.getVID('background-image');
+    const bgImageVID = tile.sList?.qGetVID('background-image');
     if (bgImageVID) {
       bgImageVID.Desc = 'url("")'; 
-      tile.sList?.setVID(bgImageVID);
+      tile.sList?.qSetVID(bgImageVID);
       this._backgroundImageState = { ...this._backgroundImageState, url: null };
     }
   }
@@ -685,23 +686,23 @@ private setupTileInteractions(tile: RS1.TDE) {
   private updateBackgroundStyles(tile: RS1.TDE) {
     if (!this._backgroundImageState.url) return;
     
-    const bgImageVID = tile.sList?.getVID('background-image');
-    const bgSizeVID = tile.sList?.getVID('background-size');
-    const bgPositionVID = tile.sList?.getVID('background-position');
+    const bgImageVID = tile.sList?.qGetVID('background-image');
+    const bgSizeVID = tile.sList?.qGetVID('background-size');
+    const bgPositionVID = tile.sList?.qGetVID('background-position');
     
     if (bgImageVID) {
       bgImageVID.Desc = this._backgroundImageState.url;
-      tile.sList?.setVID(bgImageVID);
+      tile.sList?.qSetVID(bgImageVID);
     }
     
     if (bgSizeVID) {
       bgSizeVID.Desc =  `${this._backgroundImageState.size !== 100 ? `${this._backgroundImageState.size}%` : 'cover' }`;
-      tile.sList?.setVID(bgSizeVID);
+      tile.sList?.qSetVID(bgSizeVID);
     } 
     
     if (bgPositionVID) {
       bgPositionVID.Desc = `${this._backgroundImageState.posX}% ${this._backgroundImageState.posY}%`;
-      tile.sList?.setVID(bgPositionVID);
+      tile.sList?.qSetVID(bgPositionVID);
     }
     
   }
@@ -758,17 +759,17 @@ private setupTileInteractions(tile: RS1.TDE) {
         <button class="system-button" 
           style="border-radius: 5px; justify-content: center; align-items: center; cursor: pointer; color: #fff; width: 70px; height: 30px; background: #1e1e1e;"
           @click="${() => {
-            const parentInnerVID = tile.aList?.getVID('inner');
-            const textPreviewVID = tile.aList?.getVID('textPreview');
+            const parentInnerVID = tile.aList?.qGetVID('inner');
+            const textPreviewVID = tile.aList?.qGetVID('textPreview');
 
             if (parentInnerVID) {
               parentInnerVID.Desc = this._textEditContent;
-              tile.aList?.setVID(parentInnerVID);
+              tile.aList?.qSetVID(parentInnerVID);
             }
       
             if (textPreviewVID) {
               textPreviewVID.Desc = 'true';
-              tile.aList?.setVID(textPreviewVID);
+              tile.aList?.qSetVID(textPreviewVID);
             }
       
             this._isTextPreview = true;
@@ -787,7 +788,7 @@ private setupTileInteractions(tile: RS1.TDE) {
         @click="${() =>  {
     if (this.editMode && textPreviewVID) { 
             textPreviewVID.Desc = "false";
-        tile.aList?.setVID(textPreviewVID);
+        tile.aList?.qSetVID(textPreviewVID);
       this._isTextPreview = false;
     }}}"
         style="background: transparent; border: none; color: white;">
@@ -807,7 +808,7 @@ private setupTileInteractions(tile: RS1.TDE) {
     isClick?: boolean,
     isDblClick?: boolean
   ): any {
-    const isBgImage = tile.aList?.descByName('BgImage') === 'true';
+    const isBgImage = tile.aList?.qDescByName('BgImage') === 'true';
     const bgControlsHTML = (this.editMode && isBgImage) ? html`
       <div class="background-controls" style="position: absolute; opacity:0; top: 50px; right: 10px; display: flex; flex-direction: column; gap: 5px; z-index: 11;">
         <input type="file" id="bg-file-upload-${tileIndex}" style="display: none;" accept="image/*" @change=${(e: Event) => this.handleBackgroundImageUpload(e, tile)}/>
@@ -899,8 +900,8 @@ private setupTileInteractions(tile: RS1.TDE) {
       @click="${(e: Event) => {
         if (isClick) { this.handleClickAction(tile); }
       }}" 
-      type="${tile.aList?.getVID('type')?.Desc}" 
-      value="${tile.aList?.getVID('value')?.Desc}">
+      type="${tile.aList?.qGetVID('type')?.Desc}" 
+      value="${tile.aList?.qGetVID('value')?.Desc}">
       ${innerText}
     </button>`;
   }
@@ -978,11 +979,11 @@ private setupTileInteractions(tile: RS1.TDE) {
     return html`
     <form style="display: flex; background: transparent;">
       <input 
-        type="${tile.aList?.getVID('input-type')?.Desc}" 
-        placeholder="${tile.aList?.getVID('input-placeholder')?.Desc}" 
-        ${tile.aList?.getVID('input-required')?.Desc === 'true' ? 'required' : '' } 
-        minlength="${tile.aList?.getVID('input-minlength')?.Desc}" 
-        maxlength="${tile.aList?.getVID('input-maxlength')?.Desc}">
+        type="${tile.aList?.qGetVID('input-type')?.Desc}" 
+        placeholder="${tile.aList?.qGetVID('input-placeholder')?.Desc}" 
+        ${tile.aList?.qGetVID('input-required')?.Desc === 'true' ? 'required' : '' } 
+        minlength="${tile.aList?.qGetVID('input-minlength')?.Desc}" 
+        maxlength="${tile.aList?.qGetVID('input-maxlength')?.Desc}">
       </input>
       ${this.renderTDE(submitButtonTDE)}
     </form> `; 
@@ -994,12 +995,12 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private renderVideoPlayerElement(tile: RS1.TDE): any {
-    const videoSrc = tile.aList?.descByName('video-src') || '';
-    const videoType = tile.aList?.descByName('video-type') || 'video/mp4';
-    const videoControls = tile.aList?.descByName('video-controls') === 'true';
-    const videoAutoplay = tile.aList?.descByName('video-autoplay') === 'true';
-    const videoLoop = tile.aList?.descByName('video-loop') === 'true';
-    const videoMuted = tile.aList?.descByName('video-muted') === 'true';
+    const videoSrc = tile.aList?.qDescByName('video-src') || '';
+    const videoType = tile.aList?.qDescByName('video-type') || 'video/mp4';
+    const videoControls = tile.aList?.qDescByName('video-controls') === 'true';
+    const videoAutoplay = tile.aList?.qDescByName('video-autoplay') === 'true';
+    const videoLoop = tile.aList?.qDescByName('video-loop') === 'true';
+    const videoMuted = tile.aList?.qDescByName('video-muted') === 'true';
 
     return html`
       <video-player
@@ -1014,15 +1015,15 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private renderIframeElement(tile: RS1.TDE): any {
-    const iframeSrc = tile.aList?.descByName('iframe-src') || '';
-    const iframeTitle = tile.aList?.descByName('iframe-title') || '';
-    const iframeSandbox = tile.aList?.descByName('iframe-sandbox') || 'allow-same-origin allow-scripts allow-popups allow-forms';
-    const iframeLoading = tile.aList?.descByName('iframe-loading') || 'lazy';
-    const iframeReferrerPolicy = tile.aList?.descByName('iframe-referrerpolicy') || 'no-referrer';
-    const iframeAllow = tile.aList?.descByName('iframe-allow') || '';
-    const iframeWidth = tile.aList?.descByName('iframe-width') || '100%';
-    const iframeHeight = tile.aList?.descByName('iframe-height') || '100%';
-    const iframeScrolling = tile.aList?.descByName('iframe-scrolling') || 'auto';
+    const iframeSrc = tile.aList?.qDescByName('iframe-src') || '';
+    const iframeTitle = tile.aList?.qDescByName('iframe-title') || '';
+    const iframeSandbox = tile.aList?.qDescByName('iframe-sandbox') || 'allow-same-origin allow-scripts allow-popups allow-forms';
+    const iframeLoading = tile.aList?.qDescByName('iframe-loading') || 'lazy';
+    const iframeReferrerPolicy = tile.aList?.qDescByName('iframe-referrerpolicy') || 'no-referrer';
+    const iframeAllow = tile.aList?.qDescByName('iframe-allow') || '';
+    const iframeWidth = tile.aList?.qDescByName('iframe-width') || '100%';
+    const iframeHeight = tile.aList?.qDescByName('iframe-height') || '100%';
+    const iframeScrolling = tile.aList?.qDescByName('iframe-scrolling') || 'auto';
 
     return html`
       <div class="iframe-container" style="width: 100%; height: 100%; position: relative;">
@@ -1051,9 +1052,9 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private renderTimerElement(tile: RS1.TDE): any {
-    const timerDuration = parseInt(tile.aList?.descByName('timer-duration') || '300');
-    const timerMode = tile.aList?.descByName('timer-mode') || 'countdown';
-    const timerSound = tile.aList?.descByName('timer-sound') === 'true';
+    const timerDuration = parseInt(tile.aList?.qDescByName('timer-duration') || '300');
+    const timerMode = tile.aList?.qDescByName('timer-mode') || 'countdown';
+    const timerSound = tile.aList?.qDescByName('timer-sound') === 'true';
     const tileIndex = this.TList.tiles.indexOf(tile);
     
     if (!(window as any).rspaceTimers) {
@@ -1140,15 +1141,15 @@ private setupTileInteractions(tile: RS1.TDE) {
 
   renderTDE(tile: RS1.TDE): any {
     const tileType = tile.tileID?.tname;
-    const innerContent = tile.aList?.descByName('inner') || '';
+    const innerContent = tile.aList?.qDescByName('inner') || '';
     const tileIndex = this.TList.tiles.indexOf(tile);
-    const styleStr = tile.sList?.toVIDList(";") ?? "";
-    const isClick = tile.aList?.descByName('click') === 'true';
-    const isDblClick = tile.aList?.descByName('dblclick') === 'true';
+    const styleStr = tile.sList?.qToVIDList(";") ?? "";
+    const isClick = tile.aList?.qDescByName('click') === 'true';
+    const isDblClick = tile.aList?.qDescByName('dblclick') === 'true';
 
-    const currentBgUrl = tile.sList?.descByName('background-image');
-    const currentBgPos = tile.sList?.descByName('background-position'); 
-    const currentBgSize = tile.sList?.descByName('background-size'); 
+    const currentBgUrl = tile.sList?.qDescByName('background-image');
+    const currentBgPos = tile.sList?.qDescByName('background-position'); 
+    const currentBgSize = tile.sList?.qDescByName('background-size'); 
 
     if (currentBgUrl && currentBgUrl !== 'url("")') {
       let posX = 50; let posY = 50; let size = 100;
@@ -1162,15 +1163,16 @@ private setupTileInteractions(tile: RS1.TDE) {
       }
       if (currentBgSize && currentBgSize.endsWith('%')) size = parseFloat(currentBgSize);
       else if (currentBgSize === 'cover') size = 100;
-      this._backgroundImageState = { url: currentBgUrl, position: currentBgPos, size: size, posX: posX, posY: posY };
+      this._backgroundImageState = { url: currentBgUrl, position: currentBgPos ? currentBgPos : ''  /* this is NEW, to shut up error */,
+              size: size, posX: posX, posY: posY };
     } 
     else {
       this._backgroundImageState = { url: null, position: 'center center', size: 100, posX: 50, posY: 50 }; 
     }
 
-    const isInnerEdit = tile.aList?.descByName('innerEdit') === 'true';
-    const istextPreview = tile.aList?.descByName('textPreview') === 'true';
-    const textPreviewVID = tile.aList?.getVID('textPreview');
+    const isInnerEdit = tile.aList?.qDescByName('innerEdit') === 'true';
+    const istextPreview = tile.aList?.qDescByName('textPreview') === 'true';
+    const textPreviewVID = tile.aList?.qGetVID('textPreview');
     const innerContentHTML = isInnerEdit ? this.renderInnerContentEditable(tile, innerContent, istextPreview, textPreviewVID as any) : unsafeHTML(innerContent);
 
     switch (tileType) {
@@ -1291,17 +1293,17 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   handleDoubleClick(tile: RS1.TDE) {
-    console.log('Double click detected on tile:', tile.aList?.descByName('name'));
+    console.log('Double click detected on tile:', tile.aList?.qDescByName('name'));
   }
   
   handleHover(tile: RS1.TDE, isEnter: boolean) {
     const element = this.tileElement;
-    // console.log('Hover detected on tile:', tile.aList?.descByName('name'));
+    // console.log('Hover detected on tile:', tile.aList?.qDescByName('name'));
     
     if (!element || !this.editMode) return;
     
     if (isEnter) {
-      const hover = tile.aList?.descByName('hover') === 'true';
+      const hover = tile.aList?.qDescByName('hover') === 'true';
 
       if (hover) {
         element.style.transition = 'filter 0.3s ease';
@@ -1317,14 +1319,14 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
   
   handleLongPress(tile: RS1.TDE) {
-    console.log('Long press detected on tile:', tile.aList?.descByName('name'));
+    console.log('Long press detected on tile:', tile.aList?.qDescByName('name'));
   }
 
   private setupMessaging() {
     const tileId = this.getTileId();
     this._unsubscribeMessageStore = tileComm.subscribe(tileId, (message: TileMessage | null) => {
       if (message) {
-        console.log(`Tile ${tileId} received data from ${message.from}:`, message.nug.l.to$);
+        console.log(`Tile ${tileId} received data from ${message.from}:`, message.nug.l?.to$);
         this.handleIncomingMessage(message);
       }
     });
@@ -1338,7 +1340,7 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private getTileId(): string {
-    const tileName = this.tile.aList?.getVID('name')?.Desc;
+    const tileName = this.tile.aList?.qGetVID('name')?.Desc;
     if (tileName) return tileName;
     
     const tileIndex = this.TList.tiles.indexOf(this.tile);
@@ -1346,20 +1348,23 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private handleIncomingMessage(message: TileMessage) {
-    const messageType = message.nug.l.descByName('messageType');
+    if (!message.nug.l)
+        return;
+
+    const messageType = message.nug.l.qDescByName('messageType');
     
     if (messageType === 'textMessage') {
-      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.descByName('textContent')}`;
+      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.qDescByName('textContent')}`;
       if (textContent) {
         console.log(`RTile ${this.getTileId()}: Updating text content with: ${textContent}`);
         this.updateTextContent(textContent);
       }
     } else if (messageType === 'media') {
-      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.descByName('mediaType')}`;
+      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.qDescByName('mediaType')}`;
       this.updateTextContent(textContent);
       this.handleMediaMessage(message);
     } else if (messageType === 'file') {
-      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.descByName('fileName')}`;
+      const textContent = `received ${messageType} from ${message.from}: ${message.nug.l.qDescByName('fileName')}`;
       this.updateTextContent(textContent);
       this.handleFileMessage(message);
     } else {
@@ -1368,7 +1373,7 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private handleMediaMessage(message: TileMessage) {
-    const mediaType = message.nug.l.descByName('mediaType');
+    const mediaType = message.nug.l?.qDescByName('mediaType');
     const mediaField = message.nug.getField('mediaData');
     
     if (mediaField && mediaField.AB) {
@@ -1377,8 +1382,11 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private handleFileMessage(message: TileMessage) {
-    const fileName = message.nug.l.descByName('fileName');
-    const fileSize = message.nug.l.descByName('fileSize');
+    if (!message.nug.l)
+        return;
+
+    const fileName = message.nug.l.qDescByName('fileName');
+    const fileSize = message.nug.l.qDescByName('fileSize');
     const fileField = message.nug.getField('fileContent');
     
     if (fileField && fileField.AB) {
@@ -1388,13 +1396,15 @@ private setupTileInteractions(tile: RS1.TDE) {
 
   private sendMediaMessage(targetTileId: string, mediaType: string, mediaBuffer: ArrayBuffer, metadata: any = {}) {
     const nug = new RS1.Nug('');
+    if (!nug.l)
+      return;
     
-    nug.l.set('messageType', 'media');
-    nug.l.set('mediaType', mediaType);
-    nug.l.set('senderTile', this.getTileId());
+    nug.l.qSet('messageType', 'media');
+    nug.l.qSet('mediaType', mediaType);
+    nug.l.qSet('senderTile', this.getTileId());
     
     Object.entries(metadata).forEach(([key, value]) => {
-      nug.l.set(key, String(value));
+      nug.l?.qSet(key, String(value));
     });
     
     const mediaField = new RS1.PackField('mediaData', mediaBuffer);
@@ -1406,11 +1416,14 @@ private setupTileInteractions(tile: RS1.TDE) {
 
   private sendFileMessage(targetTileId: string, fileName: string, fileBuffer: ArrayBuffer) {
     const nug = new RS1.Nug('');
+
+    if (!nug.l)
+      return;
     
-    nug.l.set('messageType', 'file');
-    nug.l.set('fileName', fileName);
-    nug.l.set('fileSize', fileBuffer.byteLength.toString());
-    nug.l.set('senderTile', this.getTileId());
+    nug.l.qSet('messageType', 'file');
+    nug.l.qSet('fileName', fileName);
+    nug.l.qSet('fileSize', fileBuffer.byteLength.toString());
+    nug.l.qSet('senderTile', this.getTileId());
     
     const fileField = new RS1.PackField('fileContent', fileBuffer);
     nug.addField(fileField);
@@ -1424,7 +1437,7 @@ private setupTileInteractions(tile: RS1.TDE) {
     const file = input.files?.[0];
     
     if (file) {
-      const targetTileId = this.tile.aList?.descByName('targetTile');
+      const targetTileId = this.tile.aList?.qDescByName ('targetTile');
       if (!targetTileId) {
         alert('Target tile not specified. Set the "targetTile" attribute on this tile.');
         return;
@@ -1467,17 +1480,17 @@ private setupTileInteractions(tile: RS1.TDE) {
   }
 
   private updateTextContent(content: string) {
-    const innerVID = this.tile.aList?.getVID('inner');
+    const innerVID = this.tile.aList?.qGetVID('inner');
     if (innerVID) {
       innerVID.Desc = content;
-      this.tile.aList?.setVID(innerVID);
+      this.tile.aList?.qSetVID(innerVID);
       this.requestUpdate();
     }
   }
 
   private sendDataToTile(targetTileId: string, nug: RS1.Nug) {
     const senderId = this.getTileId();
-    console.log(`Tile ${senderId}: Sending nug to ${targetTileId}:`, nug.l.to$);
+    console.log(`Tile ${senderId}: Sending nug to ${targetTileId}:`, nug.l?.to$);
     tileComm.sendNug(senderId, targetTileId, nug);
   }
 
@@ -1488,16 +1501,16 @@ private setupTileInteractions(tile: RS1.TDE) {
       return;
     }
 
-    const targetTileId = this.tile.aList?.descByName('targetTile');
+    const targetTileId = this.tile.aList?.qDescByName('targetTile');
     if (!targetTileId) {
       alert('Target tile not specified. Set the "targetTile" attribute on this tile.');
       return;
     }
     
     const nug = new RS1.Nug('');
-    nug.l.set('textContent', currentText);
-    nug.l.set('senderTile', this.getTileId());
-    nug.l.set('messageType', 'textMessage');
+    nug.l?.qSet('textContent', currentText);
+    nug.l?.qSet('senderTile', this.getTileId());
+    nug.l?.qSet('messageType', 'textMessage');
     
     console.log(`Tile ${this.getTileId()}: Sending text message to ${targetTileId}: "${currentText}"`);
     this.sendDataToTile(targetTileId, nug);

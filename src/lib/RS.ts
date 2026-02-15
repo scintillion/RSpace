@@ -17,58 +17,6 @@ export namespace RS1 {
 	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+', tBBI='%',
 		tDisk='*',tArray='[',tArrayStr=':[]:', tStrs='$[', tNums='#[', tRSDs='+[', RSDArrayCh='!';
 
-	export class RP {
-		type = '';
-		cl = '';
-		RSDName = '';
-		KidName = '';
-		dims = 0;
-		arrType = '';
-		bbiBytes = 0;
-		D : RPArgs = 0;
-
-		clear () {
-			this.type = '';			
-			this.cl = '';
-			this.RSDName = '';	
-			this.KidName = '';
-			this.dims = 0;			
-			this.arrType = '';	
-			this.bbiBytes = 0;
-			this.D = 0;
-		}
-
-		fromData (D : RPArgs, RSDName='', KidName='') {
-			this.clear ();
-			this.D = D;
-
-			let t = typeof D;
-			switch (t) {
-				case 'string' :	this.type = tStr;	break;
-				case 'number' :	this.type = tNum;	break;
-
-				default :
-					this.KidName = KidName; this.RSDName = RSDName;
-					if (Array.isArray (D)) {
-						if (D.length) {
-							let elType = typeof D[0];
-							switch (elType) {
-								case 'string' : this.arrType = tStr; this.type = tStrs; break;
-								case 'number' : this.arrType = tNum; this.type = tNums; break;
-								default : this.arrType = tRSD; this.type = tRSDs; break;
-							}
-						}
-						else { this.arrType = tRSD; this.type = tRSDs; }
-					}
-					else { this.type = tRSD; this.cl = (D as RSD).cl; 	}
-					break;
-			}
-		}
-
-		constructor (D : RPArgs, RSDName='', KidName='') {
-			this.fromData (D, RSDName, KidName);
-		}
-	}
 
 	export enum CLType {
 		None,
@@ -3057,6 +3005,9 @@ export namespace RS1 {
 
 					if (isArray)
 						this.arr = true;
+					else if (data instanceof Uint8Array) {
+						return this.type = tBBI;
+					}
 					else {
 						this.RSDName = (rsd = data as RSD).cl;
 						return this.type = tRSD;
@@ -3065,11 +3016,8 @@ export namespace RS1 {
 					this.arr = true;
 					
 					if (!conName) {
-						if (data instanceof Uint8Array) {
+						if (data instanceof Uint8Array)
 							conName = 'UBuf';
-
-
-						}
 						else {
 							let Q = data as Array<any>;
 							for (const q of Q)
