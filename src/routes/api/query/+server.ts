@@ -49,9 +49,12 @@ class DBKit {
 		let Raw = rsd.qToRaw;
 		let table = 'S', tile = 0, ID = 0;		// default Table Name (if not specified)
 		let qType = '!BadQType', Type = '', SQLCmd, Wheres:string[]=[];
-		let qStr = '', vStr = '', Name, Values : any[] =[];
+		let qStr = '', vStr = '', Name, Values : any[] =[], Names : string[] = [];
 
 		for (const r of Raw) {
+			if (!r)
+				continue;
+			
 			let vName, first, vDesc, str, colon, special = (r[0] === ':');
 			if (special) {
 				colon = r.indexOf (':',1);
@@ -106,13 +109,17 @@ class DBKit {
 				}
 				else if (first === ':') {
 					let name = vName.slice (1);
+					if (!name)
+						console.log ('\n\n\n\n\n\n\n   NULL Name, r =' + r);
 
 					if (qType === 'I') {
 						qStr += name + ',';
+						Names.push (name);
 						vStr += '?,';
 					}
 					else {
 						qStr += name + '=?,';
+						Names.push (name + '=?');
 					}
 					Values.push (vDesc);
 					console.log ('  adding :' + name + ', Value =' + vDesc);
@@ -137,8 +144,8 @@ class DBKit {
 
 		switch (qType) {
 			case 'U' :
-				qStr += 'qstr=?,BLOB=?,';
-				Values.push (rsd.qGetQStr, rsd.BLOB = rsd.toBBI);
+				qStr += 'BLOB=?,';
+				Values.push (rsd.BLOB = rsd.toBBI);
 				break;
 			
 			case 'I' : 

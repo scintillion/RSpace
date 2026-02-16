@@ -388,6 +388,11 @@ export namespace RS1 {
 		get Error () { return this.qGet (':Error'); }
 		set Error (N:string) { this.qSet (':Error',N); }
 
+		get DBqList () {
+			return '|Name:' + this.Name + '|Desc:' + this.Desc + '|Type:' + this.Type + '|RSD:' + this.cl +
+				'|Count:' + this.qCount.toString () + '|Tile:' + zGet$ (this.qstr, 'Tile') + '|';
+		}
+
 		get clear () {
 			this.qstr = '|';
 
@@ -2412,6 +2417,7 @@ export namespace RS1 {
 	}
 
 	export var myServer='';
+	export var mySerial=0;
 	export var mySession=0;		// this is the LAST session # on the server
 	export var myTile='S';
 	export var myVilla='S';
@@ -7588,6 +7594,17 @@ export namespace RS1 {
 	}
 
 
+	export function newDBRSD (rsd : RSD, CmdList = '') {
+		let newRSD = new RSD (CmdList + '|:#:' + (++mySerial).toString () + ':' + mySession.toString ()+ rsd.DBqList);
+		
+		console.log ('newRSD.qstr =' + newRSD.qGetQStr);
+
+		newRSD.BLOB = rsd.toBBI;
+		newRSD.mark;
+		newRSD.toBBI;
+		return newRSD;
+	}
+
 	export function DBSelect (IDOrStr :number|string = '|Type:List|') {
 		let Q = '|?Q:S' + (typeof IDOrStr === 'string') ? IDOrStr as string : ('|:ID:' + IDOrStr.toString () + '|'),
 			rsd = new RSD (Q);
@@ -7620,7 +7637,7 @@ export namespace RS1 {
 	export function DBInsert (rsd:RSD) {
 		let ID = rsd.qGet (':ID');
 		if (!ID  ||  ID == '0') {
-			let OutRSD = new RSD ('|?Q:I|:ID:' + ID + '|');
+			let OutRSD = newDBRSD (rsd, '|?Q:I|:ID:' );
 			return ReqRSD (OutRSD);
 		}
 	}

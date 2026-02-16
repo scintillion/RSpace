@@ -1,7 +1,5 @@
 import { RS1 } from '$lib/RS';
 
-var Serial = 0;
-
 async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
     
     console.log ('ABRequest sent by Client, bytes = ' + AB.byteLength.toString () +
@@ -29,9 +27,7 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     let rsdBBI = rsd.toBBI, rsdstr = RS1.bb2str (rsdBBI);
 
-
-    console.log ('Incoming RSDRequest ='+rsd.to$);
-
+/*
     let rQ = rsd.qGetQStr, name = rsd.Name, desc = rsd.Desc, rsdName = rsd.cl, tile=RS1.zGet$ (rQ, 'Tile'), Type = rsd.Type;
     if (rsd.isList) {
         name = rsd.listName;
@@ -43,14 +39,18 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
         desc = RS1.zGet$ (rQ, 'Desc');
     }    
 
+    console.log ('Incoming RSDRequest ='+rsd.to$ + ' name=' + name + ' desc=' + desc + ' type=' + Type);
+
+
     let outRSD = RS1.newRSD (rsd.qGetQStr + ':#:' + (++Serial).toString () + ':' + RS1.mySession.toString () + 
-            '|:Name:' + name + '|:Desc:' + desc + '|:RSD:' + rsdName + '|:Tile:' + tile + '|');
+            '|:Name:' + name + '|:Desc:' + desc + '|:RSD:' + rsdName + '|:Tile:' + tile + '|:Type:' + Type + '|');
 
     outRSD.BLOB = rsdBBI;
-    
-    let AB = RS1.bb2ab (outRSD.toBBI);
-    console.log ('Sending Client Request #' + Serial.toString () + '=' + RS1.bb2str (rsd.toBBI) + ' BYTES=' + AB.byteLength.toString ());
-    let testCmd = new RS1.RSDCmd (outRSD);
+ */
+
+    let AB = RS1.bb2ab (rsd.toBBI);
+    console.log ('Sending Client Request #' + RS1.mySerial.toString () + '=' + RS1.bb2str (rsd.toBBI) + ' BYTES=' + AB.byteLength.toString ());
+    let testCmd = new RS1.RSDCmd (rsd);
 
 
     if (AB) {
@@ -228,7 +228,7 @@ export async function InitClient () {
     let  TList = new RS1.TileList(RList); // remove temporarily
     console.log ('TList.ToString = \n' + TList.toStr);
 
-    // RS1.rLoL.SaveLists ();
+    RS1.rLoL.SaveLists ();
     let SelectRSD = RS1.DBSelect ('|rsd:RSD|');
     // console.log ('SelectRSD Bytes =' + SelectRSD.BLOB.byteLength.toString ());
 
