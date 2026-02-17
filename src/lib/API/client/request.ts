@@ -228,8 +228,8 @@ export async function InitClient () {
     let  TList = new RS1.TileList(RList); // remove temporarily
     console.log ('TList.ToString = \n' + TList.toStr);
 
-    RS1.rLoL.SaveLists ();
-    let SelectRSD = RS1.DBSelect ('|_Name:Cy|');
+    // RS1.rLoL.SaveLists ();
+    let SelectRSD = RS1.DBSelect ('|_Name:FM|');
 
     // RS1.DBDelete ([140,150,160]);
     RS1.DBDelete (162);

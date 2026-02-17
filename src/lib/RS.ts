@@ -1826,18 +1826,36 @@ export namespace RS1 {
 			let Buf : BBI;
 			this.clear;
 			
-			// console.log ('ObjectIn:Adding entries!');
+			console.log ('ObjectIn:Adding entries!');
 
-			let entries = Object.entries (O), Strs = [], Type, raw, count=0;
+			let entries = Object.entries (O), Strs = [], raw, count=0;
 
 			for (let entry of entries) {
-				Type = typeof (entry[1]);
-				if (Type !== 'object')
-					Strs.push (entry[0] + ':' + entry[1].toString ());
-				else Buf = this.BLOB = entry[1];
+				let value = entry[1], Type = typeof (value);
+				let proc = '  processing ' + entry[0] + '=' + Type + ' con=';
+				if (value) {
+					if (value.constructor)
+						proc = value.constructor.name;
+					else proc += '\n\n\n\nvalue.constructor = ' + typeof (value.constructor);
+				}
+				else proc += '\n\n\n\nvalue = ' + typeof (value);
+
+				switch (Type) {
+					case 'string' : case 'number' : Strs.push (entry[0] + ':' + entry[1]); break;
+					case 'object' :
+						if (Array.isArray (value)) {
+							console.log ('Array (value).length =' + value.length);
+						}
+						else if (value instanceof Uint8Array) {
+							Buf = this.BLOB = value;
+							console.log ('Reading ' + Buf.byteLength+ ' bytes of ' + entry[0] + ' = ' + bb2str (Buf));
+						}
+						break;
+				}
 				// console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
 				++count;
 			}
+			this.mark;
 
 			this.qFromRaw (Strs);
 			if (Buf)
@@ -7804,8 +7822,9 @@ export namespace RS1 {
 
 //		console.log ('table=' + table + ' ID=' + ID.toString () + ' tile=' + tile.toString () +
 //					' qType=' + qType + '  qStr=' + qStr + ' vStr=' + vStr);
-		for (var w of Wheres) 
-			console.log ('  where= ' + (w = '(' + w + ')') );
+//		for (var w of Wheres) 
+//			console.log ('  where= ' + (w = '(' + w + ')') );
+		console.log ('Wheres =' + Wheres.join ('&'));
 
 
 		switch (qType) {
@@ -7813,7 +7832,7 @@ export namespace RS1 {
 				qStr = 'INSERT INTO ' + table + ' (' + qStr + 
 						') VALUES (' + vStr + ')';
 
-				console.log ('\n\n\n\nqstr =' + qStr + ', Values=' + Values);
+				//	console.log ('\n\n\n\nqstr =' + qStr + ', Values=' + Values);
 				break;
 
 			case	'U' :
