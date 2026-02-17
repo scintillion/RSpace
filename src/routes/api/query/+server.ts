@@ -133,13 +133,13 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 				break;
 
 			case 'Q' :
-				console.log ('Calling newBuildQ'); 
+				// console.log ('Calling newBuildQ'); 
 				let Params = RS1.BuildQ (InRSD);
-				console.log ('Calling newExecQ');
+				// console.log ('Calling newExecQ');
 				let outRSD = RSS.DBK.newExecQ (InRSD, Params);
 				let bbi = outRSD.toBBI;
 				outRSD.BLOB = bbi;
-				console.log ('\n\n\n\n\n\n\n\n\nOutRSD.BLOB = ' + outRSD.BLOB?.byteLength.toString ());
+				// console.log ('\n\n\n\n\n\n\n\n\nOutRSD.BLOB = ' + outRSD.BLOB?.byteLength.toString ());
 				return outRSD;
 		}
 
@@ -188,19 +188,19 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	console.log ('\n\n\nReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
 	let str = RS1.ab2str (AB);
-	console.log ('AB = ' + str);
+//	console.log ('AB = ' + str);
 	let Buf = RS1.newBuf (AB);
 
 	let rsd = RS1.newRSD (Buf);
 	// rsd.constructRSD (RS1.newBuf (AB));
 
-	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.expand)
+//	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.expand)
 	let ResultRSD = await RS1.ReqRSD (rsd);
 
-	console.log ('Returned from ReqRSD, ResultRSD =' + ResultRSD.expand);
+//	console.log ('Returned from ReqRSD, ResultRSD =' + ResultRSD.expand);
 
 	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);
-	console.log ('  leaving ReqAB, returning ResultAB Bytes=' + ResultAB.byteLength.toString ());
+	console.log ('  leaving ReqAB, returning ResultAB Bytes=' + ResultAB.byteLength);
 
 	return ResultAB;
 }
@@ -210,7 +210,7 @@ export const POST = (async ({ request, url }) => {
 	const ClientAB = await request.arrayBuffer();
 
 	console.log ('ClientAB received in POST/server.ts, Bytes = ' + 
-		ClientAB.byteLength.toString () + ' str=' + RS1.ab2str (ClientAB));
+		ClientAB.byteLength + ' str=' + RS1.ab2str (ClientAB));
 
 	let ServerAB = await RS1.ReqAB (ClientAB);
 
