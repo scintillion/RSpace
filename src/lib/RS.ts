@@ -77,6 +77,7 @@ export namespace RS1 {
 		RSDName='';
 		FieldRSD='';
 		DataRSD:RSD|undefined;
+		offset = 0;
 
 		fieldsToPB (Fields : RSF[]) {
 			let RSDName = this.RSDName;
@@ -132,13 +133,12 @@ export namespace RS1 {
 			this.bbi = buf;
 		}
 		
-		bufToPB (Buf : UBuf) {
-			let RSDName = this.RSDName, FieldRSD = this.FieldRSD, end = Buf.indexOf (StrEndBlkCode);
+		bufToPB (Buf : UBuf, start = 0) {
+			let RSDName = this.RSDName, FieldRSD = this.FieldRSD, end = Buf.indexOf (StrEndBlkCode,start);
 			if (end < 0)
 				return [];
 	
-			let offset = end + 1, str = bb2str (Buf.slice (0,end));
-			let prefix = str;
+			let offset = end + 1, prefix = bb2str (Buf.slice (start,end));
 
 			let prefixes = prefix.split (',');
 
@@ -186,13 +186,13 @@ export namespace RS1 {
 			this.prefix = prefix;
 		}
 
-		constructor (In : UBuf | RSF[], RSDName='', FieldRSD='') {
+		constructor (In : UBuf | RSF[], RSDName='', FieldRSD='', start = 0) {
 			this.RSDName = RSDName;
 			this.FieldRSD = FieldRSD;
 
 			if (Array.isArray (In))
 				this.fieldsToPB (In as RSF[]);
-			else this.bufToPB (In as UBuf)
+			else this.bufToPB (In as UBuf, start)
 		}
 	}
 
@@ -509,7 +509,7 @@ export namespace RS1 {
 			if (this.Group)
 				lines += ' G=' + this.Group;
 
-			lines += '] CS=' + checkSum8 (this.qstr);
+			lines += '] CS=' + checkSumStr (this.qstr);
 			if (this.kidCount (true))
 				lines += '  Kids =' + this.kidCount (true).toString ();
 			return lines;
@@ -7669,7 +7669,7 @@ export namespace RS1 {
 
 
 
-	export function checkSum8(input: string): string {
+	export function checkSumStr (input: string): string {
 		let hash = 0 >>> 0; // force unsigned 32-bit
 
 		for (let i = 0; i < input.length; i++) {
@@ -7686,6 +7686,14 @@ export namespace RS1 {
 
 		// convert to 8-char hex
 		return hash.toString(16).toUpperCase().padStart(8, "0");
+	}
+
+	export function checksumBuf (data: UBuf): string {
+  		let sum = 0 >>> 0;  // ensure unsigned 32-bit
+  		for (let i = 0; i < data.length; i++)
+    		sum = (sum + data[i]) >>> 0;  // keep it in 0..2^32-1
+
+		return sum.toString (16);
 	}
 
 	export function BuildQ (rsd : RS1.RSD) : any[] {
@@ -7850,7 +7858,7 @@ export namespace RS1 {
 				break;
 
 			case	'S'	:
-				qStr = 'SELECT * FROM ' + table;
+				qStr = 'SELECT blob FROM ' + table;
 				if (Wheres.length)
 					qStr += ' WHERE ' + Wheres.join (' AND ') + ';';
 				else qStr += ';';
@@ -7942,5 +7950,221 @@ export namespace RS1 {
 			return ReqRSD (OutRSD);
 		}
 	}
+
+	export function RSDsToBuf (RSDs:RSD[], forcefresh = false) {
+		let len = RSDs.length, BBIs = Array<UBuf> (RSDs.length), totalBytes = 0, count = 0, bbi;
+
+		for (const rsd of RSDs) {
+			bbi = BBIs[count++] = rsd.toBBI as UBuf;
+			totalBytes += bbi.byteLength;
+		}
+
+		let offset = 0, result = newBuf (totalBytes), nBytes, i = 0;
+		for (const buf of BBIs) {
+			nBytes = BBIs[i].byteLength;
+			result.set (BBIs[i++], offset);
+			offset += nBytes;
+		}
+
+		if (offset !== totalBytes)
+			throw 'offset/totalBytes mismatch!';
+
+		return result;
+	}
+
+
+/*
+		K?	:	RSK;
+		Q?	:	qList;
+		R?	:	rList;	
+
+		N?	:	number[];
+		P?	:	RSPack;
+		S?	:	string[];
+		T?	:	string;
+		X?	:	RSD;
+		Data? : any;
+		BLOB? :	UBuf;
+*/
+
+	export function FieldsToRSD (Fields : RSF[], rsd : RSD, RSDName='', KidName='') {
+		let k = rsd.K;
+		if (k)
+			k.clear;
+
+		for (const field of Fields) {
+			let name = field.Name;
+
+			switch (name) {
+				case '.$' : rsd.from$ (field.Data as string); break;
+				case '.x' : rsd.X = field.Data as RSD; break;
+				case '.p' : rsd.P = field.Data as RSPack; break;
+				case '.b' : rsd.BLOB = field.Data as UBuf; break;
+				case '.n' : rsd.N = field.Data as number[]; break;
+				case '.d' : rsd.Data = field.Data; break;
+				default : if (k  &&  name  &&  name[0] != '.')
+					k.add (field.Data as RSD,false);
+			}
+		}
+
+		rsd.mark;
+	}
+
+	export function RSDToFields (rsd : RSD, RSDName = '', KidName ='') {
+		let Str, bbi;
+		
+		Str = rsd.to$;
+		
+		let k = rsd.K, x = rsd.X, p = rsd.P;
+
+		let cName = rsd.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
+		if (!RSDName)
+			RSDName = cName;
+		else if (cName === RSDName)
+			RSDName = '';
+
+		if (Str) {
+			field = new RSF ();
+
+			field.setData (Str);
+			field.setName ('.$');
+			Fields.push (field);
+
+			let bbtest = str2bbi (Str);
+			if (bbtest.byteLength !== Str.length)
+				throw 'Mismatched length!!';
+		}
+
+		if (x) {
+			field = new RSF ();
+
+			field.setData (x);
+			field.setName ('.x');
+			Fields.push (field);
+		}
+
+		if (p) {
+			field = new RSF ();
+
+			field.setData (p,'RSPack');
+			field.setName ('.p');
+			Fields.push (field);
+		}
+
+		if (rsd.N) {	// number array!
+				field = new RSF ();
+				field.setData (rsd.N)
+				Fields.push (field);
+		}
+
+		if (rsd.BLOB) {
+				field = new RSF ();
+				field.setName ('.b');
+				field.setData (rsd.BLOB,'Uint8Array');
+				Fields.push (field);
+		}
+
+		if (k  &&  !(rsd instanceof xList)) {	// xList directly puts includes kids in to$
+			let Kids = k._kids;
+			for (const Kid of Kids) {
+				if (Kid) {
+					if (fldPack)
+						// need to duplicate the field, not copy it by reference
+						Fields.push ((Kid as unknown) as RSF);
+					else {
+						if (!KidName)
+							KidName = Kid.cl;
+
+						field = new RSF ();
+						field.setData (Kid, KidName);
+						field.setName (Kid.Name);
+						Fields.push (field);
+					}
+				}
+			}
+		}
+
+		return Fields;
+	}
+
+	export function RSDToPB (rsd : RSD, RSDName = '', KidName ='') {
+		let Str, bbi;
+		
+		Str = rsd.to$;
+		
+		let k = rsd.K, x = rsd.X, p = rsd.P;
+
+		let cName = rsd.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
+		if (!RSDName)
+			RSDName = cName;
+		else if (cName === RSDName)
+			RSDName = '';
+
+		if (Str) {
+			field = new RSF ();
+
+			field.setData (Str);
+			field.setName ('.$');
+			Fields.push (field);
+
+			let bbtest = str2bbi (Str);
+			if (bbtest.byteLength !== Str.length)
+				throw 'Mismatched length!!';
+		}
+
+		if (x) {
+			field = new RSF ();
+
+			field.setData (x);
+			field.setName ('.x');
+			Fields.push (field);
+		}
+
+		if (p) {
+			field = new RSF ();
+
+			field.setData (p,'RSPack');
+			field.setName ('.p');
+			Fields.push (field);
+		}
+
+		if (rsd.N) {	// number array!
+				field = new RSF ();
+				field.setData (rsd.N)
+				Fields.push (field);
+		}
+
+		if (rsd.BLOB) {
+				field = new RSF ();
+				field.setName ('.b');
+				field.setData (rsd.BLOB,'Uint8Array');
+				Fields.push (field);
+		}
+
+		if (k  &&  !(rsd instanceof xList)) {	// xList directly puts includes kids in to$
+			let Kids = k._kids;
+			for (const Kid of Kids) {
+				if (Kid) {
+					if (fldPack)
+						// need to duplicate the field, not copy it by reference
+						Fields.push ((Kid as unknown) as RSF);
+					else {
+						if (!KidName)
+							KidName = Kid.cl;
+
+						field = new RSF ();
+						field.setData (Kid, KidName);
+						field.setName (Kid.Name);
+						Fields.push (field);
+					}
+				}
+			}
+		}
+
+		let newPB = new PB (Fields, RSDName, KidName);
+		rsd._bbi = newPB.bbi;
+		return newPB;
+	}
+
 } // namespace RS1
 

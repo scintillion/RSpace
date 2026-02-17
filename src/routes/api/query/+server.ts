@@ -87,7 +87,7 @@ class DBKit {
 			}
 			reply.BLOB = newBuf;
 
-			console.log ('RSD.newBuf (BLOB) nBytes =', reply.BLOB.byteLength.toString ());
+			console.log ('RSD.newBuf (BLOB) nBytes =', reply.BLOB.byteLength + ' checksum=' + RS1.checksumBuf (newBuf));
 		}
 		else reply.BLOB = undefined;
 

@@ -55,7 +55,7 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
 
     if (AB) {
         let recvAB = await RS1.ReqAB (AB);
-        console.log ('client receives recvAB from server, bytes=' + recvAB.byteLength.toString ());
+        console.log ('client receives recvAB from server, bytes=' + recvAB.byteLength);
         let str = RS1.ab2str (recvAB);
         console.log ('recvAB =\n' + str);
 
@@ -69,6 +69,9 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
             RS1.myServer = cmds[2];
             console.log ('Server connected, Session ' + RS1.xmySession + ' Server=' + RS1.myServer);
         }
+
+        if (newRSD.BLOB)
+            console.log ('  client receives RSD, BLOB bytes=' + newRSD.BLOB.byteLength + ' checksum=' + RS1.checksumBuf (newRSD.BLOB));
         return newRSD;
     }
 
