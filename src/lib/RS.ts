@@ -98,7 +98,7 @@ export namespace RS1 {
 		
 			let prefix = prefixes.join (',');
 
-			console.log (prefixes.length.toString () + ' fieldsToPB='+prefix);
+			// console.log (prefixes.length.toString () + ' fieldsToPB='+prefix);
 
 			let prefixBuf = str2bbi (prefix), buf = RS1.newBuf (nBytes + prefixBuf.byteLength),
 					offset = prefixBuf.byteLength;
@@ -110,9 +110,9 @@ export namespace RS1 {
 			let i = 0;
 			for (const F of Fields) {
 				if (F) {
-					if ((F.type === tRSD)  &&  (F.Data))
-						console.log ('  Field ' + (F.Data as RSD).Name + ' Type= ' + F.type + ' Prefix=' + F.prefix);
-					else console.log ('  Field ' + F.Name + ' Type= ' + F.type + ' Prefix=' + F.prefix);
+					//	if ((F.type === tRSD)  &&  (F.Data))
+					//		console.log ('  Field ' + (F.Data as RSD).Name + ' Type= ' + F.type + ' Prefix=' + F.prefix);
+					//	else console.log ('  Field ' + F.Name + ' Type= ' + F.type + ' Prefix=' + F.prefix);
 
 
 					let bbi = F._bbi; 
@@ -142,7 +142,7 @@ export namespace RS1 {
 
 			let prefixes = prefix.split (',');
 
-			console.log (prefixes.length.toString () + ' bufToPB='+prefix + '\n' + prefixes.join('\n')+'\n');
+			// console.log (prefixes.length.toString () + ' bufToPB='+prefix + '\n' + prefixes.join('\n')+'\n');
 
 			let first = prefixes[0];
 			prefixes = prefixes.slice (1,-1);
@@ -157,7 +157,7 @@ export namespace RS1 {
 			else if (!RSDName)
 				RSDName = first;
 
-			console.log ('RSDName=' + RSDName + ',FieldRSD=' + FieldRSD + 'Buf=' + bb2str (Buf));
+			//	console.log ('RSDName=' + RSDName + ',FieldRSD=' + FieldRSD + 'Buf=' + bb2str (Buf));
 	
 			let count = prefixes.length, 
 				Fields = Array<RSF> (count), i = 0;
@@ -170,15 +170,15 @@ export namespace RS1 {
 					bbistr = bb2str (bbi);
 				}
 
-				if (nBytes) 
-					console.log ('  processing ' + nBytes.toString () + ' bytes, Buf Str=' +
-						bbi?.byteLength.toString () + '=' + bb2str (bbi) + 'BBIStr=' + bbistr);
+				// if (nBytes) 
+				//	console.log ('  processing ' + nBytes.toString () + ' bytes, Buf Str=' +
+				//		bbi?.byteLength.toString () + '=' + bb2str (bbi) + 'BBIStr=' + bbistr);
 
 				let F = new RSF ();
 				F.fromPrefix (P,bbi,FieldRSD);
 				Fields[i++] = F;
 
-				console.log ('Adding Field ' + F.expand)
+				// console.log ('Adding Field ' + F.expand)
 			}
 	
 			this.Fields = Fields;
@@ -657,8 +657,8 @@ export namespace RS1 {
 
 					let last = str[str.length-1], first = str.slice (0,-1);
 
-					console.log('str.length:', str.length, 'str:', JSON.stringify(str));
-					console.log('last:', JSON.stringify(last), 'first:', JSON.stringify(first));
+					// console.log('str.length:', str.length, 'str:', JSON.stringify(str));
+					// console.log('last:', JSON.stringify(last), 'first:', JSON.stringify(first));
 
 					switch (last) {
 						case 'I' :
@@ -820,19 +820,19 @@ export namespace RS1 {
 		fromBuf (Buf : UBuf, RSDName='', KidName='') {
 			let pb = new PB (Buf, RSDName, KidName), k = this.K;
 
-			console.log ('\n\n\n\n\n\n\n\nFromBuf # Fields = ' + pb.Fields.length.toString ());
+			// console.log ('\n\n\n\n\n\n\n\nFromBuf # Fields = ' + pb.Fields.length.toString ());
 			for (const F of pb.Fields) {
 				let name = F.name;
 
-				console.log ('   restoring name=' + name + ' prefix =' + F.prefix + ' bytes=' + F._bbi?.byteLength.toString ());
+				//	console.log ('   restoring name=' + name + ' prefix =' + F.prefix + ' bytes=' + F._bbi?.byteLength.toString ());
 				switch (name) {
 					case '.$' : 
-						console.log ('from$, str = ' + typeof (F.Data) + ':' + (F.Data as string))
+						// console.log ('from$, str = ' + typeof (F.Data) + ':' + (F.Data as string))
 						this.from$ (F.Data as string); break;
 					case '.x' : this.X = F.Data; break;
 					case '.p' : this.fromPack (F.Data as RSPack); break;
 					case '.b' : this.BLOB = F.Data as BBI; 
-						console.log ('Setting BLOB =' + bb2str (F.Data as BBI));
+						//	console.log ('Setting BLOB =' + bb2str (F.Data as BBI));
 						break;
 					// case '.q' : this.Q = F.Data as RSI; break;
 					// case '.r' : this.R = F.Data as RSr; break;
@@ -868,7 +868,7 @@ export namespace RS1 {
 			else cName = '';
 			
 			let str = tRSD + cName + this.Name + ':' + bbi.length.toString ();
-			console.log ('RSD.toPrefix=' + str);
+			// console.log ('RSD.toPrefix=' + str);
 			return str;
 		}
 
@@ -913,8 +913,8 @@ export namespace RS1 {
 						}
 					}
 					else if (In instanceof Uint8Array) {
-						console.log ('ConstructRSD bytes = ' +
-							(In as Uint8Array).byteLength.toString ());
+						//	console.log ('ConstructRSD bytes = ' +
+//							(In as Uint8Array).byteLength.toString ());
 						this.fromBuf (In);
 					}
 					else if (In instanceof ArrayBuffer)
@@ -1356,7 +1356,7 @@ export namespace RS1 {
 			}
 
 			let newList = count ? new qList ('|' + newRaw.join ('|') + '|') : new qList ();
-			console.log ('qExtract =' + newList.to$ + ', extractList=' + x.join ('|'));
+			//	console.log ('qExtract =' + newList.to$ + ', extractList=' + x.join ('|'));
 			return newList;
 		}
 
@@ -1616,10 +1616,10 @@ export namespace RS1 {
 				let target = this.kidGet (name);
 				if (target) {	// merge rsi with name matched RSI (kid)
 					if (target.cl === 'qList') {
-						console.log ('qList merge target = ' + (target as qList).expand);
-						console.log ('qList merge incoming = ' + rsi.expand);
+						// console.log ('qList merge target = ' + (target as qList).expand);
+						// console.log ('qList merge incoming = ' + rsi.expand);
 						(target as qList).qMerge (rsi);
-						console.log ('qList target after merge = ' + (target as qList).expand);
+						// console.log ('qList target after merge = ' + (target as qList).expand);
 						return true
 					}	
 				}
@@ -1745,21 +1745,21 @@ export namespace RS1 {
 				case 'List[]' :
 					if (this.K) {
 						this.K.Set (Str as RSD[],false);
-						console.log ('rList ' + this.qstr + ' created: ' + this.info);
+						// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 					}
 					return;
 				default : Strs = [];
 			}
 
 			if (!Strs.length) {
-				console.log ('rList ' + this.qstr + ' created: ' + this.info);
+				// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 				return;
 			}
 
 			let first = Strs[0];
 			if (isDelim (first.slice(-1))) {
 				this.rAddList (Strs);
-				console.log ('rList ' + this.qstr + ' created: ' + this.info);
+				// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 				return;
 			}
 
@@ -1774,7 +1774,7 @@ export namespace RS1 {
 					this.qstr = ND;
 				}
 			if (ND)
-				console.log ('  ND=' + ND + '.');
+				// console.log ('  ND=' + ND + '.');
 			this.rAddList (Strs.slice(1));	//	need to call newLists[Symbol]..
 			// console.log ('rList ' + this.qstr + ' created: ' + this.info);
 		}
@@ -1826,7 +1826,7 @@ export namespace RS1 {
 			let Buf : BBI;
 			this.clear;
 			
-			console.log ('ObjectIn:Adding entries!');
+			// console.log ('ObjectIn:Adding entries!');
 
 			let entries = Object.entries (O), Strs = [], Type, raw, count=0;
 
@@ -1835,7 +1835,7 @@ export namespace RS1 {
 				if (Type !== 'object')
 					Strs.push (entry[0] + ':' + entry[1].toString ());
 				else Buf = this.BLOB = entry[1];
-				console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
+				// console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
 				++count;
 			}
 
@@ -1885,15 +1885,15 @@ export namespace RS1 {
 
 			if (pos >= 0) {
 				serial = qstr.slice (pos + 4);
-				console.log ('serial1=' + serial);
+				// console.log ('serial1=' + serial);
 				endpos = serial.indexOf ('|');
 				if (endpos >= 0)
 					serial = this.NumberStr = serial.slice (0,endpos);
-				console.log ('serial2 =' + serial);
+				// console.log ('serial2 =' + serial);
 			}
 			colon = serial.indexOf (':');
 
-			console.log ('NumberStr=' + this.NumberStr);
+			// console.log ('NumberStr=' + this.NumberStr);
 			if (this.NumberStr) {
 				if (colon >= 0) {
 					this.SessionID = Number (this.SessionStr = serial.slice (colon + 1));
@@ -1905,7 +1905,7 @@ export namespace RS1 {
 			let cmdpos = qstr.indexOf ('|' + (serving ? '?' : '.'));	// find the FIRST command
 			if (cmdpos >= 0) {
 				endpos = qstr.indexOf ('|', ++cmdpos);
-				console.log ('cmdstr0=' + qstr.slice (cmdpos));
+				//	console.log ('cmdstr0=' + qstr.slice (cmdpos));
 				cmdstr = qstr.slice (cmdpos, endpos >= 0 ? endpos : -1);
 
 				commands = cmdstr.split (':');
@@ -3212,7 +3212,7 @@ export namespace RS1 {
 			this._bbi = bbi;
 			this.prefix = this.type + arrStr + this.name + ':'+
 				(this._bbi ? this._bbi.length.toString () : '0');
-			console.log ('RSF.toPrefix: ^^' + this.prefix);
+			//	console.log ('RSF.toPrefix: ^^' + this.prefix);
 			return this.prefix;
 		}
 
@@ -7723,7 +7723,7 @@ export namespace RS1 {
 								qStr += vName + '=?,';
 							}
 							Values.push (vDesc);
-							console.log ('  adding ' + vName + ', Value =' + vDesc);
+//							console.log ('  adding ' + vName + ', Value =' + vDesc);
 /*
 							if (vDesc) {
 								Wheres.push ("(" + vName + " = '" + vDesc + "')");
@@ -7802,8 +7802,8 @@ export namespace RS1 {
 
 		vStr = vStr.slice (0,-1); qStr = qStr.slice (0,-1);
 
-		console.log ('table=' + table + ' ID=' + ID.toString () + ' tile=' + tile.toString () +
-					' qType=' + qType + '  qStr=' + qStr + ' vStr=' + vStr);
+//		console.log ('table=' + table + ' ID=' + ID.toString () + ' tile=' + tile.toString () +
+//					' qType=' + qType + '  qStr=' + qStr + ' vStr=' + vStr);
 		for (var w of Wheres) 
 			console.log ('  where= ' + (w = '(' + w + ')') );
 
@@ -7842,12 +7842,14 @@ export namespace RS1 {
 				qStr = 'Error:&&qType=' + qType + '&&' + SQLCmd + table + ' SET (' + qStr + ') VALUES (' + vStr + ') WHERE ID=' + ID.toString () + ';';
 				break;
 		}
+/*
 		console.log ('I/U qStr =' + qStr + ' ... vStr =' + vStr );
 
 		console.log ('buildQ nValues = ' + Values.length.toString ());
 		console.log ('qStr=' + qStr + '  ... vStr =' + vStr);
 		for (const v of Values)
 			console.log ('  Value=' + v);
+*/
 
 		rsd.T = qStr;
 
@@ -7865,7 +7867,7 @@ export namespace RS1 {
 			newRSD.mark;
 		}
 
-		console.log ('\n\n\n    newClientStr=' + x + ' , to$=' + rsd?.DBqList);
+		// console.log ('\n\n\n    newClientStr=' + x + ' , to$=' + rsd?.DBqList);
 		return newRSD;
 	}
 
