@@ -74,19 +74,17 @@ export namespace RS1 {
 		prefix='';
 		bbi?:BBI;
 		Fields:RSF[]=[];
-		RSDName='';
-		FieldRSD='';
-		DataRSD:RSD|undefined;
+		DataRSD?:RSD;
 		offset = 0;
 
 		fieldsToPB (Fields : RSF[]) {
-			let RSDName = this.RSDName;
-			let nBytes = 0, count = 0, first = RSDName + (this.FieldRSD ? (':' + this.FieldRSD) : '');
+			let RSDName = '';
+			let nBytes = 0, count = 0, first = RSDName;
 			let prefixes = [first];
 		
 			for (const F of Fields) {
 				if (F) {
-					prefixes.push (F.toPrefix (RSDName));
+					prefixes.push (F.toPrefix ());
 					++count;
 		
 					if (F._bbi)
@@ -134,7 +132,8 @@ export namespace RS1 {
 		}
 		
 		bufToPB (Buf : UBuf, start = 0) {
-			let RSDName = this.RSDName, FieldRSD = this.FieldRSD, end = Buf.indexOf (StrEndBlkCode,start);
+			// let RSDName;
+			let end = Buf.indexOf (StrEndBlkCode,start);
 			if (end < 0)
 				return [];
 	
@@ -142,23 +141,15 @@ export namespace RS1 {
 
 			let prefixes = prefix.split (',');
 
-			// console.log (prefixes.length.toString () + ' bufToPB='+prefix + '\n' + prefixes.join('\n')+'\n');
-
 			let first = prefixes[0];
 			prefixes = prefixes.slice (1,-1);
 							
 			let colon = first.indexOf (':');
-			if (colon >= 0) {
-				if (!RSDName)
+			/*
+			if (colon >= 0)
 					RSDName = first.slice (0,colon);
-				if (!FieldRSD)
-					FieldRSD = first.slice (colon + 1);
-			}
-			else if (!RSDName)
-				RSDName = first;
-
-			//	console.log ('RSDName=' + RSDName + ',FieldRSD=' + FieldRSD + 'Buf=' + bb2str (Buf));
-	
+			else RSDName = first;
+*/
 			let count = prefixes.length, 
 				Fields = Array<RSF> (count), i = 0;
 	
@@ -175,7 +166,7 @@ export namespace RS1 {
 				//		bbi?.byteLength.toString () + '=' + bb2str (bbi) + 'BBIStr=' + bbistr);
 
 				let F = new RSF ();
-				F.fromPrefix (P,bbi,FieldRSD);
+				F.fromPrefix (P,bbi);
 				Fields[i++] = F;
 
 				// console.log ('Adding Field ' + F.expand)
@@ -186,23 +177,11 @@ export namespace RS1 {
 			this.prefix = prefix;
 		}
 
-		constructor (In : UBuf | RSF[], RSDName='', FieldRSD='', start = 0) {
-			this.RSDName = RSDName;
-			this.FieldRSD = FieldRSD;
-
-			if (Array.isArray (In))
-				this.fieldsToPB (In as RSF[]);
-			else this.bufToPB (In as UBuf, start)
+		constructor (In : UBuf | RSF[], start = 0) {
+			if (In instanceof Uint8Array)
+				this.bufToPB (In as UBuf, start)
+			else this.fieldsToPB (In as RSF[]);
 		}
-	}
-
-	export class ParsedBuf {
-		RSDName='';
-		KidName='';
-		PBs:PB[]=[];
-		bbi? :BBI;
-
-
 	}
 
 	export function newBuf (nBytes:number|ArrayBuffer) 
@@ -212,15 +191,6 @@ export namespace RS1 {
 		else return new Uint8Array (nBytes as ArrayBuffer);
 	}
 
-	export class BBInfo {
-		prefix='';
-		format='';
-		RSDName='';
-		bbi?:BBI;
-		start=0;
-		nBytes=0;
-		k:RSK|undefined;
-	}
 
 	type RSDT=RSD|undefined;
 	type RSArgs=ABI|string[]|RSPack|RSDT|RSDT[]|RSField|ListTypes[]|undefined;
@@ -267,78 +237,6 @@ export namespace RS1 {
 					}
 				}
 			}
-		}
-	}
-
-	export class BBPack {
-		Prefixes : string[]=[];
-		BBs : BBI[]=[];
-		nBytes = 0;
-		RSDName ='';
-		KidName ='';
-		bbi?:BBI;
-
-		get clear () {
-			this.Prefixes = [];
-			this.BBs = [];
-			this.nBytes = 0;
-			this.RSDName='';
-			this.KidName='';
-
-			return true;
-		}
-
-		add (Prefix : string, bbi : BBI) {
-			this.Prefixes.push (Prefix);
-			this.BBs.push (bbi);
-			if (bbi)
-				this.nBytes += bbi.byteLength;
-		}
-
-		get packBBI () {
-			let first = ',';
-
-			if (this.KidName)
-				first = this.RSDName + ':' + this.KidName + ',';
-			else if (this.RSDName)
-				first = this.RSDName + ',';
-
-			let prefixBB = str2bbi (first + this.Prefixes.join (',') + ',' + StrEndBlk), 
-				offset = prefixBB.byteLength, totalBytes = this.nBytes + offset;
-
-			let BB = newBuf (totalBytes);
-			BB.set (prefixBB);
-			for (const B of this.BBs) {
-				if (B) {
-					BB.set (B,offset);
-					offset += B.byteLength;
-				}
-			}
-
-			return this.bbi = BB;
-		}
-
-//			return this.prefix = this.type + arrStr + this.name + ':'+
-//				(this.bbi ? this.bbi.length.toString () : '0');
-
-
-		unpackBBI (bbi : BBI) {
-			this.clear;
-			if (!bbi)
-				return;
-
-			let prefix = bb2str (bbi.slice (0, bbi.indexOf (StrEndBlkCode))), offset = prefix.length + 1;
-			let prefixes = prefix.split (','), first = prefixes[0], count = 0;
-			prefixes = prefixes.slice (1,-1);
-
-			for (const p of prefixes) {
-				let nBytes = prefixBytes (p);
-				this.Prefixes.push (p);
-				let bb = bbi.slice (offset, nBytes);
-				this.BBs.push (bb);
-				offset += nBytes;
-			}
-
 		}
 	}
 
@@ -694,7 +592,7 @@ export namespace RS1 {
 			return remain;
 		}
 
-		fromPB (pb : PB, RSDName='', KidName='') {
+		fromPB (pb : PB) {
 			let k = this.K;
 			if (k)
 				k.clear;
@@ -715,7 +613,7 @@ export namespace RS1 {
 			this._bbi = pb.bbi;
 		}
 
-		protected toPB (RSDName = '', KidName ='') {
+		protected toPB () {
 			let Str, bbi;
 			
 			Str = this.to$;
@@ -723,10 +621,6 @@ export namespace RS1 {
 			let k = this.K, x = this.X, p = this.P;
 
 			let cName = this.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
-			if (!RSDName)
-				RSDName = cName;
-			else if (cName === RSDName)
-				RSDName = '';
 
 			if (Str) {
 				field = new RSF ();
@@ -777,11 +671,8 @@ export namespace RS1 {
 							// need to duplicate the field, not copy it by reference
 							Fields.push ((Kid as unknown) as RSF);
 						else {
-							if (!KidName)
-								KidName = Kid.cl;
-
 							field = new RSF ();
-							field.setData (Kid, KidName);
+							field.setData (Kid);
 							field.setName (Kid.Name);
 							Fields.push (field);
 						}
@@ -789,7 +680,7 @@ export namespace RS1 {
 				}
 			}
 
-			let newPB = new PB (Fields, RSDName, KidName);
+			let newPB = new PB (Fields);
 			this._bbi = newPB.bbi;
 			return newPB;
 		}
@@ -817,8 +708,8 @@ export namespace RS1 {
 
 
 
-		fromBuf (Buf : UBuf, RSDName='', KidName='') {
-			let pb = new PB (Buf, RSDName, KidName), k = this.K;
+		fromBuf (Buf : UBuf) {
+			let pb = new PB (Buf), k = this.K;
 
 			// console.log ('\n\n\n\n\n\n\n\nFromBuf # Fields = ' + pb.Fields.length.toString ());
 			for (const F of pb.Fields) {
@@ -854,21 +745,17 @@ export namespace RS1 {
 
 
 
-		toPrefix (RSDName='') {
+		toPrefix () {
 			let k = this.K, bbi, prefix;
 			if (!(bbi = this._bbi)) {
-				let pb = this.toPB (RSDName);
+				let pb = this.toPB ();
 				if (!pb  ||  !(bbi = pb.bbi))
 					return '';
 			}
 
-			let cName = this.cl;
-			if (cName  &&  (cName !== RSDName))
-				cName = '[' + cName + ']';
-			else cName = '';
+			let	cName = '[' + this.cl + ']';
 			
 			let str = tRSD + cName + this.Name + ':' + bbi.length.toString ();
-			// console.log ('RSD.toPrefix=' + str);
 			return str;
 		}
 
@@ -3169,12 +3056,10 @@ export namespace RS1 {
 					break;
 
 				case tRSD :
-					let rsd = this.Data as RSD, rPrefix = rsd.toPrefix (RSDName);
+					let rsd = this.Data as RSD, rPrefix = rsd.toPrefix ();
 					
-					cName = rsd.cl;
 					bbi = rsd._bbi;
-					if (!RSDName  ||  (cName !== RSDName))
-						arrStr = '[' + cName + ']';
+					arrStr = '[' + rsd.cl + ']';
 					break;
 
 				case tStrs:
@@ -3202,9 +3087,9 @@ export namespace RS1 {
 					let dims = '', nBytes = 0,	offset = 0, count = 0, Ps:string[]=[], Bs:BBI[]=[];
 					for (const r of Arr)
 						if (r) {
-							let pre = r.toPrefix (RSDName), bb = r._bbi;
+							let pre = r.toPrefix (), bb = r._bbi;
 
-							Ps.push (r.toPrefix (RSDName));
+							Ps.push (r.toPrefix ());
 							Bs.push (bb as BBI);
 							++count;
 							if (bb) {
@@ -6597,9 +6482,9 @@ export namespace RS1 {
 
 
 	export class RSPack extends RSMom {
-		RSDName='';
-		KidName='';
 		prefix='';
+		RSDName = '';
+		KidName = '';
 		
 		get cl () { return 'RSPack'; }
 
@@ -6629,10 +6514,10 @@ export namespace RS1 {
 			}
 		}
 
-		addData (data:RSFldData, name='', conName = '') {
+		addData (data:RSFldData, name='') {
 			let Field = new RSF ();
 
-			Field.setData (data,conName);
+			Field.setData (data);
 			if (name)
 				Field.setName (name);
 
@@ -6640,18 +6525,18 @@ export namespace RS1 {
 			return Field;
 		}
 
-		toBuf (RSDName='') {
+		toBuf () {
 			let k = this.K, Kids, nBytes = 0, count = 0;
 			if (k)
 				Kids = k._kids;
 			else return undefined;
 
-			let first = this.RSDName + (this.KidName ? (':' + this.KidName) : '');
+			let first = this.cl;
 			let prefixes = [first];
 
 			for (const F of Kids) {
 				if (F) {
-					prefixes.push (F.toPrefix (this.RSDName));
+					prefixes.push (F.toPrefix ());
 					++count;
 
 					if (F._bbi)
@@ -6685,12 +6570,9 @@ export namespace RS1 {
 			return this._bbi = buf;
 		}
 
-		fromBBI (buf : BBI, RSDName='') {
+		fromBBI (buf : BBI) {
 			if (!buf)
 				return;
-
-			if (!RSDName)
-				RSDName = this.RSDName;
 
 			let end = buf.indexOf (StrEndBlkCode), k = this.K;
 			if (!k  ||  (end < 0))
@@ -6727,13 +6609,11 @@ export namespace RS1 {
 			k.setKids (Fields);
 		}
 
-		fromFields (Fields:RSF[], RSDName='', KidName='') {
+		fromFields (Fields:RSF[]) {
 			let k = this.K;
 			if (k)
 				k.setKids (Fields);
 
-			this.RSDName = RSDName;
-			this.KidName = KidName;
 			return this.toBuf;
 		}
 	}
@@ -7987,7 +7867,7 @@ export namespace RS1 {
 		BLOB? :	UBuf;
 */
 
-	export function FieldsToRSD (Fields : RSF[], rsd : RSD, RSDName='', KidName='') {
+	export function FieldsToRSD (Fields : RSF[], rsd : RSD) {
 		let k = rsd.K;
 		if (k)
 			k.clear;
@@ -8010,18 +7890,14 @@ export namespace RS1 {
 		rsd.mark;
 	}
 
-	export function RSDToFields (rsd : RSD, RSDName = '', KidName ='') {
-		let Str, bbi;
+	export function RSDToFields (rsd : RSD) {
+		let Str, bbi, RSDName = rsd.cl;
 		
 		Str = rsd.to$;
 		
 		let k = rsd.K, x = rsd.X, p = rsd.P;
 
 		let cName = rsd.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
-		if (!RSDName)
-			RSDName = cName;
-		else if (cName === RSDName)
-			RSDName = '';
 
 		if (Str) {
 			field = new RSF ();
@@ -8072,11 +7948,8 @@ export namespace RS1 {
 						// need to duplicate the field, not copy it by reference
 						Fields.push ((Kid as unknown) as RSF);
 					else {
-						if (!KidName)
-							KidName = Kid.cl;
-
 						field = new RSF ();
-						field.setData (Kid, KidName);
+						field.setData (Kid);
 						field.setName (Kid.Name);
 						Fields.push (field);
 					}
@@ -8087,18 +7960,15 @@ export namespace RS1 {
 		return Fields;
 	}
 
-	export function RSDToPB (rsd : RSD, RSDName = '', KidName ='') {
+	export function RSDToPB (rsd : RSD) {
 		let Str, bbi;
 		
 		Str = rsd.to$;
+
 		
 		let k = rsd.K, x = rsd.X, p = rsd.P;
 
 		let cName = rsd.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
-		if (!RSDName)
-			RSDName = cName;
-		else if (cName === RSDName)
-			RSDName = '';
 
 		if (Str) {
 			field = new RSF ();
@@ -8149,11 +8019,8 @@ export namespace RS1 {
 						// need to duplicate the field, not copy it by reference
 						Fields.push ((Kid as unknown) as RSF);
 					else {
-						if (!KidName)
-							KidName = Kid.cl;
-
 						field = new RSF ();
-						field.setData (Kid, KidName);
+						field.setData (Kid, Kid.cl);
 						field.setName (Kid.Name);
 						Fields.push (field);
 					}
@@ -8161,7 +8028,7 @@ export namespace RS1 {
 			}
 		}
 
-		let newPB = new PB (Fields, RSDName, KidName);
+		let newPB = new PB (Fields);
 		rsd._bbi = newPB.bbi;
 		return newPB;
 	}
