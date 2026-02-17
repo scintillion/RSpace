@@ -225,6 +225,50 @@ export namespace RS1 {
 	type RSDT=RSD|undefined;
 	type RSArgs=ABI|string[]|RSPack|RSDT|RSDT[]|RSField|ListTypes[]|undefined;
 
+	export class TypedArgs {
+		data : RSArgs;
+		Type = '';
+		ArrayType = '';
+		n = 0;
+		s = '';
+		big = 0n;
+		func : Function = zGet$;
+		bool = false;
+
+		constructor (In : any) {
+			let Type = this.Type = typeof (In);
+
+			switch (Type) {
+				case 'number' : this.n = In as number; return;
+				case 'string' : this.s = In as string; return;
+				case 'bigint' : this.big = In as bigint; return;
+				case 'boolean' : this.bool = In as boolean; return;
+				case 'symbol' : case 'undefined' : return;
+				case 'function' : this.func = In as Function; return;
+			}
+
+			// object
+			if (Array.isArray (In)) {
+				for (const a of (In as any[])) {
+					let t = typeof a;
+
+					if (t === 'undefined')
+						continue;
+
+					this.ArrayType = t;
+					switch (t) {
+						case 'string' : case 'number' : case 'boolean' : case 'function' : case 'symbol' :
+							this.ArrayType = t; this.Type = t + '[]';
+							break;
+
+						case 'object' :
+							if (In instanceof RSD)
+								this.Type = (this.ArrayType = (In as RSD).cl) + '[]';
+					}
+				}
+			}
+		}
+	}
 
 	export class BBPack {
 		Prefixes : string[]=[];
@@ -388,9 +432,15 @@ export namespace RS1 {
 		get Error () { return this.qGet (':Error'); }
 		set Error (N:string) { this.qSet (':Error',N); }
 
+		get Count () {
+			if (this.K)
+				return this.kidCount (true);
+			return this.qCount;
+		}
+
 		get DBqList () {
-			return '|Name:' + this.Name + '|Desc:' + this.Desc + '|Type:' + this.Type + '|RSD:' + this.cl +
-				'|Count:' + this.qCount.toString () + '|Tile:' + zGet$ (this.qstr, 'Tile') + '|';
+			return '|_Name:' + this.Name + '|_Desc:' + this.Desc + '|_Type:' + this.Type + '|_RSD:' + this.cl +
+				'|_Count:' + this.Count + '|_Tile:' + zGet$ (this.qstr, 'Tile') + '|';
 		}
 
 		get clear () {
@@ -1288,7 +1338,7 @@ export namespace RS1 {
 		qExtract (xq : xList|string) {
 			let x;
 			if (typeof xq === 'string')
-				x = (xq as string).split ('|');
+				x = (xq as string).split ('|').slice (1,-1);
 			else {
 				let split = (xq as xList).qSplitNames;
 				x = split.a;
@@ -1299,13 +1349,15 @@ export namespace RS1 {
 				if (s) {
 					let i = split.a.indexOf (s);
 					if (i >= 0) {
-						newRaw.push (split.b[i]);
+						newRaw.push (s + ':' + split.b[i]);
 						++count;
 					}
 				}
 			}
 
-			return count ? new qList (newRaw) : new qList ();
+			let newList = count ? new qList ('|' + newRaw.join ('|') + '|') : new qList ();
+			console.log ('qExtract =' + newList.to$ + ', extractList=' + x.join ('|'));
+			return newList;
 		}
 
 		qToSelect(Select: HTMLSelectElement | HTMLOListElement | HTMLUListElement) {
@@ -1828,7 +1880,7 @@ export namespace RS1 {
 		commands : string[] = [];
 
 		constructor (rsd : RSD, serving = true) {
-			let qstr = rsd.qGetQStr, pos = qstr.indexOf ('|:#:'), serial='', colon = -1, 
+			let qstr = rsd.qGetQStr, pos = qstr.indexOf ('|_#:'), serial='', colon = -1, 
 				commands, endpos, cmdstr;
 
 			if (pos >= 0) {
@@ -2418,7 +2470,7 @@ export namespace RS1 {
 
 	export var myServer='';
 	export var mySerial=0;
-	export var mySession=0;		// this is the LAST session # on the server
+	export var xmySession=0;		// this is the LAST session # on the server
 	export var myTile='S';
 	export var myVilla='S';
 
@@ -7550,7 +7602,7 @@ export namespace RS1 {
 
 	export function zGet$ (z:string, name:string, start=0)
 	{
-		let namestr = '|:' + name + ':', len = namestr.length, pos = z.indexOf (namestr,start);
+		let namestr = '|_' + name + ':', len = namestr.length, pos = z.indexOf (namestr,start);
 		if (pos >= 0) {
 			pos += len;
 			let endpos = z.indexOf ('|', pos);
@@ -7563,7 +7615,7 @@ export namespace RS1 {
 	}
 
 	export function zSet$ (z:string, name:string, newValue:string|number, start=0) {
-		let namestr = '|:' + name + ':', len = namestr.length, pos = z.indexOf (namestr,start);
+		let namestr = '|_' + name + ':', len = namestr.length, pos = z.indexOf (namestr,start);
 
 		if (pos >= 0) {
 			pos += len;
@@ -7573,6 +7625,31 @@ export namespace RS1 {
 
 		return z;	// unchanged
 	}
+
+	//	qList functions, free standing
+
+	export function	qExtract (source : string|qList, extract : string|qList) : string {
+			let src = (typeof source === 'string') ? source as string : (source as qList).qGetQStr;
+			let sourceRaw = src.split ('|').slice (1,-1), newRaw = [];
+			let ext = (typeof extract === 'string') ? extract as string : (extract as qList).qGetQStr;
+			let extractNames = ext.split ('|').slice (1,-1);
+
+			for (const s of sourceRaw) {
+				let colon = s.indexOf (':'), name = (colon >= 0) ? s.slice (0,colon) : s;
+
+				let i = extractNames.indexOf (name);
+				if (i >= 0)
+					newRaw.push (s);
+			}
+
+			return newRaw.length ? '|' + newRaw.join ('|') + '|' : '|';
+	}
+
+
+
+
+
+
 
 	export function checkSum8(input: string): string {
 		let hash = 0 >>> 0; // force unsigned 32-bit
@@ -7593,51 +7670,254 @@ export namespace RS1 {
 		return hash.toString(16).toUpperCase().padStart(8, "0");
 	}
 
+	export function BuildQ (rsd : RS1.RSD) : any[] {
+		let list = rsd.qGetQStr, first = list.indexOf ('|?'), qType = list.slice (first);
+		if (first < 0)
+		{
+			rsd.T = '';
+			return [];
+		}
 
-	export function newDBRSD (rsd : RSD, CmdList = '') {
-		let newRSD = new RSD (CmdList + '|:#:' + (++mySerial).toString () + ':' + mySession.toString ()+ rsd.DBqList);
-		
-		console.log ('newRSD.qstr =' + newRSD.qGetQStr);
+		qType = list[first+2];
 
-		newRSD.BLOB = rsd.toBBI;
-		newRSD.mark;
-		newRSD.toBBI;
+		let Raw = rsd.qToRaw, IDs = '';
+		let table = 'S', tile = '', ID = '';		// default Table Name (if not specified)
+		let Type = '', SQLCmd, Wheres:string[]=[];
+		let qStr = '', vStr = '', Name, Values : any[] =[], Names : string[] = [];
+
+		for (const r of Raw) {
+			if (!r)
+				continue;
+
+			let vName, first, vDesc, str, colon = r.indexOf (':'), special = (r[0] === '_');
+			if (special) {
+				if (colon >= 0) {
+					vName = r.slice (1,colon); vDesc = r.slice (colon+1);
+					switch (vName) {
+						case 'ID' : 
+							if (vDesc) {
+								ID = vDesc; 
+								Wheres.push ("ID = '" + vDesc + "'");
+							}
+							continue;
+
+						case 'IDs' : IDs = vDesc; Wheres.push ('(ID in (' + IDs + '))');
+
+						case 'Tile' :
+							if (vDesc) {
+								tile = vDesc; 
+								Wheres.push ('Tile = ' + vDesc);
+							}
+							continue;
+						case 'Table' : table = vDesc; continue;
+						case '#' : continue;	// ignore the # tag, not for us
+
+						// field string comparison case
+
+						default :
+							if (qType === 'I') {
+								qStr += vName + ',';
+								vStr += '?,';
+							}
+							else {
+								qStr += vName + '=?,';
+							}
+							Values.push (vDesc);
+							console.log ('  adding ' + vName + ', Value =' + vDesc);
+/*
+							if (vDesc) {
+								Wheres.push ("(" + vName + " = '" + vDesc + "')");
+*/
+					}
+				}
+				else { vName = r.slice (1); vDesc = '';	}
+				continue;
+			}
+			else {
+				if (colon >= 0) {
+					vName = r.slice (0,colon);
+					vDesc = r.slice (colon+1);					
+				}
+				else {	vName = r; vDesc = '';	}
+			}
+
+			console.log (' :::RAW line=' + r + ', newBuildQ, vName=' + vName + ', vDesc=' + vDesc);
+			if ((first = vName[0]) < 'A')	{	// not a legal field name, must be control
+				if (first === '?') {
+					switch (vName[1]) {
+						case '?' : Wheres.push (vName.slice (2) + '=' + vDesc);	break;
+						case 'T' : case 'G' : case 'C' :
+							switch (vName[1]) {
+								case 'T' : str = 'Type'; break;
+								case 'G' : str = 'Group'; break;
+								case 'C' : str = 'Class'; break;
+							}
+							Wheres.push (str + "='" + vDesc + "'");
+							break;
+
+						case 'Q' :	
+							switch (qType = vDesc[0]) {
+								case 'I'	: SQLCmd = 'INSERT '; break;
+								case 'S'	: SQLCmd = 'SELECT '; break;
+								case 'U'	: SQLCmd = 'UPDATE '; break;
+								case 'D'	: SQLCmd = 'DELETE '; break;
+								default : qType = 'ABC Error!';
+							}
+							break;
+
+						default : console.log ('Ignoring this line');
+					}
+				}
+			}
+			else {
+				if (first === '_') {
+					vName = vName.slice (1);
+					console.log ('  :Special: detected ' + vName + ':' + vDesc);
+				}
+				if (qType === 'I') {
+					qStr += vName + ',';
+					vStr += '?,';
+				}
+				else {
+					qStr += vName + '=?,';
+				}
+				Values.push (vDesc);
+				console.log ('  adding ' + vName + ', Value =' + vDesc);
+			}
+		}
+
+		switch (qType) {
+			case 'U' :
+				qStr += 'BLOB=?,';
+				Values.push (rsd.BLOB = rsd.toBBI);
+				break;
+			
+			case 'I' : 
+				let Now = Date.now ();
+				Values.push (Now, Now, 1, 1, rsd.qGetQStr, rsd.BLOB = rsd.toBBI);
+				qStr += 'Created,Changed,Owner,Creator,qstr,BLOB,';
+				vStr += '?,?,?,?,?,?,';
+				break;
+		}
+
+		vStr = vStr.slice (0,-1); qStr = qStr.slice (0,-1);
+
+		console.log ('table=' + table + ' ID=' + ID.toString () + ' tile=' + tile.toString () +
+					' qType=' + qType + '  qStr=' + qStr + ' vStr=' + vStr);
+		for (var w of Wheres) 
+			console.log ('  where= ' + (w = '(' + w + ')') );
+
+
+		switch (qType) {
+			case	'I'	:
+				qStr = 'INSERT INTO ' + table + ' (' + qStr + 
+						') VALUES (' + vStr + ')';
+
+				console.log ('\n\n\n\nqstr =' + qStr + ', Values=' + Values);
+				break;
+
+			case	'U' :
+				qStr = 'UPDATE ' + table + ' SET ' + qStr + ' WHERE ';
+				qStr += Wheres.join (' AND ') + ';';
+				break;
+
+			case	'D'	:
+				if (IDs)
+					qStr = 'DELETE FROM ' + table + ' WHERE ID in (' + IDs + ');'
+				else {
+					qStr = 'DELETE FROM ' + table + ' WHERE ID = ' + ID + ';';
+				}
+				Values = [];	// no pushed values need, zero if present
+				break;
+
+			case	'S'	:
+				qStr = 'SELECT * FROM ' + table;
+				if (Wheres.length)
+					qStr += ' WHERE ' + Wheres.join (' AND ') + ';';
+				else qStr += ';';
+				Values = [];	// no pushed values need, zero if present
+				break;
+
+			default :
+				qStr = 'Error:&&qType=' + qType + '&&' + SQLCmd + table + ' SET (' + qStr + ') VALUES (' + vStr + ') WHERE ID=' + ID.toString () + ';';
+				break;
+		}
+		console.log ('I/U qStr =' + qStr + ' ... vStr =' + vStr );
+
+		console.log ('buildQ nValues = ' + Values.length.toString ());
+		console.log ('qStr=' + qStr + '  ... vStr =' + vStr);
+		for (const v of Values)
+			console.log ('  Value=' + v);
+
+		rsd.T = qStr;
+
+		return Values;
+	}
+
+	export function newClientStr (CmdList = '') { 
+		return CmdList + '|_#:' + (++mySerial).toString () + ':' + xmySession.toString () + '|';
+	}
+
+	export function newClientRSD (CmdList = '', rsd? : RSD) {
+		let x, newRSD = new RSD (x = newClientStr (CmdList) + rsd?.DBqList);
+		if (rsd) {
+			newRSD.BLOB = rsd.toBBI; 
+			newRSD.mark;
+		}
+
+		console.log ('\n\n\n    newClientStr=' + x + ' , to$=' + rsd?.DBqList);
 		return newRSD;
 	}
 
 	export function DBSelect (IDOrStr :number|string = '|Type:List|') {
-		let Q = '|?Q:S' + (typeof IDOrStr === 'string') ? IDOrStr as string : ('|:ID:' + IDOrStr.toString () + '|'),
-			rsd = new RSD (Q);
+		let Arg = new TypedArgs (IDOrStr), rsd;
 
+		if (typeof IDOrStr === 'string')
+			rsd = newClientRSD ('|?Q:S' + IDOrStr);
+		else // number
+			rsd = newClientRSD ('|?Q:S' + '|_ID:' + IDOrStr + '|');
 
 		let outRSD = ReqRSD (rsd);
-		// console.log ('OutRSD.BLOB Bytes=' + outRSD.BLOB.byteLength.toString ());
 		return outRSD;
 	}
 
 	export function DBUpdate (rsd:RSD) {
 		let ID = rsd.qGetNum (':ID');
-		if (ID) {
+		if (!ID) 
+			return DBInsert (rsd);
 
-
-
-		}
+		let OutRSD = newClientRSD ('|?Q:U|_ID:' + ID + '|', rsd);
+		return ReqRSD (OutRSD);		
 	}
 
-	export function DBDelete (IDorRSD:number|RSD) {
-		let ID = (typeof (IDorRSD) === 'number') ? 
-			(IDorRSD as number) : (IDorRSD as RSD).qGetNum (':ID');
+	export function DBDelete (IDorRSD:number|number[]|RSD) {
+		let ID = 0, In = new TypedArgs (IDorRSD);
+		switch (In.Type) {
+			case 'number[]' : 
+				let IDs = IDorRSD as number[];
+				if (!IDs.length)
+					return;
+				let IDstr = '|?Q:D|_IDs:';
+				for (const id of IDs)
+					if (id)
+						IDstr += id.toString () + ',';
 
-		if (ID) {
-			let OutRSD = new RSD ('|?Q:D|:ID:' + ID + '|');
-			return OutRSD;
+				let OutRSD = newClientRSD  (IDstr.slice (0,-1) + '|');
+				return ReqRSD (OutRSD);
+				break;
+			case 'number' : ID = (IDorRSD as number); break;
+			default : // RSD
+				ID = (IDorRSD as RSD).qGetNum (':ID');
 		}
+
+		let OutRSD = newClientRSD ('|?Q:D|_ID:' + ID + '|');
+		return ReqRSD (OutRSD);
 	}
 
 	export function DBInsert (rsd:RSD) {
 		let ID = rsd.qGet (':ID');
 		if (!ID  ||  ID == '0') {
-			let OutRSD = newDBRSD (rsd, '|?Q:I|:ID:' );
+			let OutRSD = newClientRSD ('|?Q:I|_ID:',rsd);
 			return ReqRSD (OutRSD);
 		}
 	}

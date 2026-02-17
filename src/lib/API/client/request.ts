@@ -26,7 +26,7 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     let rsdBBI = rsd.toBBI, rsdstr = RS1.bb2str (rsdBBI);
-
+    RS1.BuildQ (rsd);
 /*
     let rQ = rsd.qGetQStr, name = rsd.Name, desc = rsd.Desc, rsdName = rsd.cl, tile=RS1.zGet$ (rQ, 'Tile'), Type = rsd.Type;
     if (rsd.isList) {
@@ -43,7 +43,7 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
 
 
     let outRSD = RS1.newRSD (rsd.qGetQStr + ':#:' + (++Serial).toString () + ':' + RS1.mySession.toString () + 
-            '|:Name:' + name + '|:Desc:' + desc + '|:RSD:' + rsdName + '|:Tile:' + tile + '|:Type:' + Type + '|');
+            '|_Name:' + name + '|_Desc:' + desc + '|_RSD:' + rsdName + '|_Tile:' + tile + '|_Type:' + Type + '|');
 
     outRSD.BLOB = rsdBBI;
  */
@@ -63,11 +63,11 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
             console.log ('BIG BATCH!');
 
         let newRSD = RS1.newRSD (recvAB), cmd = new RS1.RSDCmd (newRSD, false);
-        if (!RS1.mySession) { //looking for first message
-            let CmdStr = newRSD.qGet ('.'), cmds = CmdStr.split (':');
-            RS1.mySession = Number (cmds[1]);
+        if (!RS1.xmySession) { //looking for first message
+            let CmdStr = newRSD.qGet ('_#'), cmds = CmdStr.split (':');
+            RS1.xmySession = Number (cmds[1]);
             RS1.myServer = cmds[2];
-            console.log ('Server connected, Session ' + RS1.mySession + ' Server=' + RS1.myServer);
+            console.log ('Server connected, Session ' + RS1.xmySession + ' Server=' + RS1.myServer);
         }
         return newRSD;
     }
@@ -229,7 +229,11 @@ export async function InitClient () {
     console.log ('TList.ToString = \n' + TList.toStr);
 
     RS1.rLoL.SaveLists ();
-    let SelectRSD = RS1.DBSelect ('|rsd:RSD|');
+    let SelectRSD = RS1.DBSelect ('|_Name:Cy|');
+
+    // RS1.DBDelete ([140,150,160]);
+    RS1.DBDelete (162);
+    RS1.DBSelect ();
     // console.log ('SelectRSD Bytes =' + SelectRSD.BLOB.byteLength.toString ());
 
 	let L = new RS1.qList ('Cy:Country|US:United States|UK:United Kingdom|CA:Canada|RU:Russia|IN:India|');

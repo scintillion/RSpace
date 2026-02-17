@@ -24,13 +24,13 @@ class DBKit {
 		RS1._RegRID = 'S';
 
 		let rsd = new RS1.RSD ('|?QSQL:UPDATE|?Type:SampleType|?Group:MyGroup|?#:123|?Row:S|?ID:789|ABC:DEF|XYZ:123|');
-		this.newBuildQ (rsd);
+		RS1.BuildQ (rsd);
 		rsd = new RS1.RSD ('|?QSQL:DELETE|?Type:SampleType|?Group:MyGroup|?#:123|?Row:S|?ID:789|ABC:DEF|XYZ:123|');
-		this.newBuildQ (rsd);
+		RS1.BuildQ (rsd);
 		rsd = new RS1.RSD ('|?QSQL:INSERT|?Type:SampleType|?Group:MyGroup|?#:123|?Row:S|?ID:789|ABC:DEF|XYZ:123|');
-		this.newBuildQ (rsd);
+		RS1.BuildQ (rsd);
 		rsd = new RS1.RSD ('|?QSQL:SELECT|?Type:SampleType|?Group:MyGroup|?#:123|?Row:S|?ID:789|ABC:DEF|XYZ:123|');
-		this.newBuildQ (rsd);
+		RS1.BuildQ (rsd);
 	}
 
 	get db() {
@@ -43,163 +43,6 @@ class DBKit {
 
 	public close() {
 		this._db.close();
-	}
-
-	newBuildQ (rsd : RS1.RSD) : any[] {
-		let Raw = rsd.qToRaw;
-		let table = 'S', tile = 0, ID = 0;		// default Table Name (if not specified)
-		let qType = '!BadQType', Type = '', SQLCmd, Wheres:string[]=[];
-		let qStr = '', vStr = '', Name, Values : any[] =[], Names : string[] = [];
-
-		for (const r of Raw) {
-			if (!r)
-				continue;
-			
-			let vName, first, vDesc, str, colon, special = (r[0] === ':');
-			if (special) {
-				colon = r.indexOf (':',1);
-				if (colon >= 0) {
-					vName = r.slice (1,colon); vDesc = r.slice (colon+1);
-				}
-				else { vName = r.slice (1); vDesc = '';	}
-			}
-			else {
-				colon = r.indexOf (':');
-				if (colon >= 0) {
-					vName = r.slice (0,colon);
-					vDesc = r.slice (colon+1);					
-				}
-				else {	vName = r; vDesc = '';	}
-			}
-
-			if ((vName === 'ID') && (!vDesc  ||  vDesc==='0'))
-				continue;
-
-			console.log (' :::RAW line=' + r + ', newBuildQ, vName=' + vName + ', vDesc=' + vDesc);
-			if (((first = vName[0]) < 'A') && (first !== ':'))	{	// not a legal field name, must be control
-				if (first === '?') {
-					switch (vName[1]) {
-						case '?' : Wheres.push (vDesc);	break;
-						case 'T' : case 'G' : case 'C' :
-							switch (vName[1]) {
-								case 'T' : str = 'Type'; break;
-								case 'G' : str = 'Group'; break;
-								case 'C' : str = 'Class'; break;
-							}
-							Wheres.push (str + "='" + vDesc + "'");
-							break;
-
-						case 'Q' :	
-							switch (qType = vDesc[0]) {
-								case 'I'	: SQLCmd = 'INSERT '; break;
-								case 'S'	: SQLCmd = 'SELECT '; break;
-								case 'U'	: SQLCmd = 'UPDATE '; break;
-								case 'D'	: SQLCmd = 'DELETE '; break;
-								default : qType = 'ABC Error!';
-							}
-							break;
-
-						case '#' :	tile = Number (vDesc);	break;	// tileID
-
-						case 'R' :	table = vDesc; break;	// Row (Record) Type == Table
-
-						case 'I' :	ID = Number (vDesc);	Wheres.push ('ID = ' + vDesc); break;	// recordID (unique for this table)
-						default : console.log ('Ignoring this line');
-					}
-				}
-				else if (first === ':') {
-					let name = vName.slice (1);
-					if (!name)
-						console.log ('\n\n\n\n\n\n\n   NULL Name, r =' + r);
-
-					if (qType === 'I') {
-						qStr += name + ',';
-						Names.push (name);
-						vStr += '?,';
-					}
-					else {
-						qStr += name + '=?,';
-						Names.push (name + '=?');
-					}
-					Values.push (vDesc);
-					console.log ('  adding :' + name + ', Value =' + vDesc);
-				}
-			}
-			else {
-				if (first === ':') {
-					vName = vName.slice (1);
-					console.log ('  :Special: detected ' + vName + ':' + vDesc);
-				}
-				if (qType === 'I') {
-					qStr += vName + ',';
-					vStr += '?,';
-				}
-				else {
-					qStr += vName + '=?,';
-				}
-				Values.push (vDesc);
-				console.log ('  adding ' + vName + ', Value =' + vDesc);
-			}
-		}
-
-		switch (qType) {
-			case 'U' :
-				qStr += 'BLOB=?,';
-				Values.push (rsd.BLOB = rsd.toBBI);
-				break;
-			
-			case 'I' : 
-				let Now = Date.now ();
-				Values.push (Now, Now, 1, 1, rsd.qGetQStr, rsd.BLOB = rsd.toBBI);
-				qStr += 'Created,Changed,Owner,Creator,qstr,BLOB,';
-				vStr += '?,?,?,?,?,?,';
-				break;
-		}
-
-		vStr = vStr.slice (0,-1); qStr = qStr.slice (0,-1);
-
-		console.log ('table=' + table + ' ID=' + ID.toString () + ' tile=' + tile.toString () +
-					' qType=' + qType + '  qStr=' + qStr + ' vStr=' + vStr);
-		for (var w of Wheres) 
-			console.log ('  where= ' + (w = '(' + w + ')') );
-
-
-		switch (qType) {
-			case	'I'	:
-				qStr = 'INSERT INTO ' + table + ' (' + qStr + 
-						') VALUES (' + vStr + ')';
-				break;
-
-			case	'U' :
-				qStr = 'UPDATE ' + table + ' SET ' + qStr + ' WHERE ';
-				qStr += Wheres.join (' AND ') + ';';
-				break;
-
-			case	'D'	:
-				qStr = 'DELETE FROM ' + table + ' WHERE ID = ' + ID.toString () + ';';
-				Values = [];	// no pushed values need, zero if present
-				break;
-
-			case	'S'	:
-				qStr = 'SELECT * FROM ' + table;
-				if (Wheres.length)
-					qStr += ' WHERE ' + Wheres.join (' AND ') + ';';
-				else qStr += ';';
-				Values = [];	// no pushed values need, zero if present
-				break;
-
-			default :
-				qStr = 'Error:&&qType=' + qType + '&&' + SQLCmd + table + ' SET (' + qStr + ') VALUES (' + vStr + ') WHERE ID=' + ID.toString () + ';';
-				break;
-		}
-		console.log ('I/U qStr =' + qStr + ' ... vStr =' + vStr );
-
-		console.log ('buildQ nValues = ' + Values.length.toString ());
-		console.log ('qStr=' + qStr + '  ... vStr =' + vStr);
-
-		rsd.T = qStr;
-
-		return Values;
 	}
 
 	newExecQ (rsd : RS1.RSD, Params : any[]) : RS1.RSD {
@@ -291,7 +134,7 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 
 			case 'Q' :
 				console.log ('Calling newBuildQ'); 
-				let Params = RSS.DBK.newBuildQ (InRSD);
+				let Params = RS1.BuildQ (InRSD);
 				console.log ('Calling newExecQ');
 				let outRSD = RSS.DBK.newExecQ (InRSD, Params);
 				let bbi = outRSD.toBBI;
@@ -309,8 +152,7 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 
 
 
-	let Numbers = '#:'+cmd.SerialIDStr+':'+cmd.SessionStr,
-		OutRSD = new RS1.RSD ('|.:' + initStr + '|#:' + cmd.NumberStr + '|');
+	let OutRSD = new RS1.RSD ('|_' + initStr + '|_#:' + cmd.NumberStr + '|');
 
 	return OutRSD;
 }
