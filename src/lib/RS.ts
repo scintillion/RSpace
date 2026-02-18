@@ -7865,37 +7865,16 @@ export namespace RS1 {
 	export function BufToRSDs (Buf : UBuf) {
 		let offset = 0, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
 
-		console.log ('BufToRSDs bytes = ' + Buf.byteLength + ' Buf=\n' + bb2str (Buf));
-
 		while (offset < totalBytes) {
 			let pb = new PB (Buf, '', offset), rsd;
 			if (!(offset = pb.offset))
 				break;
 
-			console.log ('Making from offset ' + offset + 'RSDName =' + pb.RSDName, ' data=', bb2str (Buf.slice (offset,offset+80)));
-
 			RSDs.push (rsd = pb.makeRSD ());
-			console.log ('  Made RSD=' + rsd.expand);
 		}
-
-		console.log ('Leaving BufToRSDs, #' + ' = ' + RSDs.length+ ' offset=' + offset + '  totalBytes=' + totalBytes);
 
 		return RSDs;
 	}
-
-/*
-		K?	:	RSK;
-		Q?	:	qList;
-		R?	:	rList;	
-
-		N?	:	number[];
-		P?	:	RSPack;
-		S?	:	string[];
-		T?	:	string;
-		X?	:	RSD;
-		Data? : any;
-		BLOB? :	UBuf;
-*/
 
 	export function FieldsToRSD (Fields : RSF[], rsd : RSD) {
 		let k = rsd.K;
@@ -7979,7 +7958,7 @@ export namespace RS1 {
 						Fields.push ((Kid as unknown) as RSF);
 					else {
 						field = new RSF ();
-						field.setData (Kid);
+						field.setData (Kid, Kid.cl);
 						field.setName (Kid.Name);
 						Fields.push (field);
 					}
@@ -7990,6 +7969,25 @@ export namespace RS1 {
 		return Fields;
 	}
 
+	export function RSDToPB(rsd: RSD) {
+		const Fields = RSDToFields(rsd);
+		let newPB  = new PB(Fields);
+		newPB.RSDName = rsd.cl;		// later, if creating RSD from this PB,
+									// I must know the name of the RSD to create!
+		rsd._bbi = newPB.bbi;
+		return newPB;
+	}
+
+	export function PBToRSD(newPB: PB): RSD {
+		// Use the stored RSDName to create the correct RSD subtype,
+		// and feed it the serialized buffer from this PB.
+		const rsd = newRSD(newPB.bbi, newPB.RSDName);
+		return rsd;
+	}
+
+} // namespace RS1
+
+/*
 	export function RSDToPB (rsd : RSD) {
 		let Str, bbi;
 		
@@ -8062,6 +8060,6 @@ export namespace RS1 {
 		rsd._bbi = newPB.bbi;
 		return newPB;
 	}
+*/
 
-} // namespace RS1
 
