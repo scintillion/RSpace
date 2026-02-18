@@ -7868,13 +7868,14 @@ export namespace RS1 {
 		console.log ('BufToRSDs bytes = ' + Buf.byteLength + ' Buf=\n' + bb2str (Buf));
 
 		while (offset < totalBytes) {
-			let pb = new PB (Buf, '', offset);
+			let pb = new PB (Buf, '', offset), rsd;
 			if (!(offset = pb.offset))
 				break;
 
 			console.log ('Making from offset ' + offset + 'RSDName =' + pb.RSDName, ' data=', bb2str (Buf.slice (offset,offset+80)));
 
-			RSDs.push (pb.makeRSD ());
+			RSDs.push (rsd = pb.makeRSD ());
+			console.log ('  Made RSD=' + rsd.expand);
 		}
 
 		console.log ('Leaving BufToRSDs, #' + ' = ' + RSDs.length+ ' offset=' + offset + '  totalBytes=' + totalBytes);
@@ -7902,7 +7903,7 @@ export namespace RS1 {
 			k.clear;
 
 		for (const field of Fields) {
-			let name = field.Name;
+			let name = field.name;
 
 			switch (name) {
 				case '.$' : rsd.from$ (field.Data as string); break;
