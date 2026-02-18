@@ -87,8 +87,8 @@ export namespace RS1 {
 					prefixes.push (F.toPrefix ());
 					++count;
 		
-					if (F._bbi)
-						nBytes += F._bbi.byteLength;
+					if (F.BBI)
+						nBytes += F.BBI.byteLength;
 				}
 			}
 			prefixes.push (StrEndBlk);
@@ -114,7 +114,7 @@ export namespace RS1 {
 					//	else console.log ('  Field ' + F.Name + ' Type= ' + F.type + ' Prefix=' + F.prefix);
 
 
-					let bbi = F._bbi; 
+					let bbi = F.BBI; 
 					Bufs[i++] = bbi;
 					if (bbi  &&  bbi.byteLength) {
 						buf.set (bbi, offset);
@@ -257,28 +257,114 @@ export namespace RS1 {
 	}	
 
 	export class RSD {
-		Mom? : RSD;
-		_bbi? : BBI;
-		protected qstr = '';
+ // Internal state
+    protected _Mom?: RSD;
+    _bbi?: BBI;
+    protected qstr = '|';       // stays protected; mutated through helpers
 
-		get iList () { return true; }
-		get notIList () { return false; }
+    protected _K?: RSK;
+    protected _Q?: qList;
+    protected _R?: rList;
 
-		get isMom () { return false; }
-		get isList () { return false; }
-		get cl () { return 'RSD'; }
+    protected _N?: number[];
+    protected _P?: RSPack;
+    protected _S?: string[];
+    protected _T?: string;
+    protected _X?: RSD;
+    protected _Data: any;
+    protected _BLOB?: UBuf;
 
-		K?	:	RSK;
-		Q?	:	qList;
-		R?	:	rList;	
+    // Read-only traits
+    get iList() { return true; }
+    get notIList() { return false; }
 
-		N?	:	number[];
-		P?	:	RSPack;
-		S?	:	string[];
-		T?	:	string;
-		X?	:	RSD;
-		Data? : any;
-		BLOB? :	UBuf;
+    get isMom() { return false; }
+    get isList() { return false; }
+    get cl() { return 'RSD'; }
+
+    // Mom / parent
+    get Mom(): RSD | undefined { return this._Mom; }
+    set Mom(m: RSD | undefined) {
+        this.mark;
+        this._Mom = m;
+    }
+
+    // Kids/Lists (if you want to wrap these too)
+    get K(): RSK | undefined { return this._K; }
+    set K(v: RSK | undefined) {
+        this.mark;
+        this._K = v;
+    }
+
+    get Q(): qList | undefined { return this._Q; }
+    set Q(v: qList | undefined) {
+        this.mark;
+        this._Q = v;
+    }
+
+    get R(): rList | undefined { return this._R; }
+    set R(v: rList | undefined) {
+        this.mark;
+        this._R = v;
+    }
+
+    // Scalar / data fields
+    get N(): number[] | undefined { return this._N; }
+    set N(v: number[] | undefined) {
+        this.mark;
+        this._N = v;
+    }
+
+    get P(): RSPack | undefined { return this._P; }
+    set P(v: RSPack | undefined) {
+        this.mark;
+        this._P = v;
+    }
+
+    get S(): string[] | undefined { return this._S; }
+    set S(v: string[] | undefined) {
+        this.mark;
+        this._S = v;
+    }
+
+    get T(): string | undefined { return this._T; }
+    set T(v: string | undefined) {
+        this.mark;
+        this._T = v;
+    }
+
+    get X(): RSD | undefined { return this._X; }
+    set X(v: RSD | undefined) {
+        this.mark;
+        this._X = v;
+    }
+
+    get Data(): any { return this._Data; }
+    set Data(v: any) {
+        this.mark;
+        this._Data = v;
+    }
+
+    get BLOB(): UBuf | undefined { return this._BLOB; }
+    set BLOB(v: UBuf | undefined) {
+        this.mark;
+        this._BLOB = v;
+    }
+
+    // Public, read-only view of the buffer (optional)
+    get BBI(): BBI {
+        return this.toBBI;      // delegates to your existing toBBI getter
+    }
+
+    // Existing dirty flag
+    get dirty() {
+        return this._bbi !== undefined;
+    }
+
+    get mark() {
+        this._bbi = undefined;
+        return true;
+    }
 
 		copy (NewName = '') : RSD {
 			let pb = this.toPB ();
@@ -374,6 +460,8 @@ export namespace RS1 {
 			
 			if (this.Data)
 				this.Data = undefined;
+
+			this.mark;
 			return true; 
 		}
 
@@ -702,16 +790,6 @@ export namespace RS1 {
 
 			}
 		}
-		get dirty () { 
-			return this._bbi !== undefined;
-		}
-
-		get mark () {
-			this._bbi = undefined;
-			return true;
-		}
-
-
 
 		fromBuf (Buf : UBuf) {
 			let pb = new PB (Buf, this.cl), k = this.K;
@@ -2067,7 +2145,10 @@ export namespace RS1 {
 	}
 
 	export class RSMom extends RSD {
-		K : RSK = new RSK (this);
+		constructor () {
+			super ();
+			this._K = new RSK (this);
+		}
 
 		get isMom () { return true; }
 
@@ -3063,7 +3144,7 @@ export namespace RS1 {
 				case tRSD :
 					let rsd = this.Data as RSD, rPrefix = rsd.toPrefix ();
 					
-					bbi = rsd._bbi;
+					bbi = rsd.BBI;
 					arrStr = '[' + rsd.cl + ']';
 					break;
 
@@ -3092,7 +3173,7 @@ export namespace RS1 {
 					let dims = '', nBytes = 0,	offset = 0, count = 0, Ps:string[]=[], Bs:BBI[]=[];
 					for (const r of Arr)
 						if (r) {
-							let pre = r.toPrefix (), bb = r._bbi;
+							let pre = r.toPrefix (), bb = r.BBI;
 
 							Ps.push (r.toPrefix ());
 							Bs.push (bb as BBI);
@@ -3261,13 +3342,20 @@ export namespace RS1 {
 	export const NILList = new qList ();
 
 	export class RSQ extends qList {
-		Q	:	qList = new qList ();
+		constructor (Args : RSArgs) {
+			super (Args);
+			this.Q = new qList ();
+		}
+
 		get cl () { return 'RSQ'; }
 	}
 
 
 	export class RSR extends qList {
-		R	: rList = new rList ();
+		constructor (Args : RSArgs) {
+			super (Args);
+			this.R = new rList ();
+		}
 		get cl () { return 'RSR'; }
 
 		get to$$ () : string [] {
@@ -3276,7 +3364,12 @@ export namespace RS1 {
 	}
 
 	export class Bead extends RSR {
-		K : RSK = new RSK (this);
+		constructor (Args : RSArgs) {
+			super (Args);
+			this.Q = new qList ();
+			this.R = new rList ();
+			this.K = new RSK (this);
+		}
 
 		get cl () { return 'Bead'; }
 
@@ -3288,10 +3381,9 @@ export namespace RS1 {
 	}
 
 	export class rList extends xList {
-		K : RSK = new RSK (this);
-
 		constructor (In? : RSArgs, name = '', desc = '') {
-			super ();
+			super (In);
+			this.K = new RSK (this);
 			this.rConstruct (In, name, desc);
 		}
 		
@@ -3441,11 +3533,10 @@ export namespace RS1 {
 		SaveLists () {
 			let k = this.K;
 
-			for (const L of k._kids) {
+			if (k) for (const L of k._kids) {
 				if (L)
 					DBInsert (L);
 			}
-
 		}
 	}
 
@@ -6548,8 +6639,8 @@ export namespace RS1 {
 					prefixes.push (F.toPrefix ());
 					++count;
 
-					if (F._bbi)
-						nBytes += F._bbi.byteLength;
+					if (F.BBI)
+						nBytes += F.BBI.byteLength;
 				}
 			}
 			prefixes.push (StrEndBlk);
@@ -6565,10 +6656,10 @@ export namespace RS1 {
 			let i = 0;
 			for (const F of Kids) {
 				if (F) {
-					Bufs[i++] = F._bbi;
-					if (F._bbi  &&  F._bbi.byteLength) {
-						buf.set (F._bbi, offset);
-						offset += F._bbi.byteLength;
+					Bufs[i++] = F.BBI;
+					if (F.BBI  &&  F.BBI.byteLength) {
+						buf.set (F.BBI, offset);
+						offset += F.BBI.byteLength;
 					}
 				}
 			}
@@ -7841,8 +7932,8 @@ export namespace RS1 {
 		}
 	}
 
-	export function RSDsToBuf (RSDs:RSD[], forcefresh = false) {
-		let len = RSDs.length, BBIs = Array<UBuf> (RSDs.length), totalBytes = 0, count = 0, bbi;
+	export function RSDsToBuf (RSDs:RSD[]) {
+		let BBIs = Array<UBuf> (RSDs.length), totalBytes = 0, count = 0, bbi;
 
 		for (const rsd of RSDs) {
 			bbi = BBIs[count++] = rsd.toBBI as UBuf;
@@ -7866,12 +7957,23 @@ export namespace RS1 {
 		let offset = 0, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
 
 		while (offset < totalBytes) {
+			const pb = new PB(Buf, '', offset);
+			if (!(offset = pb.offset))
+				break;
+			RSDs.push(PBToRSD(pb));
+		}
+
+
+/*
+
+		while (offset < totalBytes) {
 			let pb = new PB (Buf, '', offset), rsd;
 			if (!(offset = pb.offset))
 				break;
 
 			RSDs.push (rsd = pb.makeRSD ());
 		}
+*/
 
 		return RSDs;
 	}
@@ -7900,7 +8002,7 @@ export namespace RS1 {
 	}
 
 	export function RSDToFields (rsd : RSD) {
-		let Str, bbi, RSDName = rsd.cl;
+		let Str;
 		
 		Str = rsd.to$;
 		
@@ -7938,9 +8040,17 @@ export namespace RS1 {
 
 		if (rsd.N) {	// number array!
 				field = new RSF ();
-				field.setData (rsd.N)
+				field.setData (rsd.N);
+				field.setName ('.n');
 				Fields.push (field);
 		}
+
+		if (rsd.Data) {
+			field = new RSF();
+			field.setData(rsd.Data);
+			field.setName('.d');
+			Fields.push(field);
+		}		
 
 		if (rsd.BLOB) {
 				field = new RSF ();
@@ -7979,10 +8089,7 @@ export namespace RS1 {
 	}
 
 	export function PBToRSD(newPB: PB): RSD {
-		// Use the stored RSDName to create the correct RSD subtype,
-		// and feed it the serialized buffer from this PB.
-		const rsd = newRSD(newPB.bbi, newPB.RSDName);
-		return rsd;
+		return newRSD(newPB.bbi, newPB.RSDName);
 	}
 
 } // namespace RS1
@@ -8057,7 +8164,7 @@ export namespace RS1 {
 		}
 
 		let newPB = new PB (Fields);
-		rsd._bbi = newPB.bbi;
+		rsd.BBI = newPB.bbi;
 		return newPB;
 	}
 */

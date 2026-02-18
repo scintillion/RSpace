@@ -195,7 +195,7 @@ export async function InitClient () {
     console.log  ('ABCRootList after RSIList merge = ' + ABCRootList.expand);
     targetList.rMergeList (ABCRootList, false);
     
-    targetList._bbi = undefined; // force rebuild
+    targetList.mark; // force rebuild
     let newBBI = targetList.toBBI,bbstr = RS1.bb2str (targetList.toBBI) ;
     console.log ('New PB = ' + bbstr);
     
