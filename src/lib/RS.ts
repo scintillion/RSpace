@@ -75,11 +75,11 @@ export namespace RS1 {
 		bbi?:BBI;
 		Fields:RSF[]=[];
 		DataRSD?:RSD;
+		RSDName = '';
 		offset = 0;
 
 		fieldsToPB (Fields : RSF[]) {
-			let RSDName = '';
-			let nBytes = 0, count = 0, first = RSDName;
+			let nBytes = 0, count = 0, first = this.RSDName;
 			let prefixes = [first];
 		
 			for (const F of Fields) {
@@ -103,7 +103,7 @@ export namespace RS1 {
 					offset = prefixBuf.byteLength;
 			buf.set (prefixBuf,0);
 		
-			prefixes = prefixes.slice (1,-1);
+			prefixes = prefixes.slice (0,-1);
 			
 			let Bufs = Array<BBI> (count);
 			let i = 0;
@@ -132,7 +132,6 @@ export namespace RS1 {
 		}
 		
 		bufToPB (Buf : UBuf, start = 0) {
-			// let RSDName;
 			let end = Buf.indexOf (StrEndBlkCode,start);
 			if (end < 0)
 				return [];
@@ -145,13 +144,11 @@ export namespace RS1 {
 			prefixes = prefixes.slice (1,-1);
 							
 			let colon = first.indexOf (':');
-			/*
 			if (colon >= 0)
-					RSDName = first.slice (0,colon);
-			else RSDName = first;
-*/
-			let count = prefixes.length, 
-				Fields = Array<RSF> (count), i = 0;
+					this.RSDName = first.slice (0,colon);
+			else this.RSDName = first;
+
+			let count = prefixes.length, Fields = Array<RSF> (count), i = 0;
 	
 			for (const P of prefixes) {
 				let nBytes = prefixBytes (P), bbi, bbistr ='';
@@ -172,12 +169,20 @@ export namespace RS1 {
 				// console.log ('Adding Field ' + F.expand)
 			}
 	
+			this.bbi = Buf.slice (start,offset);
+			this.offset = offset;
 			this.Fields = Fields;
-			this.bbi = Buf;
 			this.prefix = prefix;
 		}
 
-		constructor (In : UBuf | RSF[], start = 0) {
+		makeRSD () {
+			let rsd = newRSD (undefined, this.RSDName);
+			FieldsToRSD (this.Fields, rsd);
+			return rsd;
+		}
+
+		constructor (In : UBuf | RSF[], rsdName ='', start = 0) {
+			this.RSDName = rsdName;
 			if (In instanceof Uint8Array)
 				this.bufToPB (In as UBuf, start)
 			else this.fieldsToPB (In as RSF[]);
@@ -680,7 +685,7 @@ export namespace RS1 {
 				}
 			}
 
-			let newPB = new PB (Fields);
+			let newPB = new PB (Fields, this.cl);
 			this._bbi = newPB.bbi;
 			return newPB;
 		}
@@ -709,7 +714,7 @@ export namespace RS1 {
 
 
 		fromBuf (Buf : UBuf) {
-			let pb = new PB (Buf), k = this.K;
+			let pb = new PB (Buf, this.cl), k = this.K;
 
 			// console.log ('\n\n\n\n\n\n\n\nFromBuf # Fields = ' + pb.Fields.length.toString ());
 			for (const F of pb.Fields) {
@@ -3163,7 +3168,11 @@ export namespace RS1 {
 					throw 'fromPrefix Bytes mismatch! nBytes = ' + nBytes.toString () + 
 						', bbi =' + bbi.byteLength.toString () + ' bbistr=' + bb2str (bbi) + '=';
 				}
-			else { throw 'NIL bbi to fromPrefix!'; return;	}	// tragic error 
+			else { 
+				console.log ('prefix = ' + prefix + ' FieldRSD=' + FieldRSD);
+				
+				
+				throw 'NIL bbi to fromPrefix!'; return;	}	// tragic error 
 			
 
 			if (isArray) {
@@ -7778,7 +7787,7 @@ export namespace RS1 {
 		return newRSD;
 	}
 
-	export function DBSelect (IDOrStr :number|string = '|Type:List|') {
+	export async function DBSelect (IDOrStr :number|string = '|Type:List|') {
 		let Arg = new TypedArgs (IDOrStr), rsd;
 
 		if (typeof IDOrStr === 'string')
@@ -7786,8 +7795,9 @@ export namespace RS1 {
 		else // number
 			rsd = newClientRSD ('|?Q:S' + '|_ID:' + IDOrStr + '|');
 
-		let outRSD = ReqRSD (rsd);
-		return outRSD;
+		let outRSD = await ReqRSD (rsd);
+
+		return outRSD.BLOB ? BufToRSDs (outRSD.BLOB) : [];
 	}
 
 	export function DBUpdate (rsd:RSD) {
@@ -7852,6 +7862,25 @@ export namespace RS1 {
 		return result;
 	}
 
+	export function BufToRSDs (Buf : UBuf) {
+		let offset = 0, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
+
+		console.log ('BufToRSDs bytes = ' + Buf.byteLength + ' Buf=\n' + bb2str (Buf));
+
+		while (offset < totalBytes) {
+			let pb = new PB (Buf, '', offset);
+			if (!(offset = pb.offset))
+				break;
+
+			console.log ('Making from offset ' + offset + 'RSDName =' + pb.RSDName, ' data=', bb2str (Buf.slice (offset,offset+80)));
+
+			RSDs.push (pb.makeRSD ());
+		}
+
+		console.log ('Leaving BufToRSDs, #' + ' = ' + RSDs.length+ ' offset=' + offset + '  totalBytes=' + totalBytes);
+
+		return RSDs;
+	}
 
 /*
 		K?	:	RSK;

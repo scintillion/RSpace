@@ -183,6 +183,9 @@ export async function InitClient () {
     let ABCRSIList = new RS1.qList (ABCRSI);
     let ABCstr = RS1.bb2str (ABCRSIList.toBBI);
     console.log ('ABC bbi=' + ABCstr + ' ABC.to$=' + ABCRSIList.to$);
+    let newABC = RS1.newRSD (ABCRSIList.toBBI);
+    if (newABC.to$ !== ABCRSIList.to$)
+        ABCstr = ABCstr;
 
     console.log  ('targetList = ' + targetList.expand);
     console.log  ('ABCRootList = ' + ABCRootList.expand);
@@ -231,8 +234,11 @@ export async function InitClient () {
     let  TList = new RS1.TileList(RList); // remove temporarily
     console.log ('TList.ToString = \n' + TList.toStr);
 
-    // RS1.rLoL.SaveLists ();
-    let SelectRSD = RS1.DBSelect ('|_Name:FM|');
+    RS1.rLoL.SaveLists ();
+    let SelectRSD = await RS1.DBSelect ('|_Name:FM|');
+    for (const r of SelectRSD) {
+        console.log (r.cl + ' $=' + r.to$);
+    }
 
     // RS1.DBDelete ([140,150,160]);
     RS1.DBDelete (162);
