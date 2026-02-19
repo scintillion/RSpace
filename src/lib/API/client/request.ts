@@ -27,27 +27,6 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     let rsdBBI = rsd.toBBI, rsdstr = RS1.bb2str (rsdBBI);
     RS1.BuildQ (rsd);
-/*
-    let rQ = rsd.qGetQStr, name = rsd.Name, desc = rsd.Desc, rsdName = rsd.cl, tile=RS1.zGet$ (rQ, 'Tile'), Type = rsd.Type;
-    if (rsd.isList) {
-        name = rsd.listName;
-        let pair = rsd.namedesc ()
-        desc = pair.b;
-    }
-    else {
-        name = RS1.zGet$ (rQ, 'Name');
-        desc = RS1.zGet$ (rQ, 'Desc');
-    }    
-
-    console.log ('Incoming RSDRequest ='+rsd.to$ + ' name=' + name + ' desc=' + desc + ' type=' + Type);
-
-
-    let outRSD = RS1.newRSD (rsd.qGetQStr + ':#:' + (++Serial).toString () + ':' + RS1.mySession.toString () + 
-            '|_Name:' + name + '|_Desc:' + desc + '|_RSD:' + rsdName + '|_Tile:' + tile + '|_Type:' + Type + '|');
-
-    outRSD.BLOB = rsdBBI;
- */
-
     let AB = RS1.bb2ab (rsd.toBBI);
     console.log ('Sending Client Request #' + RS1.mySerial.toString () + '=' + RS1.bb2str (rsd.toBBI) + ' BYTES=' + AB.byteLength.toString ());
     let testCmd = new RS1.RSDCmd (rsd);
@@ -62,6 +41,7 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
         if (str.length > 2000)
             console.log ('BIG BATCH!');
 
+        console.log ('Incoming RSD,');
         let newRSD = RS1.newRSD (recvAB), cmd = new RS1.RSDCmd (newRSD, false);
         if (!RS1.xmySession) { //looking for first message
             let CmdStr = newRSD.qGet ('_#'), cmds = CmdStr.split (':');
@@ -236,19 +216,30 @@ export async function InitClient () {
 
     RS1.rLoL.SaveLists ();
     let SelectRSD = await RS1.DBSelect ('|_Name:FM|');
-    let outRSDs = SelectRSD[0].BLOB ? RS1.BufToRSDs (SelectRSD[0].BLOB) : [], i = 0;
+    console.log ('Returned from DBSelect');
+    if (SelectRSD.BLOB) {
+		console.log ('RSD.newBuf (BLOB) nBytes =', SelectRSD.BLOB.byteLength + ' checksum=' + RS1.checksumBuf (SelectRSD.BLOB));
+        let outRSDs = RS1.BufToRSDs (SelectRSD.BLOB), i= 0;
+        console.log ('Finished outRSDs from BufToRSDs');
+        for (const o of outRSDs)
+            console.log ('outRSD'+ ++i + '=' + o.to$);
+        console.log ('Finished outRSD loop.');
 
-    console.log ('outRSDs length = ' + outRSDs.length);
-    for (const o of outRSDs) {
-        console.log (++i + '. RSD=' + o.to$);
+        let out = outRSDs[0];
+        if (out.BBI) {
+            outRSDs = RS1.BufToRSDs (out.BBI); i = 0;
+            for (const o of outRSDs) 
+                console.log ('unpacking #' + ++i + '=' + o.to$);
+
+            console.log ('Repeating');
+            outRSDs = RS1.BufToRSDs (outRSDs[0].BBI as Uint8Array);
+            i = 0;
+            for (const o of outRSDs)
+                console.log ('unpacking AGAIN#' + ++i + '=' + o.to$);
+        }
     }
 
-/*
-    for (const r of SelectRSD) {
-        console.log (r.cl + ' $=' + r.to$ + 'BLOB bytes=' + r.BLOB?.byteLength);
-    }
-*/
-    
+    console.log ('Preparing Delete (162)');
 
     // RS1.DBDelete ([140,150,160]);
     RS1.DBDelete (162);

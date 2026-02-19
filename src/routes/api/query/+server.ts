@@ -50,10 +50,11 @@ class DBKit {
 		console.log ('ExecQ QUERY=' + rsd.T + '.');
 		const statement = this._db.prepare (rsd.T as string) as unknown as Statement;
 
-		let dbResponse, reply = new RS1.RSD ();
+		let dbResponse;
 
 		if (query[0] !== 'S')
 		{
+			let reply = new RS1.RSD ();
 			dbResponse = statement.run (Params);
 			reply.objectIn (dbResponse);
 
@@ -67,16 +68,18 @@ class DBKit {
 
 		console.log ('SELECT query =' + rsd.T + ' yields records=' + nRecords.toString());
 		for (const each of ObjArray) {
+			let reply = new RS1.RSD ();
 			reply.objectIn (each as Object);
 
 			if (reply.BLOB) {
-				console.log ('  each nBytes= '  + reply.BLOB?.byteLength.toString () + each);
+				console.log ('  each nBytes= '  + reply.BLOB?.byteLength.toString () + ' con=' + each.constructor.name + ':' + each);
 				BLOBS.push (reply.BLOB as Uint8Array);
 				++count;
 				nBytes += (reply.BLOB as Uint8Array).byteLength;
 			}
 		}
 
+		let outRSD = new RS1.RSD ();
 		if (count) {
 			console.log ('NewBuf Bytes=' + nBytes.toString ());
 			let newBuf = RS1.newBuf (nBytes), offset = 0;
@@ -86,14 +89,17 @@ class DBKit {
 				newBuf.set (b, offset);
 				offset += b.byteLength;
 			}
-			reply.BLOB = newBuf;
+			outRSD.BLOB = newBuf;
 
-			console.log ('RSD.newBuf (BLOB) nBytes =', reply.BLOB.byteLength + ' checksum=' + RS1.checksumBuf (newBuf));
+			console.log ('RSD.newBuf (BLOB) nBytes =', outRSD.BLOB.byteLength + ' checksum=' + RS1.checksumBuf (newBuf));
+
+			let newRSDs = RS1.BufToRSDs (newBuf);
+			for (const n of newRSDs) 
+				console.log ('  unpacked RSD=' + n.to$);
 		}
-		else reply.BLOB = undefined;
 
-		reply.qSet ('Count',nRecords);
-		return reply;
+		outRSD.qSet ('Count',nRecords);
+		return outRSD;
 	}
 
 }
@@ -193,15 +199,19 @@ async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
 	let Buf = RS1.newBuf (AB);
 
 	let rsd = RS1.newRSD (Buf);
+	console.log ('Incoming RSD,');
+	let cmd1 = new RS1.RSDCmd (rsd,true);
 	// rsd.constructRSD (RS1.newBuf (AB));
 
 //	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.expand)
 	let ResultRSD = await RS1.ReqRSD (rsd);
 
+	console.log ('Outgoing RSD,');
+	let cmd2 = new RS1.RSDCmd (ResultRSD,true);
 //	console.log ('Returned from ReqRSD, ResultRSD =' + ResultRSD.expand);
 
 	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);
-	console.log ('  leaving ReqAB, returning ResultAB Bytes=' + ResultAB.byteLength);
+//	console.log ('  leaving ReqAB, returning ResultAB Bytes=' + ResultAB.byteLength);
 
 	return ResultAB;
 }

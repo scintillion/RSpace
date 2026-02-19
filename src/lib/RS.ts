@@ -146,17 +146,22 @@ export namespace RS1 {
 			let colon = first.indexOf (':');
 			if (colon >= 0)
 					this.RSDName = first.slice (0,colon);
-			else this.RSDName = first;
+			else if (first)
+					this.RSDName = first;
 
 			let count = prefixes.length, Fields = Array<RSF> (count), i = 0;
+
+			console.log ('BufToPB, bytes = ' + Buf.byteLength + ', sum=' + checksumBuf (Buf) + ' + prefix=' + prefix + '\n' + bb2str (Buf));
 	
 			for (const P of prefixes) {
 				let nBytes = prefixBytes (P), bbi, bbistr ='';
+				console.log ('Prefix = ' + P + ', offset = ' + offset + ', nBytes = ' + nBytes);
 				if (nBytes) {
 					bbi = Buf.slice (offset,offset + nBytes);
 					offset += nBytes;
 					bbistr = bb2str (bbi);
 				}
+				else bbistr = 'NIL';
 
 				// if (nBytes) 
 				//	console.log ('  processing ' + nBytes.toString () + ' bytes, Buf Str=' +
@@ -166,9 +171,12 @@ export namespace RS1 {
 				F.fromPrefix (P,bbi);
 				Fields[i++] = F;
 
+				console.log ('  after offset = ' + offset + ', bbistr=' + bbistr);
+
 				// console.log ('Adding Field ' + F.expand)
 			}
 	
+			console.log ('  Slicing start=' + start + ', offset = ' + offset);
 			this.bbi = Buf.slice (start,offset);
 			this.offset = offset;
 			this.Fields = Fields;
@@ -181,7 +189,7 @@ export namespace RS1 {
 			return rsd;
 		}
 
-		constructor (In : UBuf | RSF[], rsdName ='', start = 0) {
+		constructor (In : UBuf | RSF[], rsdName:string, start = 0) {
 			this.RSDName = rsdName;
 			if (In instanceof Uint8Array)
 				this.bufToPB (In as UBuf, start)
@@ -431,6 +439,11 @@ export namespace RS1 {
 		get DBqList () {
 			return '|_Name:' + this.Name + '|_Desc:' + this.Desc + '|_Type:' + this.Type + '|_RSD:' + this.cl +
 				'|_Count:' + this.Count + '|_Tile:' + zGet$ (this.qstr, 'Tile') + '|';
+		}
+
+		get sum () {
+			this.mark;
+			return checksumBuf (this.toBBI);
 		}
 
 		get clear () {
@@ -707,14 +720,14 @@ export namespace RS1 {
 				return this._bbi;
 			else {
 				let newPB = this.toPB ();
-				return this._bbi = newPB.bbi;
+				return this._bbi = newPB.bbi as UBuf;
 			}
 		}
 
 
 
 		toPrefix () {
-			let k = this.K, bbi, prefix;
+			let bbi, prefix;
 			if (!(bbi = this._bbi)) {
 				let pb = this.toPB ();
 				if (!pb  ||  !(bbi = pb.bbi))
@@ -723,7 +736,7 @@ export namespace RS1 {
 
 			let	cName = '[' + this.cl + ']';
 			
-			let str = tRSD + cName + this.Name + ':' + bbi.length.toString ();
+			let str = tRSD + cName + this.Name + ':' + bbi.length;
 			return str;
 		}
 
@@ -1681,7 +1694,7 @@ export namespace RS1 {
 			let Buf : BBI;
 			this.clear;
 			
-			console.log ('ObjectIn:Adding entries!');
+			console.log ('ObjectIn: ' + O.constructor.name + ' Adding entries!');
 
 			let entries = Object.entries (O), Strs = [], raw, count=0;
 
@@ -1750,6 +1763,7 @@ export namespace RS1 {
 		cmdstr = '';
 		command = '';
 		cmdXtra = '';
+		BLOB : BBI;
 		commands : string[] = [];
 
 		constructor (rsd : RSD, serving = true) {
@@ -1789,8 +1803,11 @@ export namespace RS1 {
 			else commands = [];
 
 			console.log ('RSDcmd RSD=' + rsd.to$ + '\n Receives Message #' + this.SerialIDStr + '/' + this.SerialID.toString () +
-			' Session=' + this.SessionStr + '/' + this.SessionID.toString () +
+			' Session=' + this.SessionStr + '/' + this.SessionID.toString () + ' sum=' + rsd.sum +
 		 		'\n  CmdStr = ' + this.cmdstr + ' CmdXtra = ' + this.cmdXtra + ' NumberStr =' + this.NumberStr);
+			if (this.BLOB) {
+				console.log ('  BLOB Bytes=' + this.BLOB.byteLength + ', sum=' + checksumBuf (this.BLOB));
+			}
 		}
 	}
 
@@ -7664,9 +7681,8 @@ export namespace RS1 {
 			rsd = newClientRSD ('|?Q:S' + '|_ID:' + IDOrStr + '|');
 
 		let outRSD = await ReqRSD (rsd);
-
-		console.log ('outRSD BLOB Bytes=' + outRSD.BLOB?.byteLength);
-		return outRSD.BLOB ? BufToRSDs (outRSD.BLOB) : [];
+		console.log ('DBSelect outRSD BLOB Bytes=' + outRSD.BLOB?.byteLength);
+		return outRSD;
 	}
 
 	export function DBUpdate (rsd:RSD) {
@@ -7711,15 +7727,20 @@ export namespace RS1 {
 	}
 
 	export function RSDsToBuf (RSDs:RSD[]) {
-		let BBIs = Array<UBuf> (RSDs.length), totalBytes = 0, count = 0, bbi;
+		let len = RSDs.length, BBIs = Array<UBuf> (len), Prefixes = Array<string> (len), 
+			totalBytes = 0, count = 0, bbi, prefix, offset, result, nBytes;
 
-		for (const rsd of RSDs) {
-			bbi = BBIs[count++] = rsd.toBBI as UBuf;
-			totalBytes += bbi.byteLength;
-		}
+		for (const rsd of RSDs) 
+			if (rsd) {
+				prefix = Prefixes[count] = rsd.toPrefix ();
+				bbi = BBIs[count++] = rsd.toBBI as UBuf;
+				totalBytes += bbi.byteLength;
+			}
 
-		let offset = 0, result = newBuf (totalBytes), nBytes, i = 0;
-		for (const buf of BBIs) {
+		prefix = Prefixes.join (',') + ',' + StrEndBlk;
+		result = newBuf (totalBytes += (offset = prefix.length));
+		result.set (str2bbi (prefix));
+		for (let i = 0; i < count;) {
 			nBytes = BBIs[i].byteLength;
 			result.set (BBIs[i++], offset);
 			offset += nBytes;
@@ -7731,9 +7752,11 @@ export namespace RS1 {
 		return result;
 	}
 
+
 	export function BufToRSDs (Buf : UBuf) {
-		console.log ('BufToRSDs Bytes = ' + Buf.byteLength);
-		let offset = 0, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
+		let end = Buf.indexOf (StrEndBlkCode), prefix = bb2str (Buf.slice (0,end));
+		console.log ('BufToRSDs Bytes = ' + Buf.byteLength + ', sum=' + checksumBuf (Buf) + 'Buf=\n' + bb2str (Buf));
+		let offset = end + 1, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
 
 		while (offset < totalBytes) {
 			const pb = new PB(Buf, '', offset);
@@ -7744,6 +7767,8 @@ export namespace RS1 {
 
 		return RSDs;
 	}
+
+
 
 	export function FieldsToRSD (Fields : RSF[], rsd : RSD) {
 		let k = rsd.K;
@@ -7848,7 +7873,7 @@ export namespace RS1 {
 
 	export function RSDToPB(rsd: RSD) {
 		const Fields = RSDToFields(rsd);
-		let newPB  = new PB(Fields);
+		let newPB  = new PB(Fields,rsd.cl);
 		newPB.RSDName = rsd.cl;		// later, if creating RSD from this PB,
 									// I must know the name of the RSD to create!
 		rsd._setBBI (newPB.bbi);
@@ -7891,334 +7916,45 @@ export namespace RS1 {
 
 
 
-
-
-
-
-
-
 /*
-	export function RSDToPB (rsd : RSD) {
-		let Str, bbi;
-		
-		Str = rsd.to$;
+	export function RSDsToBuf (RSDs:RSD[]) {
+		let BBIs = Array<UBuf> (RSDs.length), totalBytes = 0, count = 0, bbi;
 
-		
-		let k = rsd.K, x = rsd.X, p = rsd.P;
-
-		let cName = rsd.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
-
-		if (Str) {
-			field = new RSF ();
-
-			field.setData (Str);
-			field.setName ('.$');
-			Fields.push (field);
-
-			let bbtest = str2bbi (Str);
-			if (bbtest.byteLength !== Str.length)
-				throw 'Mismatched length!!';
+		for (const rsd of RSDs) {
+			bbi = BBIs[count++] = rsd.toBBI as UBuf;
+			totalBytes += bbi.byteLength;
 		}
 
-		if (x) {
-			field = new RSF ();
-
-			field.setData (x);
-			field.setName ('.x');
-			Fields.push (field);
+		let offset = 0, result = newBuf (totalBytes), nBytes, i = 0;
+		for (const buf of BBIs) {
+			nBytes = BBIs[i].byteLength;
+			result.set (BBIs[i++], offset);
+			offset += nBytes;
 		}
 
-		if (p) {
-			field = new RSF ();
+		if (offset !== totalBytes)
+			throw 'offset/totalBytes mismatch!';
 
-			field.setData (p,'RSPack');
-			field.setName ('.p');
-			Fields.push (field);
-		}
-
-		if (rsd.N) {	// number array!
-				field = new RSF ();
-				field.setData (rsd.N)
-				Fields.push (field);
-		}
-
-		if (rsd.BLOB) {
-				field = new RSF ();
-				field.setName ('.b');
-				field.setData (rsd.BLOB,'Uint8Array');
-				Fields.push (field);
-		}
-
-		if (k  &&  !(rsd instanceof xList)) {	// xList directly puts includes kids in to$
-			let Kids = k._kids;
-			for (const Kid of Kids) {
-				if (Kid) {
-					if (fldPack)
-						// need to duplicate the field, not copy it by reference
-						Fields.push ((Kid as unknown) as RSF);
-					else {
-						field = new RSF ();
-						field.setData (Kid, Kid.cl);
-						field.setName (Kid.Name);
-						Fields.push (field);
-					}
-				}
-			}
-		}
-
-		let newPB = new PB (Fields);
-		rsd.BBI = newPB.bbi;
-		return newPB;
+		return result;
 	}
 */
 
 
-/*  Internal functions retired from RSD
-
-		fromBuf (Buf : UBuf) {
-			let pb = new PB (Buf, this.cl), k = this.K;
-
-			// console.log ('\n\n\n\n\n\n\n\nFromBuf # Fields = ' + pb.Fields.length.toString ());
-			for (const F of pb.Fields) {
-				let name = F.name;
-
-				//	console.log ('   restoring name=' + name + ' prefix =' + F.prefix + ' bytes=' + F._bbi?.byteLength.toString ());
-				switch (name) {
-					case '.$' : 
-						// console.log ('from$, str = ' + typeof (F.Data) + ':' + (F.Data as string))
-						this.from$ (F.Data as string); break;
-					case '.x' : this.X = F.Data; break;
-					case '.p' : this.fromPack (F.Data as RSPack); break;
-					case '.b' : this.BLOB = F.Data as BBI; 
-						//	console.log ('Setting BLOB =' + bb2str (F.Data as BBI));
-						break;
-					// case '.q' : this.Q = F.Data as RSI; break;
-					// case '.r' : this.R = F.Data as RSr; break;
-					default :	// child
-						if (k)
-							k.add (F.Data as RSD, false);
-				}
-			}
-		}
-
-
-
-*/
-
 /*
-		protected toPB () {
-			let Str, bbi;
-			
-			Str = this.to$;
-			
-			let k = this.K, x = this.X, p = this.P;
+	export function BufToRSDs (Buf : UBuf) {
+		console.log ('BufToRSDs Bytes = ' + Buf.byteLength + ', sum=' + checksumBuf (Buf) + 'Buf=\n' + bb2str (Buf));
+		let offset = 0, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
 
-			let cName = this.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
-
-			if (Str) {
-				field = new RSF ();
-
-				field.setData (Str);
-				field.setName ('.$');
-				Fields.push (field);
-
-				let bbtest = str2bbi (Str);
-				if (bbtest.byteLength !== Str.length)
-					throw 'Mismatched length!!';
-			}
-
-			if (x) {
-				field = new RSF ();
-
-				field.setData (x);
-				field.setName ('.x');
-				Fields.push (field);
-			}
-
-			if (p) {
-				field = new RSF ();
-
-				field.setData (p,'RSPack');
-				field.setName ('.p');
-				Fields.push (field);
-			}
-
-			if (this.N) {	// number array!
-					field = new RSF ();
-					field.setData (this.N)
-					Fields.push (field);
-			}
-
-			if (this.BLOB) {
-					field = new RSF ();
-					field.setName ('.b');
-					field.setData (this.BLOB,'Uint8Array');
-					Fields.push (field);
-			}
-
-			if (k  &&  !(this instanceof xList)) {	// xList directly puts includes kids in to$
-				let Kids = k._kids;
-				for (const Kid of Kids) {
-					if (Kid) {
-						if (fldPack)
-							// need to duplicate the field, not copy it by reference
-							Fields.push ((Kid as unknown) as RSF);
-						else {
-							field = new RSF ();
-							field.setData (Kid);
-							field.setName (Kid.Name);
-							Fields.push (field);
-						}
-					}
-				}
-			}
-
-			let newPB = new PB (Fields, this.cl);
-			this._bbi = newPB.bbi;
-			return newPB;
+		while (offset < totalBytes) {
+			const pb = new PB(Buf, '', offset);
+			if (!(offset = pb.offset))
+				break;
+			RSDs.push(PBToRSD(pb));
 		}
 
-		PBsToBuf (PBs:PB[],RSDName='') {
-			let pStrs = new Array<string> (PBs.length + 1), count = 0, cName = this.cl;
-			if (cName === RSDName)
-				cName = '';
-			// else if (RSDName = '')
-
-			for (const pb of PBs) {
-
-
-			}
-		}
-*/
-	/*
-		fromPB (pb : PB) {
-			let k = this.K;
-			if (k)
-				k.clear;
-
-			for (const field of pb.Fields) {
-				let name = field.Name;
-
-				switch (name) {
-					case '.$' : this.from$ (field.Data as string); break;
-					case '.x' : this.X = field.Data as RSD; break;
-					case '.p' : this.P = field.Data as RSPack; break;
-					case '.b' : this.BLOB = field.Data as UBuf; break;
-					default : if (k  &&  name  &&  name[0] != '.')
-									k.add (field.Data as RSD,false);
-				}
-			}
-
-			this._bbi = pb.bbi;
-		}
+		return RSDs;
+	}
 */
 
-//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
 
-
-
-
-
-//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
-
-
-/*
-					if (cName !== 'Array') {	// RSD single record
-
-
-					}
-					else {
-						let Arr = D as Array<any>, aType, dimStr='', let arrayStr='';
-						for (const E of Arr)
-							if (E  &&  !aType) {
-								aType = E.constructor.name;
-								if (aType === 'Number')
-									aType = tNum;
-								else if (aType === 'String')
-									aType = tStr;
-								else aType = tRSD;
-								this._arrType = aType;
-								break;
-							}
-		
-		
-		
-		
-						else if (this._type === tNum) {
-							AB = new ArrayBuffer(Arr.length*8);
-							let floats = new Float64Array (AB);
-							floats.set (Arr);
-							arrayStr = '[]';
-						}
-						else if (this._type === tStr) {
-							let newStrs:string[] = [], nBytes = 0, count = 0;
-							arrayStr = '[';
-							for (const E of Arr) {
-								++count;
-								let len = E ? E.length : 0;
-								if (len) {
-									newStrs.push (E);
-									nBytes += len;
-								}
-								dimStr += ' ' + len.toString ();
-							}
-							arrayStr += ']';
-							let newStr = newStrs.join ('');
-							AB = str2ab (newStr);
-						}
-					}
-
-
-					break;
-				default : return;
-			}
-/*
-
-			//			export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',tDisk='*',tArray='[';
-						str = ',' + this._type;
-						if (this._arrType) {
-							let Arr = this._data as Array<any>, aType;
-							if (this._type[0] >= '0') {	// RSD derived
-								for (const E of Arr)
-									if (E) {
-										if (!aType)
-											aType = E.constructor.name + '=';
-									}
-			
-			
-			
-			
-							}
-							else if (this._type === tNum) {
-								AB = new ArrayBuffer(Arr.length*8);
-								let floats = new Float64Array (AB);
-								floats.set (Arr);
-								arrayStr = '[]';
-							}
-							else if (this._type === tStr) {
-								let newStrs:string[] = [], nBytes = 0, count = 0;
-								arrayStr = '[';
-								for (const E of Arr) {
-									++count;
-									let len = E ? E.length : 0;
-									if (len) {
-										newStrs.push (E);
-										nBytes += len;
-									}
-									str += ' ' + len.toString ();
-								}
-								arrayStr += ']';
-								let newStr = newStrs.join ('');
-								AB = str2ab (newStr);
-							}
-						}
-			
-						str += arrayStr + this._name + ':' + AB?.byteLength.toString();
-						return str;
-
-
-
-			return this._type;
-		}
-*/
 
