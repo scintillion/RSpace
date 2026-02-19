@@ -72,7 +72,6 @@ class DBKit {
 			reply.objectIn (each as Object);
 
 			if (reply.BLOB) {
-				console.log ('  each nBytes= '  + reply.BLOB?.byteLength.toString () + ' con=' + each.constructor.name + ':' + each);
 				BLOBS.push (reply.BLOB as Uint8Array);
 				++count;
 				nBytes += (reply.BLOB as Uint8Array).byteLength;
@@ -81,21 +80,13 @@ class DBKit {
 
 		let outRSD = new RS1.RSD ();
 		if (count) {
-			console.log ('NewBuf Bytes=' + nBytes.toString ());
 			let newBuf = RS1.newBuf (nBytes), offset = 0;
 
 			for (const b of BLOBS) {
-				console.log ('  b Bytes = ' + b.byteLength + ' ,offset = ' + offset);
 				newBuf.set (b, offset);
 				offset += b.byteLength;
 			}
 			outRSD.BLOB = newBuf;
-
-			console.log ('RSD.newBuf (BLOB) nBytes =', outRSD.BLOB.byteLength + ' checksum=' + RS1.checksumBuf (newBuf));
-
-			let newRSDs = RS1.BufToRSDs (newBuf);
-			for (const n of newRSDs) 
-				console.log ('  unpacked RSD=' + n.to$);
 		}
 
 		outRSD.qSet ('Count',nRecords);

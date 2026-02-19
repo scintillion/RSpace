@@ -188,7 +188,6 @@ export class ListEditor {
 		}
 		
 		const listStr = this.list.to$;
-		console.log('New listStr:', listStr);
 		
 		return {
 			success: true,

@@ -151,11 +151,8 @@ export namespace RS1 {
 
 			let count = prefixes.length, Fields = Array<RSF> (count), i = 0;
 
-			console.log ('BufToPB, bytes = ' + Buf.byteLength + ', sum=' + checksumBuf (Buf) + ' + prefix=' + prefix + '\n' + bb2str (Buf));
-	
 			for (const P of prefixes) {
 				let nBytes = prefixBytes (P), bbi, bbistr ='';
-				console.log ('Prefix = ' + P + ', offset = ' + offset + ', nBytes = ' + nBytes);
 				if (nBytes) {
 					bbi = Buf.slice (offset,offset + nBytes);
 					offset += nBytes;
@@ -163,20 +160,11 @@ export namespace RS1 {
 				}
 				else bbistr = 'NIL';
 
-				// if (nBytes) 
-				//	console.log ('  processing ' + nBytes.toString () + ' bytes, Buf Str=' +
-				//		bbi?.byteLength.toString () + '=' + bb2str (bbi) + 'BBIStr=' + bbistr);
-
 				let F = new RSF ();
 				F.fromPrefix (P,bbi);
 				Fields[i++] = F;
-
-				console.log ('  after offset = ' + offset + ', bbistr=' + bbistr);
-
-				// console.log ('Adding Field ' + F.expand)
 			}
 	
-			console.log ('  Slicing start=' + start + ', offset = ' + offset);
 			this.bbi = Buf.slice (start,offset);
 			this.offset = offset;
 			this.Fields = Fields;
@@ -1842,7 +1830,6 @@ export namespace RS1 {
 			}
 		}
 
-		console.log (' newRSD, name =' + name);
 		switch (name) {
 			case 'RSD' : return new RSD (x);
 			case 'rList' : return new xList (x);
@@ -3151,11 +3138,7 @@ export namespace RS1 {
 					throw 'fromPrefix Bytes mismatch! nBytes = ' + nBytes.toString () + 
 						', bbi =' + bbi.byteLength.toString () + ' bbistr=' + bb2str (bbi) + '=';
 				}
-			else { 
-				console.log ('prefix = ' + prefix + ' FieldRSD=' + FieldRSD);
-				
-				
-				throw 'NIL bbi to fromPrefix!'; return;	}	// tragic error 
+			else { throw 'NIL bbi to fromPrefix!'; return;	}	// tragic error 
 			
 
 			if (isArray) {
@@ -7523,11 +7506,6 @@ export namespace RS1 {
 								qStr += vName + '=?,';
 							}
 							Values.push (vDesc);
-//							console.log ('  adding ' + vName + ', Value =' + vDesc);
-/*
-							if (vDesc) {
-								Wheres.push ("(" + vName + " = '" + vDesc + "')");
-*/
 					}
 				}
 				else { vName = r.slice (1); vDesc = '';	}
@@ -7541,7 +7519,6 @@ export namespace RS1 {
 				else {	vName = r; vDesc = '';	}
 			}
 
-			console.log (' :::RAW line=' + r + ', newBuildQ, vName=' + vName + ', vDesc=' + vDesc);
 			if ((first = vName[0]) < 'A')	{	// not a legal field name, must be control
 				if (first === '?') {
 					switch (vName[1]) {
@@ -7572,7 +7549,6 @@ export namespace RS1 {
 			else {
 				if (first === '_') {
 					vName = vName.slice (1);
-					console.log ('  :Special: detected ' + vName + ':' + vDesc);
 				}
 				if (qType === 'I') {
 					qStr += vName + ',';
@@ -7582,7 +7558,6 @@ export namespace RS1 {
 					qStr += vName + '=?,';
 				}
 				Values.push (vDesc);
-				console.log ('  adding ' + vName + ', Value =' + vDesc);
 			}
 		}
 
@@ -7602,10 +7577,6 @@ export namespace RS1 {
 
 		vStr = vStr.slice (0,-1); qStr = qStr.slice (0,-1);
 
-//		console.log ('table=' + table + ' ID=' + ID.toString () + ' tile=' + tile.toString () +
-//					' qType=' + qType + '  qStr=' + qStr + ' vStr=' + vStr);
-//		for (var w of Wheres) 
-//			console.log ('  where= ' + (w = '(' + w + ')') );
 		console.log ('Wheres =' + Wheres.join ('&'));
 
 
@@ -7681,8 +7652,7 @@ export namespace RS1 {
 			rsd = newClientRSD ('|?Q:S' + '|_ID:' + IDOrStr + '|');
 
 		let outRSD = await ReqRSD (rsd);
-		console.log ('DBSelect outRSD BLOB Bytes=' + outRSD.BLOB?.byteLength);
-		return outRSD;
+		return outRSD.BLOB ? RS1.BufToRSDs (outRSD.BLOB) : [];
 	}
 
 	export function DBUpdate (rsd:RSD) {

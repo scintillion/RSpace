@@ -34,21 +34,18 @@ let Thing;
 
     // kit.TestLine ();
 
-    console.log ('DBTest!');
   }
 
 function DumpLists () {
-  console.log ('DumpLists...');
-
   RS1.LstEdit.MainList = document.querySelector ('#MainList') as HTMLSelectElement;
   RS1.LstEdit.DropList = document.querySelector ('#DropList') as HTMLSelectElement;
   RS1.LstEdit.ListSelect = document.querySelector ('#LoL') as HTMLSelectElement;
   RS1.LstEdit.TileSelect = document.querySelector ('#ListOfTiles') as HTMLSelectElement;
 
   if (RS1.CL.LT  && RS1.LstEdit.MainList)
-      RS1.CL.LT.x.ToSelect (RS1.LstEdit.MainList);
+      RS1.CL.LT.X.ToSelect (RS1.LstEdit.MainList);
   if (RS1.CL.TD  &&  RS1.LstEdit.DropList)
-      RS1.CL.TD.x.ToSelect (RS1.LstEdit.DropList);
+      RS1.CL.TD.X.ToSelect (RS1.LstEdit.DropList);
   if (RS1.CL  &&  RS1.LstEdit.ListSelect)
       RS1.CL.ToSelect (RS1.LstEdit.ListSelect);
 
@@ -61,9 +58,7 @@ function DumpLists () {
         LstEdit.ListSelect = document.querySelector ('#LoL');
 */
 
-  console.log ('Calling Defines!'); 
   RS1.CL.Defines ('Consts.ts');
-  console.log ('DumpList!');
 }
 </script>
 
