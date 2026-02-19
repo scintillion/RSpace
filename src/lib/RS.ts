@@ -1682,29 +1682,18 @@ export namespace RS1 {
 			let Buf : BBI;
 			this.clear;
 			
-			console.log ('ObjectIn: ' + O.constructor.name + ' Adding entries!');
-
 			let entries = Object.entries (O), Strs = [], raw, count=0;
 
 			for (let entry of entries) {
 				let value = entry[1], Type = typeof (value);
-				let proc = '  processing ' + entry[0] + '=' + Type + ' con=';
-				if (value) {
-					if (value.constructor)
-						proc = value.constructor.name;
-					else proc += '\n\n\n\nvalue.constructor = ' + typeof (value.constructor);
-				}
-				else proc += '\n\n\n\nvalue = ' + typeof (value);
 
 				switch (Type) {
 					case 'string' : case 'number' : Strs.push (entry[0] + ':' + entry[1]); break;
 					case 'object' :
 						if (Array.isArray (value)) {
-							console.log ('Array (value).length =' + value.length);
 						}
 						else if (value instanceof Uint8Array) {
 							Buf = this.BLOB = value;
-							console.log ('Reading ' + Buf.byteLength+ ' bytes of ' + entry[0] + ' = ' + bb2str (Buf));
 						}
 						break;
 				}
@@ -1714,9 +1703,6 @@ export namespace RS1 {
 			this.mark;
 
 			this.qFromRaw (Strs);
-			if (Buf)
-				console.log ('<--- Objectin DATA Bytes =' + Buf.byteLength.toString ());
-			console.log ('ObjectIn Resultant RSD:' + '\n' + this.expand);
 			return Buf;
 		}
 
@@ -1754,7 +1740,7 @@ export namespace RS1 {
 		BLOB : BBI;
 		commands : string[] = [];
 
-		constructor (rsd : RSD, serving = true) {
+		constructor (rsd : RSD, direction='>>', serving = true) {
 			let qstr = rsd.qGetQStr, pos = qstr.indexOf ('|_#:'), serial='', colon = -1, 
 				commands, endpos, cmdstr;
 
@@ -1790,7 +1776,7 @@ export namespace RS1 {
 			}
 			else commands = [];
 
-			console.log ('RSDcmd RSD=' + rsd.to$ + '\n Receives Message #' + this.SerialIDStr + '/' + this.SerialID.toString () +
+			console.log (direction + ' Message #' + this.SerialIDStr + '/' + this.SerialID.toString () +' RSD=' + rsd.to$ + 
 			' Session=' + this.SessionStr + '/' + this.SessionID.toString () + ' sum=' + rsd.sum +
 		 		'\n  CmdStr = ' + this.cmdstr + ' CmdXtra = ' + this.cmdXtra + ' NumberStr =' + this.NumberStr);
 			if (this.BLOB) {
@@ -1814,7 +1800,7 @@ export namespace RS1 {
 
 				if (bbi) {
 					str = bb2str (bbi.slice (0,199));
-					console.log ('newRSD, BBI =' + str);
+//					console.log ('newRSD, BBI =' + str);
 				}
 
 			}
@@ -5068,17 +5054,14 @@ export namespace RS1 {
 				'0123456789',
 			]);
 
-			console.log('Incoming Buf:' + '\n' + BP.desc);
 			let NewBuf = BP.bufOut ();
 			let Check1 = ChkBuf (NewBuf);
 
 			BP.bufIn (NewBuf);
-			console.log('Resultant Buf:' + '\n' + BP.desc);
 
 			NewBuf = BP.bufOut ();
 			let Check2 = ChkBuf (NewBuf);
 
-			console.log ('Check1/2 = ' + Check1.toString () + ' ' + Check2.toString ());
 
 			let IDList = new pList (0);
 			IDList.add ('1|ABC|2|DEF|26|XYZ');
@@ -7073,12 +7056,9 @@ export namespace RS1 {
 			for (let entry of entries) {
 				AddArray[count++] = entry[0];
 				AddArray[count++] = entry[1];
-
-				console.log ('   AddArray[' + count.toString () + '] entry = ' + entry);
 			}
 
 			this.addArgs (AddArray);
-			console.log ('ObjectIn Resultant BP:' + '\n' + this.desc);
 		}
 
 		objectOut () : Object {
@@ -7480,7 +7460,7 @@ export namespace RS1 {
 						case 'ID' : 
 							if (vDesc) {
 								ID = vDesc; 
-								Wheres.push ("ID = '" + vDesc + "'");
+								Wheres.push ("(ID = " + vDesc + ")");
 							}
 							continue;
 
@@ -7577,7 +7557,8 @@ export namespace RS1 {
 
 		vStr = vStr.slice (0,-1); qStr = qStr.slice (0,-1);
 
-		console.log ('Wheres =' + Wheres.join ('&'));
+		if (wheres.length)
+			console.log ('Wheres =' + Wheres.join ('&'));
 
 
 		switch (qType) {
@@ -7725,7 +7706,7 @@ export namespace RS1 {
 
 	export function BufToRSDs (Buf : UBuf) {
 		let end = Buf.indexOf (StrEndBlkCode), prefix = bb2str (Buf.slice (0,end));
-		console.log ('BufToRSDs Bytes = ' + Buf.byteLength + ', sum=' + checksumBuf (Buf) + 'Buf=\n' + bb2str (Buf));
+//		console.log ('BufToRSDs Bytes = ' + Buf.byteLength + ', sum=' + checksumBuf (Buf) + 'Buf=\n' + bb2str (Buf));
 		let offset = end + 1, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
 
 		while (offset < totalBytes) {
@@ -7881,50 +7862,6 @@ export namespace RS1 {
 
 
 
-
-
-
-
-
-/*
-	export function RSDsToBuf (RSDs:RSD[]) {
-		let BBIs = Array<UBuf> (RSDs.length), totalBytes = 0, count = 0, bbi;
-
-		for (const rsd of RSDs) {
-			bbi = BBIs[count++] = rsd.toBBI as UBuf;
-			totalBytes += bbi.byteLength;
-		}
-
-		let offset = 0, result = newBuf (totalBytes), nBytes, i = 0;
-		for (const buf of BBIs) {
-			nBytes = BBIs[i].byteLength;
-			result.set (BBIs[i++], offset);
-			offset += nBytes;
-		}
-
-		if (offset !== totalBytes)
-			throw 'offset/totalBytes mismatch!';
-
-		return result;
-	}
-*/
-
-
-/*
-	export function BufToRSDs (Buf : UBuf) {
-		console.log ('BufToRSDs Bytes = ' + Buf.byteLength + ', sum=' + checksumBuf (Buf) + 'Buf=\n' + bb2str (Buf));
-		let offset = 0, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
-
-		while (offset < totalBytes) {
-			const pb = new PB(Buf, '', offset);
-			if (!(offset = pb.offset))
-				break;
-			RSDs.push(PBToRSD(pb));
-		}
-
-		return RSDs;
-	}
-*/
 
 
 

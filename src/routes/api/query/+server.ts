@@ -58,7 +58,6 @@ class DBKit {
 			dbResponse = statement.run (Params);
 			reply.objectIn (dbResponse);
 
-			console.log ('Non Select Query returns: ' + dbResponse);
 			return reply;
 		}
 
@@ -184,21 +183,21 @@ async function ReqRSD (InRSD : RS1.RSD) : Promise<RS1.RSD> {
 
 
 async function ReqAB (AB : ArrayBuffer) : Promise<ArrayBuffer> {
-	console.log ('\n\n\nReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
+//	console.log ('\n\n\nReqAB in Server.ts, AB Bytes = ' + AB.byteLength.toString ());
 	let str = RS1.ab2str (AB);
 //	console.log ('AB = ' + str);
 	let Buf = RS1.newBuf (AB);
 
 	let rsd = RS1.newRSD (Buf);
-	console.log ('Incoming RSD,');
-	let cmd1 = new RS1.RSDCmd (rsd,true);
+//	console.log ('Incoming RSD,');
+	let cmd1 = new RS1.RSDCmd (rsd,'<<');
 	// rsd.constructRSD (RS1.newBuf (AB));
 
 //	console.log ('Calling ReqRSD in ReqAB/server.ts, rsd= ' + rsd.expand)
 	let ResultRSD = await RS1.ReqRSD (rsd);
 
-	console.log ('Outgoing RSD,');
-	let cmd2 = new RS1.RSDCmd (ResultRSD,true);
+//	console.log ('Outgoing RSD,');
+	let cmd2 = new RS1.RSDCmd (ResultRSD,'>>');
 //	console.log ('Returned from ReqRSD, ResultRSD =' + ResultRSD.expand);
 
 	let ResultAB = RS1.bb2ab (ResultRSD.toBBI);

@@ -28,8 +28,6 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     let rsdBBI = rsd.toBBI, rsdstr = RS1.bb2str (rsdBBI);
     RS1.BuildQ (rsd);
     let AB = RS1.bb2ab (rsd.toBBI);
-    console.log ('Sending Client Request #' + RS1.mySerial.toString () + ' == ' + rsd.to$);
-    let testCmd = new RS1.RSDCmd (rsd);
 
 
     if (AB) {
@@ -38,8 +36,8 @@ async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
         let str = RS1.ab2str (recvAB);
         // console.log ('recvAB =\n' + str);
 
-        console.log ('Incoming RSD,');
-        let newRSD = RS1.newRSD (recvAB), cmd = new RS1.RSDCmd (newRSD, false);
+        console.log ('\n\n << Incoming RSD,');
+        let newRSD = RS1.newRSD (recvAB), cmd = new RS1.RSDCmd (newRSD, '<<', false);
         if (!RS1.xmySession) { //looking for first message
             let CmdStr = newRSD.qGet ('_#'), cmds = CmdStr.split (':');
             RS1.xmySession = Number (cmds[1]);
@@ -172,7 +170,6 @@ export async function InitClient () {
     
     targetList.mark; // force rebuild
     let newBBI = targetList.toBBI,bbstr = RS1.bb2str (targetList.toBBI) ;
-    console.log ('New PB = ' + bbstr);
     
     let newtargetList = new RS1.rList (targetList.to$);
     if (newtargetList.to$ !== targetList.to$) {
@@ -207,11 +204,8 @@ export async function InitClient () {
 
     RS1.rLoL.SaveLists ();
     let SelectRSDs = await RS1.DBSelect ('|_Name:FM|');
-    if (SelectRSDs.length) {
-        let i = 0;
-        for (const o of SelectRSDs)
-            console.log ('outRSD'+ ++i + '=' + o.to$);
-    }
+    if (SelectRSDs.length)
+        console.log (SelectRSDs.length + ' records Selected from DB.');
 
     // RS1.DBDelete ([140,150,160]);
     RS1.DBDelete (162);
