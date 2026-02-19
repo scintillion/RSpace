@@ -82,6 +82,7 @@ class DBKit {
 			let newBuf = RS1.newBuf (nBytes), offset = 0;
 
 			for (const b of BLOBS) {
+				console.log ('  b Bytes = ' + b.byteLength + ' ,offset = ' + offset);
 				newBuf.set (b, offset);
 				offset += b.byteLength;
 			}

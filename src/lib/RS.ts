@@ -259,7 +259,7 @@ export namespace RS1 {
 	export class RSD {
  // Internal state
     protected _Mom?: RSD;
-    _bbi?: BBI;
+    protected _bbi?: BBI;
     protected qstr = '|';       // stays protected; mutated through helpers
 
     protected _K?: RSK;
@@ -355,6 +355,7 @@ export namespace RS1 {
     get BBI(): BBI {
         return this.toBBI;      // delegates to your existing toBBI getter
     }
+	_setBBI (bbi : BBI) { this._bbi = bbi; }
 
     // Existing dirty flag
     get dirty() {
@@ -435,31 +436,31 @@ export namespace RS1 {
 		get clear () {
 			this.qstr = '|';
 
-			if (this.K)
-				this.K.clear;
+			if (this._K)
+				this._K.clear;
 			
-			if (this.Q)
-				this.Q.clear;
+			if (this._Q)
+				this._Q.clear;
 			
-			if (this.R)
-				this.R.clear;
+			if (this._R)
+				this._R.clear;
 			
-			if (this.N)
-				this.N = [];
-			if (this.P)
-				this.P.clear;
+			if (this._N)
+				this._N = [];
+			if (this._P)
+				this._P.clear;
 			
-			if (this.S)
-				this.S = [];
+			if (this._S)
+				this._S = [];
 			
-			if (this.T)
-				this.T = '';
+			if (this._T)
+				this._T = '';
 			
-			if (this.X)
-				this.X.clear;
+			if (this._X)
+				this._X.clear;
 			
-			if (this.Data)
-				this.Data = undefined;
+			if (this._Data)
+				this._Data = undefined;
 
 			this.mark;
 			return true; 
@@ -685,136 +686,20 @@ export namespace RS1 {
 			return remain;
 		}
 
-		fromPB (pb : PB) {
-			let k = this.K;
-			if (k)
-				k.clear;
-
-			for (const field of pb.Fields) {
-				let name = field.Name;
-
-				switch (name) {
-					case '.$' : this.from$ (field.Data as string); break;
-					case '.x' : this.X = field.Data as RSD; break;
-					case '.p' : this.P = field.Data as RSPack; break;
-					case '.b' : this.BLOB = field.Data as UBuf; break;
-					default : if (k  &&  name  &&  name[0] != '.')
-									k.add (field.Data as RSD,false);
-				}
-			}
-
-			this._bbi = pb.bbi;
+		fromPB(pb: PB) {
+			// Option A: overwrite this instance from pb.Fields
+			FieldsToRSD(pb.Fields, this);
 		}
 
-		protected toPB () {
-			let Str, bbi;
-			
-			Str = this.to$;
-			
-			let k = this.K, x = this.X, p = this.P;
-
-			let cName = this.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
-
-			if (Str) {
-				field = new RSF ();
-
-				field.setData (Str);
-				field.setName ('.$');
-				Fields.push (field);
-
-				let bbtest = str2bbi (Str);
-				if (bbtest.byteLength !== Str.length)
-					throw 'Mismatched length!!';
-			}
-
-			if (x) {
-				field = new RSF ();
-
-				field.setData (x);
-				field.setName ('.x');
-				Fields.push (field);
-			}
-
-			if (p) {
-				field = new RSF ();
-
-				field.setData (p,'RSPack');
-				field.setName ('.p');
-				Fields.push (field);
-			}
-
-			if (this.N) {	// number array!
-					field = new RSF ();
-					field.setData (this.N)
-					Fields.push (field);
-			}
-
-			if (this.BLOB) {
-					field = new RSF ();
-					field.setName ('.b');
-					field.setData (this.BLOB,'Uint8Array');
-					Fields.push (field);
-			}
-
-			if (k  &&  !(this instanceof xList)) {	// xList directly puts includes kids in to$
-				let Kids = k._kids;
-				for (const Kid of Kids) {
-					if (Kid) {
-						if (fldPack)
-							// need to duplicate the field, not copy it by reference
-							Fields.push ((Kid as unknown) as RSF);
-						else {
-							field = new RSF ();
-							field.setData (Kid);
-							field.setName (Kid.Name);
-							Fields.push (field);
-						}
-					}
-				}
-			}
-
-			let newPB = new PB (Fields, this.cl);
-			this._bbi = newPB.bbi;
-			return newPB;
+		protected toPB(): PB {
+			const pb = RSDToPB(this);   // uses RSDToFields internally
+			// RSDToPB already sets pb.RSDName = this.cl and this._bbi = pb.bbi
+			return pb;
 		}
 
-
-		PBsToBuf (PBs:PB[],RSDName='') {
-			let pStrs = new Array<string> (PBs.length + 1), count = 0, cName = this.cl;
-			if (cName === RSDName)
-				cName = '';
-			// else if (RSDName = '')
-
-			for (const pb of PBs) {
-
-
-			}
-		}
-
-		fromBuf (Buf : UBuf) {
-			let pb = new PB (Buf, this.cl), k = this.K;
-
-			// console.log ('\n\n\n\n\n\n\n\nFromBuf # Fields = ' + pb.Fields.length.toString ());
-			for (const F of pb.Fields) {
-				let name = F.name;
-
-				//	console.log ('   restoring name=' + name + ' prefix =' + F.prefix + ' bytes=' + F._bbi?.byteLength.toString ());
-				switch (name) {
-					case '.$' : 
-						// console.log ('from$, str = ' + typeof (F.Data) + ':' + (F.Data as string))
-						this.from$ (F.Data as string); break;
-					case '.x' : this.X = F.Data; break;
-					case '.p' : this.fromPack (F.Data as RSPack); break;
-					case '.b' : this.BLOB = F.Data as BBI; 
-						//	console.log ('Setting BLOB =' + bb2str (F.Data as BBI));
-						break;
-					// case '.q' : this.Q = F.Data as RSI; break;
-					// case '.r' : this.R = F.Data as RSr; break;
-					default :	// child
-						if (k)
-							k.add (F.Data as RSD, false);
-				}
-			}
+		fromBuf(Buf: UBuf) {
+			const pb = new PB(Buf, this.cl);
+			FieldsToRSD(pb.Fields, this);   // centralized logic
 		}
 
 		get toBBI () {
@@ -6026,114 +5911,6 @@ export namespace RS1 {
 			return NILAB;
 		}
 
-//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
-
-
-
-
-
-//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
-
-
-/*
-					if (cName !== 'Array') {	// RSD single record
-
-
-					}
-					else {
-						let Arr = D as Array<any>, aType, dimStr='', let arrayStr='';
-						for (const E of Arr)
-							if (E  &&  !aType) {
-								aType = E.constructor.name;
-								if (aType === 'Number')
-									aType = tNum;
-								else if (aType === 'String')
-									aType = tStr;
-								else aType = tRSD;
-								this._arrType = aType;
-								break;
-							}
-		
-		
-		
-		
-						else if (this._type === tNum) {
-							AB = new ArrayBuffer(Arr.length*8);
-							let floats = new Float64Array (AB);
-							floats.set (Arr);
-							arrayStr = '[]';
-						}
-						else if (this._type === tStr) {
-							let newStrs:string[] = [], nBytes = 0, count = 0;
-							arrayStr = '[';
-							for (const E of Arr) {
-								++count;
-								let len = E ? E.length : 0;
-								if (len) {
-									newStrs.push (E);
-									nBytes += len;
-								}
-								dimStr += ' ' + len.toString ();
-							}
-							arrayStr += ']';
-							let newStr = newStrs.join ('');
-							AB = str2ab (newStr);
-						}
-					}
-
-
-					break;
-				default : return;
-			}
-/*
-
-			//			export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',tDisk='*',tArray='[';
-						str = ',' + this._type;
-						if (this._arrType) {
-							let Arr = this._data as Array<any>, aType;
-							if (this._type[0] >= '0') {	// RSD derived
-								for (const E of Arr)
-									if (E) {
-										if (!aType)
-											aType = E.constructor.name + '=';
-									}
-			
-			
-			
-			
-							}
-							else if (this._type === tNum) {
-								AB = new ArrayBuffer(Arr.length*8);
-								let floats = new Float64Array (AB);
-								floats.set (Arr);
-								arrayStr = '[]';
-							}
-							else if (this._type === tStr) {
-								let newStrs:string[] = [], nBytes = 0, count = 0;
-								arrayStr = '[';
-								for (const E of Arr) {
-									++count;
-									let len = E ? E.length : 0;
-									if (len) {
-										newStrs.push (E);
-										nBytes += len;
-									}
-									str += ' ' + len.toString ();
-								}
-								arrayStr += ']';
-								let newStr = newStrs.join ('');
-								AB = str2ab (newStr);
-							}
-						}
-			
-						str += arrayStr + this._name + ':' + AB?.byteLength.toString();
-						return str;
-
-
-
-			return this._type;
-		}
-*/
 		getPrefix () {
 			if (this._pFormat)
 				return this._pFormat as string;
@@ -7888,6 +7665,7 @@ export namespace RS1 {
 
 		let outRSD = await ReqRSD (rsd);
 
+		console.log ('outRSD BLOB Bytes=' + outRSD.BLOB?.byteLength);
 		return outRSD.BLOB ? BufToRSDs (outRSD.BLOB) : [];
 	}
 
@@ -7954,6 +7732,7 @@ export namespace RS1 {
 	}
 
 	export function BufToRSDs (Buf : UBuf) {
+		console.log ('BufToRSDs Bytes = ' + Buf.byteLength);
 		let offset = 0, totalBytes = Buf.byteLength, RSDs:RSD[] = [], count = 0;
 
 		while (offset < totalBytes) {
@@ -7962,18 +7741,6 @@ export namespace RS1 {
 				break;
 			RSDs.push(PBToRSD(pb));
 		}
-
-
-/*
-
-		while (offset < totalBytes) {
-			let pb = new PB (Buf, '', offset), rsd;
-			if (!(offset = pb.offset))
-				break;
-
-			RSDs.push (rsd = pb.makeRSD ());
-		}
-*/
 
 		return RSDs;
 	}
@@ -8084,7 +7851,7 @@ export namespace RS1 {
 		let newPB  = new PB(Fields);
 		newPB.RSDName = rsd.cl;		// later, if creating RSD from this PB,
 									// I must know the name of the RSD to create!
-		rsd._bbi = newPB.bbi;
+		rsd._setBBI (newPB.bbi);
 		return newPB;
 	}
 
@@ -8093,6 +7860,42 @@ export namespace RS1 {
 	}
 
 } // namespace RS1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
 	export function RSDToPB (rsd : RSD) {
@@ -8169,4 +7972,253 @@ export namespace RS1 {
 	}
 */
 
+
+/*  Internal functions retired from RSD
+
+		fromBuf (Buf : UBuf) {
+			let pb = new PB (Buf, this.cl), k = this.K;
+
+			// console.log ('\n\n\n\n\n\n\n\nFromBuf # Fields = ' + pb.Fields.length.toString ());
+			for (const F of pb.Fields) {
+				let name = F.name;
+
+				//	console.log ('   restoring name=' + name + ' prefix =' + F.prefix + ' bytes=' + F._bbi?.byteLength.toString ());
+				switch (name) {
+					case '.$' : 
+						// console.log ('from$, str = ' + typeof (F.Data) + ':' + (F.Data as string))
+						this.from$ (F.Data as string); break;
+					case '.x' : this.X = F.Data; break;
+					case '.p' : this.fromPack (F.Data as RSPack); break;
+					case '.b' : this.BLOB = F.Data as BBI; 
+						//	console.log ('Setting BLOB =' + bb2str (F.Data as BBI));
+						break;
+					// case '.q' : this.Q = F.Data as RSI; break;
+					// case '.r' : this.R = F.Data as RSr; break;
+					default :	// child
+						if (k)
+							k.add (F.Data as RSD, false);
+				}
+			}
+		}
+
+
+
+*/
+
+/*
+		protected toPB () {
+			let Str, bbi;
+			
+			Str = this.to$;
+			
+			let k = this.K, x = this.X, p = this.P;
+
+			let cName = this.cl, fldPack = (cName === 'RSPack'), Fields:RSF[] = [], field;
+
+			if (Str) {
+				field = new RSF ();
+
+				field.setData (Str);
+				field.setName ('.$');
+				Fields.push (field);
+
+				let bbtest = str2bbi (Str);
+				if (bbtest.byteLength !== Str.length)
+					throw 'Mismatched length!!';
+			}
+
+			if (x) {
+				field = new RSF ();
+
+				field.setData (x);
+				field.setName ('.x');
+				Fields.push (field);
+			}
+
+			if (p) {
+				field = new RSF ();
+
+				field.setData (p,'RSPack');
+				field.setName ('.p');
+				Fields.push (field);
+			}
+
+			if (this.N) {	// number array!
+					field = new RSF ();
+					field.setData (this.N)
+					Fields.push (field);
+			}
+
+			if (this.BLOB) {
+					field = new RSF ();
+					field.setName ('.b');
+					field.setData (this.BLOB,'Uint8Array');
+					Fields.push (field);
+			}
+
+			if (k  &&  !(this instanceof xList)) {	// xList directly puts includes kids in to$
+				let Kids = k._kids;
+				for (const Kid of Kids) {
+					if (Kid) {
+						if (fldPack)
+							// need to duplicate the field, not copy it by reference
+							Fields.push ((Kid as unknown) as RSF);
+						else {
+							field = new RSF ();
+							field.setData (Kid);
+							field.setName (Kid.Name);
+							Fields.push (field);
+						}
+					}
+				}
+			}
+
+			let newPB = new PB (Fields, this.cl);
+			this._bbi = newPB.bbi;
+			return newPB;
+		}
+
+		PBsToBuf (PBs:PB[],RSDName='') {
+			let pStrs = new Array<string> (PBs.length + 1), count = 0, cName = this.cl;
+			if (cName === RSDName)
+				cName = '';
+			// else if (RSDName = '')
+
+			for (const pb of PBs) {
+
+
+			}
+		}
+*/
+	/*
+		fromPB (pb : PB) {
+			let k = this.K;
+			if (k)
+				k.clear;
+
+			for (const field of pb.Fields) {
+				let name = field.Name;
+
+				switch (name) {
+					case '.$' : this.from$ (field.Data as string); break;
+					case '.x' : this.X = field.Data as RSD; break;
+					case '.p' : this.P = field.Data as RSPack; break;
+					case '.b' : this.BLOB = field.Data as UBuf; break;
+					default : if (k  &&  name  &&  name[0] != '.')
+									k.add (field.Data as RSD,false);
+				}
+			}
+
+			this._bbi = pb.bbi;
+		}
+*/
+
+//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
+
+
+
+
+
+//			this._prefix = ',' + this._type + arrayStr + this._name + tDimStr;
+
+
+/*
+					if (cName !== 'Array') {	// RSD single record
+
+
+					}
+					else {
+						let Arr = D as Array<any>, aType, dimStr='', let arrayStr='';
+						for (const E of Arr)
+							if (E  &&  !aType) {
+								aType = E.constructor.name;
+								if (aType === 'Number')
+									aType = tNum;
+								else if (aType === 'String')
+									aType = tStr;
+								else aType = tRSD;
+								this._arrType = aType;
+								break;
+							}
+		
+		
+		
+		
+						else if (this._type === tNum) {
+							AB = new ArrayBuffer(Arr.length*8);
+							let floats = new Float64Array (AB);
+							floats.set (Arr);
+							arrayStr = '[]';
+						}
+						else if (this._type === tStr) {
+							let newStrs:string[] = [], nBytes = 0, count = 0;
+							arrayStr = '[';
+							for (const E of Arr) {
+								++count;
+								let len = E ? E.length : 0;
+								if (len) {
+									newStrs.push (E);
+									nBytes += len;
+								}
+								dimStr += ' ' + len.toString ();
+							}
+							arrayStr += ']';
+							let newStr = newStrs.join ('');
+							AB = str2ab (newStr);
+						}
+					}
+
+
+					break;
+				default : return;
+			}
+/*
+
+			//			export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+',tDisk='*',tArray='[';
+						str = ',' + this._type;
+						if (this._arrType) {
+							let Arr = this._data as Array<any>, aType;
+							if (this._type[0] >= '0') {	// RSD derived
+								for (const E of Arr)
+									if (E) {
+										if (!aType)
+											aType = E.constructor.name + '=';
+									}
+			
+			
+			
+			
+							}
+							else if (this._type === tNum) {
+								AB = new ArrayBuffer(Arr.length*8);
+								let floats = new Float64Array (AB);
+								floats.set (Arr);
+								arrayStr = '[]';
+							}
+							else if (this._type === tStr) {
+								let newStrs:string[] = [], nBytes = 0, count = 0;
+								arrayStr = '[';
+								for (const E of Arr) {
+									++count;
+									let len = E ? E.length : 0;
+									if (len) {
+										newStrs.push (E);
+										nBytes += len;
+									}
+									str += ' ' + len.toString ();
+								}
+								arrayStr += ']';
+								let newStr = newStrs.join ('');
+								AB = str2ab (newStr);
+							}
+						}
+			
+						str += arrayStr + this._name + ':' + AB?.byteLength.toString();
+						return str;
+
+
+
+			return this._type;
+		}
+*/
 

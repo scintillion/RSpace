@@ -236,9 +236,19 @@ export async function InitClient () {
 
     RS1.rLoL.SaveLists ();
     let SelectRSD = await RS1.DBSelect ('|_Name:FM|');
-    for (const r of SelectRSD) {
-        console.log (r.cl + ' $=' + r.to$);
+    let outRSDs = SelectRSD[0].BLOB ? RS1.BufToRSDs (SelectRSD[0].BLOB) : [], i = 0;
+
+    console.log ('outRSDs length = ' + outRSDs.length);
+    for (const o of outRSDs) {
+        console.log (++i + '. RSD=' + o.to$);
     }
+
+/*
+    for (const r of SelectRSD) {
+        console.log (r.cl + ' $=' + r.to$ + 'BLOB bytes=' + r.BLOB?.byteLength);
+    }
+*/
+    
 
     // RS1.DBDelete ([140,150,160]);
     RS1.DBDelete (162);
