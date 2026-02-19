@@ -1776,7 +1776,7 @@ export namespace RS1 {
 			}
 			else commands = [];
 
-			console.log (direction + ' Message #' + this.SerialIDStr + '/' + this.SerialID.toString () +' RSD=' + rsd.to$ + 
+			console.log ('\n' + direction + ' Message #' + this.SerialIDStr + '/' + this.SerialID.toString () +' RSD=' + rsd.to$ + 
 			' Session=' + this.SessionStr + '/' + this.SessionID.toString () + ' sum=' + rsd.sum +
 		 		'\n  CmdStr = ' + this.cmdstr + ' CmdXtra = ' + this.cmdXtra + ' NumberStr =' + this.NumberStr);
 			if (this.BLOB) {
@@ -7557,7 +7557,7 @@ export namespace RS1 {
 
 		vStr = vStr.slice (0,-1); qStr = qStr.slice (0,-1);
 
-		if (wheres.length)
+		if (Wheres.length)
 			console.log ('Wheres =' + Wheres.join ('&'));
 
 

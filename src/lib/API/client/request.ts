@@ -26,6 +26,7 @@ async function ABRequest (AB : ArrayBuffer): Promise<ArrayBuffer> {
 
 async function RSDRequest (rsd : RS1.RSD) : Promise<RS1.RSD>{
     let rsdBBI = rsd.toBBI, rsdstr = RS1.bb2str (rsdBBI);
+    let Cmd = new RS1.RSDCmd (rsd, '>>', false);
     RS1.BuildQ (rsd);
     let AB = RS1.bb2ab (rsd.toBBI);
 
