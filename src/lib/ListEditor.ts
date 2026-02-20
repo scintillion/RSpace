@@ -69,7 +69,7 @@ export class ListEditor {
 			} else {
 				description = fullDesc;
 			}
-		} 
+		}  
 		// Parse Set format: [{ListName=vID1,vID2}]Description
 		else if (formatDesc === 'Set') {
 			showMemberFields = true;

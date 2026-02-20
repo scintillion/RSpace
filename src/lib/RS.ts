@@ -7857,7 +7857,396 @@ export namespace RS1 {
 		return newRSD(newPB.bbi, newPB.RSDName);
 	}
 
+	// hList functions
 
+	// ─── hList accessor functions ────────────────────────────────────────────────
+	// These replace zGet/zSet/zDel and work at ANY hList level, not just qstr (|)
+
+	/**
+	 * Count primary-level elements.  hCount(qstr) = qCount.
+	 */
+	function hCount(hstr: string): number {
+		return hRaw(hstr).length;
+	}
+
+	// Works on ANY level — qList, zLine, zList, or deeper
+	function hFind(str: string, name: string) {
+		const d = str.slice(-1);
+		const search = d + name;	// save this add for both
+		let pos = str.indexOf(search + ':');
+		return (pos >= 0) ? pos : str.indexOf(search + d);
+	}
+
+	// Base primitive — undefined means NOT FOUND, '' means found with no value
+	function hGetOrNIL(str: string, name: string): string | undefined {
+		const pos = hFind(str, name);
+		if (pos < 0) return undefined;
+		const d   = str.slice(-1);
+		const end = str.indexOf(d, pos + 1);         // pos points to leading delim
+		const raw = end >= 0 ? str.slice(pos + 1, end) : str.slice(pos + 1);
+		const colon = raw.indexOf(':');
+		return colon >= 0 ? raw.slice(colon + 1) : ''; // '' for bare name
+	}
+
+	// '' for not found OR bare name — use hGetOrNIL when you need to distinguish
+	function hGet(str: string, name: string): string {
+		return hGetOrNIL(str, name) ?? '';
+	}
+
+	// NaN if not found;  0 if bare name (found, no value);  Number(val) otherwise
+	function hGetNum(str: string, name: string): number {
+		return Number(hGetOrNIL(str, name));           // Number(undefined) = NaN ✓
+	}
+
+	// undefined if not found OR if value IS numeric;  string (incl. '') otherwise
+	// Useful when a field might hold either a label or a number
+	function hGetStrNIL(str: string, name: string): string | undefined {
+		const val = hGetOrNIL(str, name);
+		if (val === undefined) return undefined;       // not found
+		if (val !== '' && !isNaN(Number(val))) return undefined;  // numeric value
+		return val;                                    // '' or non-numeric string
+	}
+
+/*
+	function hGet(str: string, name: string): string {
+		let pos = hFind(str, name);
+		if (pos < 0) return '';
+		let end = str.indexOf(str.slice(-1), ++pos);
+		const raw = end >= 0 ? str.slice(pos, end) : str.slice(pos); // 'name:value' or bare 'name'
+		const colon = raw.indexOf(':');
+		return colon >= 0 ? raw.slice(colon + 1) : '';   // value only, '' for bare name
+	}
+*/
+
+	function hSet(str: string, name: string, value: string): string {
+		const d = str.slice(-1);
+		// value may itself be a sub-list — stored as-is, delimiter self-describes it
+		const entry = name + (value ? ':' + value : '');
+		let pos = str.indexOf(d + name + ':');
+		if (pos < 0) pos = str.indexOf(d + name + d);
+		if (pos < 0) return str + entry + d;           // append new entry
+		let end = str.indexOf(d, pos + 1);
+		return str.slice(0, pos + 1) + entry + (end >= 0 ? str.slice(end) : '');
+	}
+
+	function hDel(str: string, name: string): string {
+		const d = str.slice(-1);
+		let pos = str.indexOf(d + name + ':');
+		if (pos < 0) pos = str.indexOf(d + name + d);
+		if (pos < 0) return str;
+		let end = str.indexOf(d, pos + 1);
+		return str.slice(0, pos) + (end >= 0 ? str.slice(end) : '');
+	}
+
+	function hGetSub(str: string, ...names: string[]): string {
+		// drill down through arbitrary levels: hGetSub(zstr, 'TileName', 'style', 'color')
+		let current = str;
+		for (const name of names) {
+			current = hGet(current, name);
+			if (!current) return '';
+		}
+		return current;
+	}
+
+	function hSetSub(str: string, value: string, ...names: string[]): string {
+		// set a value at arbitrary depth, rebuilding each level upward
+		if (names.length === 1) return hSet(str, names[0], value);
+		const [head, ...tail] = names;
+		let sub = hGet(str, head);
+		sub = hSetSub(sub, value, ...tail);
+		return hSet(str, head, sub);
+	}
+
+	// ─── Internal helpers ────────────────────────────────────────────────────────
+
+	function hIsDelim(ch: string): boolean {
+		return ch.length === 1 && DelimList.includes(ch);
+	}
+
+	// ─── Public functions ────────────────────────────────────────────────────────
+
+	/**
+	 * Returns a string containing each delimiter found in hstr,
+	 * in ascending DelimList order (| first, \x15 last).
+	 */
+	function hDelimsAll(hstr: string): string {
+		let result = '';
+		for (const ch of DelimList) {
+			if (hstr.includes(ch)) result += ch;
+		}
+		return result;
+	}
+
+	/**
+	 * Returns the highest-indexed delimiter (in DelimList order) present in hstr.
+	 * Returns '' if hstr contains no delimiter.
+	 */
+	function hMaxDelim(hstr: string): string {
+		let maxDelim = '';
+		for (const ch of DelimList) {
+			if (hstr.includes(ch)) maxDelim = ch;
+		}
+		return maxDelim;
+	}
+
+	/**
+	 * Splits hstr by its primary (max) delimiter, returning an array of raw
+	 * elements — each in name:Value form, still containing their lesser delimiters.
+	 * Trailing empty element from a terminated hstr is filtered out.
+	 */
+	function hRaw(hstr: string): string[] {
+		const delim = hMaxDelim(hstr);
+		if (!delim) return hstr.length > 0 ? [hstr] : [];
+		return hstr.split(delim).filter(s => s.length > 0);
+	}
+
+	/**
+	 * Hard-adds Type:newstr as a new element in hstr.
+	 * Does NOT search for or replace any existing element of the same Type.
+	 * Uses hMaxDelim(hstr) as the separator; if hstr is empty, infers the
+	 * correct primary delimiter as one level above newstr's max delimiter.
+	 */
+	function hAddType(hstr: string, newstr: string, Type: string): string {
+		let delim = hMaxDelim(hstr);
+		if (!delim) {
+			// hstr has no delimiter yet — infer one level above newstr's max
+			const innerMax = hMaxDelim(newstr);
+			const nextIdx  = innerMax
+				? DelimList.indexOf(innerMax) + 1
+				: 1;                                    // default: \t (index 1)
+			delim = nextIdx < DelimList.length
+				? DelimList[nextIdx]
+				: DelimList[DelimList.length - 1];
+		}
+		const entry = `${Type}:${newstr}`;
+		// Normalise hstr to end with its primary delimiter before appending
+		const base  = hstr.endsWith(delim) ? hstr
+					: hstr.length > 0      ? hstr + delim
+					: '';
+		return base + entry + delim;
+	}
+
+	/**
+	 * Validates or creates a well-formed hstr.
+	 *
+	 * Overload A — string[]  (vType absent or ''):
+	 *   Joins each element with \n; ensures the result is \n-terminated.
+	 *   Each element may already contain | and \t sub-structure.
+	 *
+	 * Overload B — string, vType = '':
+	 *   Returns hstr terminated by its own hMaxDelim (adds it if missing).
+	 *
+	 * Overload C — string, vType = single valid delimiter:
+	 *   Returns hstr terminated by vType (adds it if missing).
+	 *
+	 * Overload D — string, vType = anything NOT in DelimList:
+	 *   Returns a diagnostic qList report:
+	 *     hList:Report|Delims:<escaped, excluding |>|maxDelim:<escaped>|
+	 *   If the hstr cannot be self-corrected by hValid(hstr), appends:
+	 *     Error:<reason>|
+	 */
+	function hValid(hstr: string | string[], vType: string = ''): string {
+
+		// ── Overload A: string[] ─────────────────────────────────────────────────
+		if (Array.isArray(hstr)) {
+			const joined = hstr.join('\n');
+			return joined.endsWith('\n') ? joined : joined + '\n';
+		}
+
+		// ── Overload D: vType present but not a valid delimiter ──────────────────
+		if (vType !== '' && !hIsDelim(vType)) {
+			const delims         = hDelimsAll(hstr);
+			const maxD           = hMaxDelim(hstr);
+			// Spell out delims, excluding | (would break the qList report)
+			const delimsSpelled  = [...delims]
+				.filter(c => c !== '|')
+				.map(hSpellDelim)
+				.join('');
+			const maxDelimSpelled = maxD ? hSpellDelim(maxD) : 'none';
+			const canFix          = maxD !== '';  // fixable iff a delimiter exists
+
+			let report = `hList:Report|Delims:${delimsSpelled}|maxDelim:${maxDelimSpelled}`;
+			if (!canFix) {
+				report += '|Error:No delimiter found — hstr cannot be auto-corrected';
+			}
+			report += '|';
+			return report;
+		}
+
+		// ── Overload C: vType is a valid delimiter ───────────────────────────────
+		if (vType !== '' && hIsDelim(vType)) {
+			return hstr.endsWith(vType) ? hstr : hstr + vType;
+		}
+
+		// ── Overload B: vType is '' — terminate with hMaxDelim ───────────────────
+		const maxD = hMaxDelim(hstr);
+		if (!maxD) return hstr;                 // no delimiter — nothing to do
+		return hstr.endsWith(maxD) ? hstr : hstr + maxD;
+	}
+
+	// ── hSort: sort elements by name (replaces zqRawByNames pattern) ─────────────
+	function hSort(hstr: string): string {
+		const d = hstr.slice(-1);
+		const elems = hRaw(hstr);
+		elems.sort();
+		return d + elems.join(d) + d;
+	}
+
+	// ── hSortByDesc: sort by value (replaces zqRawByDesc pattern) ────────────────
+	function hSortByDesc(hstr: string): string {
+		const d = hstr.slice(-1);
+		const elems = hRaw(hstr);
+		elems.sort((a, b) => {
+			const ac = a.indexOf(':'), bc = b.indexOf(':');
+			const ad = ac >= 0 ? a.slice(ac + 1) : a;
+			const bd = bc >= 0 ? b.slice(bc + 1) : b;
+			return ad < bd ? -1 : ad > bd ? 1 : 0;
+		});
+		return d + elems.join(d) + d;
+	}
+
+	// ── hBubble: swap element with neighbor (replaces zqBubble) ─────────────────
+	// dir=0: bubble down (toward end); dir=1: bubble up (toward start)
+	// Returns new hstr on success, false if already at boundary
+	function hBubble(hstr: string, name: string, dir = 0): string | false {
+		const d    = hstr.slice(-1);
+		const pos  = hFind(hstr, name);       // position of leading delimiter
+		if (pos < 0) return false;
+		const end  = hstr.indexOf(d, pos + 1);
+		if (end < 0) return false;
+
+		if (dir === 0) {
+			// Bubble down — swap with next element
+			const nextEnd = hstr.indexOf(d, end + 1);
+			if (nextEnd < 0) return false;    // already last element
+			const elem = hstr.slice(pos + 1, end);      // 'name:val'
+			const next = hstr.slice(end + 1, nextEnd);  // 'nextName:val'
+			return hstr.slice(0, pos + 1) + next + d + elem + hstr.slice(nextEnd);
+		} else {
+			// Bubble up — swap with previous element
+			if (pos === 0) return false;      // already first element
+			const prevPos = hstr.lastIndexOf(d, pos - 1);
+			if (prevPos < 0) return false;
+			const prev = hstr.slice(prevPos + 1, pos);  // 'prevName:val'
+			const elem = hstr.slice(pos + 1, end);      // 'name:val'
+			return hstr.slice(0, prevPos + 1) + elem + d + prev + hstr.slice(end);
+		}
+	}
+
+	// ── hMerge: merge add into hstr (replaces zqMerge) ──────────────────────────
+	// overlay=true (default): incoming values replace existing ones
+	// overlay=false: existing values are preserved, only new names are added
+	function hMerge(hstr: string, add: string, overlay = true): string {
+		const addElems = hRaw(add);
+
+		// Fast path: no name overlaps — just append all incoming elements
+		const noOverlap = addElems.every(elem => {
+			const colon = elem.indexOf(':');
+			const name  = colon >= 0 ? elem.slice(0, colon) : elem;
+			return hFind(hstr, name) < 0;
+		});
+		if (noOverlap) {
+			const d    = hstr.slice(-1);
+			const base = hstr.endsWith(d) ? hstr : hstr + d;
+			return base + addElems.join(d) + d;
+		}
+
+		// Slow path: merge entry by entry
+		let result = hstr;
+		for (const elem of addElems) {
+			const colon = elem.indexOf(':');
+			const name  = colon >= 0 ? elem.slice(0, colon) : elem;
+			const value = colon >= 0 ? elem.slice(colon + 1) : '';
+			if (overlay || hFind(result, name) < 0)
+				result = hSet(result, name, value);
+		}
+		return result;
+	}
+
+	// ── hSplitNames: parallel name/raw arrays (replaces zqSplitNames) ───────────
+	function hSplitNames(hstr: string): strsPair {
+		const raw   = hRaw(hstr);
+		const names = raw.map(s => { const c = s.indexOf(':'); return c >= 0 ? s.slice(0, c) : s; });
+		return new strsPair(names, raw);
+	}
+
+	// ── hNames: just the name array (replaces zqNames) ──────────────────────────
+	function hNames(hstr: string): string[] {
+		return hSplitNames(hstr).a;
+	}
+
+	// ── hFromRaw: rebuild hstr body from raw elements (replaces zqFromRaw) ───────
+	// Preserves the list name/desc header before the first delimiter
+	function hFromRaw(hstr: string, rawElems: string[]): string {
+		const d      = hstr.slice(-1);
+		const firstD = hstr.indexOf(d);
+		const header = firstD >= 0 ? hstr.slice(0, firstD + 1) : d;
+		const body   = rawElems.join(d);
+		return header + (body ? body + d : '');
+	}
+	// These keep their existing logic exactly — just renamed for naming consistency
+
+	function hGetVID(hstr: string, name: string | number): vID | undefined {
+		const nPos = hFind(hstr, name.toString());
+		if (nPos < 0) return undefined;
+		const d   = hstr.slice(-1);
+		const end = hstr.indexOf(d, nPos + 1);
+		return end >= 0 ? new vID(hstr.slice(nPos + 1, end)) : undefined;
+	}
+
+	function hGetVIDFmt(hstr: string, name: string | number): vID | undefined {
+		const VID = hGetVID(hstr, name);
+		if (VID && !VID.Fmt) VID.Fmt = new IFmt();
+		return VID;
+	}
+
+	function hSetVID(hstr: string, VID: vID): string {
+		const str = VID.to$;
+		if (!str) return hstr;
+		const pos = str.indexOf(':');
+		return pos >= 0
+			? hSet(hstr, str.slice(0, pos), str.slice(pos + 1))
+			: hSet(hstr, str, '');
+	}
+
+	function hToVIDs(hstr: string): vID[] {
+		return hRaw(hstr).map(s => new vID(s));
+	}
+
+	function hToSortedVIDs(hstr: string): vID[] {
+		return hSortByDesc(hstr)  // reuse hSortByDesc, then convert
+			.split(hstr.slice(-1)).slice(1, -1).map(s => new vID(s));
+	}
+
+	function hToVIDList(hstr: string, sep = ' ', delim = ':'): string {
+		return hToVIDs(hstr)
+			.map(v => v.Name + delim + v.Desc)
+			.join(sep);
+	}
+
+} // namespace RS1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 	//	new qList functions (freestanding)
 
 
@@ -8065,7 +8454,6 @@ export namespace RS1 {
 		return zqMerge(qstr, str);
 	}
 
-	/** Returns new qstr on success, false if entry could not be bubbled. */
 	export function zqBubble(qstr: string, name: string|number, dir = 0): string|false {
 		let start = zqFindName(qstr, name);
 		if (start < 0) return false;
@@ -8086,256 +8474,7 @@ export namespace RS1 {
 		flipstr = flipstr.slice(dPos + 1) + '|' + flipstr.slice(0, dPos);
 		return qstr.slice(0, start) + flipstr + qstr.slice(end);
 	}
-
-
-	// hList functions
-
-	// ─── hList accessor functions ────────────────────────────────────────────────
-	// These replace zGet/zSet/zDel and work at ANY hList level, not just qstr (|)
-
-	/**
-	 * Count primary-level elements.  hCount(qstr) = qCount.
-	 */
-	function hCount(hstr: string): number {
-		return hRaw(hstr).length;
-	}
-
-	// Works on ANY level — qList, zLine, zList, or deeper
-	function hFind(str: string, name: string) {
-		const d = str.slice(-1);
-		const search = d + name;	// save this add for both
-		let pos = str.indexOf(search + ':');
-		return (pos >= 0) ? pos : str.indexOf(search + d);
-	}
-
-	// Base primitive — undefined means NOT FOUND, '' means found with no value
-	function hGetOrNIL(str: string, name: string): string | undefined {
-		const pos = hFind(str, name);
-		if (pos < 0) return undefined;
-		const d   = str.slice(-1);
-		const end = str.indexOf(d, pos + 1);         // pos points to leading delim
-		const raw = end >= 0 ? str.slice(pos + 1, end) : str.slice(pos + 1);
-		const colon = raw.indexOf(':');
-		return colon >= 0 ? raw.slice(colon + 1) : ''; // '' for bare name
-	}
-
-	// '' for not found OR bare name — use hGetOrNIL when you need to distinguish
-	function hGet(str: string, name: string): string {
-		return hGetOrNIL(str, name) ?? '';
-	}
-
-	// NaN if not found;  0 if bare name (found, no value);  Number(val) otherwise
-	function hGetNum(str: string, name: string): number {
-		return Number(hGetOrNIL(str, name));           // Number(undefined) = NaN ✓
-	}
-
-	// undefined if not found OR if value IS numeric;  string (incl. '') otherwise
-	// Useful when a field might hold either a label or a number
-	function hGetStrNIL(str: string, name: string): string | undefined {
-		const val = hGetOrNIL(str, name);
-		if (val === undefined) return undefined;       // not found
-		if (val !== '' && !isNaN(Number(val))) return undefined;  // numeric value
-		return val;                                    // '' or non-numeric string
-	}
-
-/*
-	function hGet(str: string, name: string): string {
-		let pos = hFind(str, name);
-		if (pos < 0) return '';
-		let end = str.indexOf(str.slice(-1), ++pos);
-		const raw = end >= 0 ? str.slice(pos, end) : str.slice(pos); // 'name:value' or bare 'name'
-		const colon = raw.indexOf(':');
-		return colon >= 0 ? raw.slice(colon + 1) : '';   // value only, '' for bare name
-	}
 */
-
-	function hSet(str: string, name: string, value: string): string {
-		const d = str.slice(-1);
-		// value may itself be a sub-list — stored as-is, delimiter self-describes it
-		const entry = name + (value ? ':' + value : '');
-		let pos = str.indexOf(d + name + ':');
-		if (pos < 0) pos = str.indexOf(d + name + d);
-		if (pos < 0) return str + entry + d;           // append new entry
-		let end = str.indexOf(d, pos + 1);
-		return str.slice(0, pos + 1) + entry + (end >= 0 ? str.slice(end) : '');
-	}
-
-	function hDel(str: string, name: string): string {
-		const d = str.slice(-1);
-		let pos = str.indexOf(d + name + ':');
-		if (pos < 0) pos = str.indexOf(d + name + d);
-		if (pos < 0) return str;
-		let end = str.indexOf(d, pos + 1);
-		return str.slice(0, pos) + (end >= 0 ? str.slice(end) : '');
-	}
-
-	function hGetSub(str: string, ...names: string[]): string {
-		// drill down through arbitrary levels: hGetSub(zstr, 'TileName', 'style', 'color')
-		let current = str;
-		for (const name of names) {
-			current = hGet(current, name);
-			if (!current) return '';
-		}
-		return current;
-	}
-
-	function hSetSub(str: string, value: string, ...names: string[]): string {
-		// set a value at arbitrary depth, rebuilding each level upward
-		if (names.length === 1) return hSet(str, names[0], value);
-		const [head, ...tail] = names;
-		let sub = hGet(str, head);
-		sub = hSetSub(sub, value, ...tail);
-		return hSet(str, head, sub);
-	}
-
-// ─── Internal helpers ────────────────────────────────────────────────────────
-
-function hIsDelim(ch: string): boolean {
-    return ch.length === 1 && DelimList.includes(ch);
-}
-
-// ─── Public functions ────────────────────────────────────────────────────────
-
-/**
- * Returns a string containing each delimiter found in hstr,
- * in ascending DelimList order (| first, \x15 last).
- */
-function hDelimsAll(hstr: string): string {
-    let result = '';
-    for (const ch of DelimList) {
-        if (hstr.includes(ch)) result += ch;
-    }
-    return result;
-}
-
-/**
- * Returns the highest-indexed delimiter (in DelimList order) present in hstr.
- * Returns '' if hstr contains no delimiter.
- */
-function hMaxDelim(hstr: string): string {
-    let maxDelim = '';
-    for (const ch of DelimList) {
-        if (hstr.includes(ch)) maxDelim = ch;
-    }
-    return maxDelim;
-}
-
-/**
- * Splits hstr by its primary (max) delimiter, returning an array of raw
- * elements — each in name:Value form, still containing their lesser delimiters.
- * Trailing empty element from a terminated hstr is filtered out.
- */
-function hRaw(hstr: string): string[] {
-    const delim = hMaxDelim(hstr);
-    if (!delim) return hstr.length > 0 ? [hstr] : [];
-    return hstr.split(delim).filter(s => s.length > 0);
-}
-
-/**
- * Hard-adds Type:newstr as a new element in hstr.
- * Does NOT search for or replace any existing element of the same Type.
- * Uses hMaxDelim(hstr) as the separator; if hstr is empty, infers the
- * correct primary delimiter as one level above newstr's max delimiter.
- */
-function hAddType(hstr: string, newstr: string, Type: string): string {
-    let delim = hMaxDelim(hstr);
-    if (!delim) {
-        // hstr has no delimiter yet — infer one level above newstr's max
-        const innerMax = hMaxDelim(newstr);
-        const nextIdx  = innerMax
-            ? DelimList.indexOf(innerMax) + 1
-            : 1;                                    // default: \t (index 1)
-        delim = nextIdx < DelimList.length
-            ? DelimList[nextIdx]
-            : DelimList[DelimList.length - 1];
-    }
-    const entry = `${Type}:${newstr}`;
-    // Normalise hstr to end with its primary delimiter before appending
-    const base  = hstr.endsWith(delim) ? hstr
-                : hstr.length > 0      ? hstr + delim
-                : '';
-    return base + entry + delim;
-}
-
-/**
- * Validates or creates a well-formed hstr.
- *
- * Overload A — string[]  (vType absent or ''):
- *   Joins each element with \n; ensures the result is \n-terminated.
- *   Each element may already contain | and \t sub-structure.
- *
- * Overload B — string, vType = '':
- *   Returns hstr terminated by its own hMaxDelim (adds it if missing).
- *
- * Overload C — string, vType = single valid delimiter:
- *   Returns hstr terminated by vType (adds it if missing).
- *
- * Overload D — string, vType = anything NOT in DelimList:
- *   Returns a diagnostic qList report:
- *     hList:Report|Delims:<escaped, excluding |>|maxDelim:<escaped>|
- *   If the hstr cannot be self-corrected by hValid(hstr), appends:
- *     Error:<reason>|
- */
-function hValid(hstr: string | string[], vType: string = ''): string {
-
-    // ── Overload A: string[] ─────────────────────────────────────────────────
-    if (Array.isArray(hstr)) {
-        const joined = hstr.join('\n');
-        return joined.endsWith('\n') ? joined : joined + '\n';
-    }
-
-    // ── Overload D: vType present but not a valid delimiter ──────────────────
-    if (vType !== '' && !hIsDelim(vType)) {
-        const delims         = hDelimsAll(hstr);
-        const maxD           = hMaxDelim(hstr);
-        // Spell out delims, excluding | (would break the qList report)
-        const delimsSpelled  = [...delims]
-            .filter(c => c !== '|')
-            .map(hSpellDelim)
-            .join('');
-        const maxDelimSpelled = maxD ? hSpellDelim(maxD) : 'none';
-        const canFix          = maxD !== '';  // fixable iff a delimiter exists
-
-        let report = `hList:Report|Delims:${delimsSpelled}|maxDelim:${maxDelimSpelled}`;
-        if (!canFix) {
-            report += '|Error:No delimiter found — hstr cannot be auto-corrected';
-        }
-        report += '|';
-        return report;
-    }
-
-    // ── Overload C: vType is a valid delimiter ───────────────────────────────
-    if (vType !== '' && hIsDelim(vType)) {
-        return hstr.endsWith(vType) ? hstr : hstr + vType;
-    }
-
-    // ── Overload B: vType is '' — terminate with hMaxDelim ───────────────────
-    const maxD = hMaxDelim(hstr);
-    if (!maxD) return hstr;                 // no delimiter — nothing to do
-    return hstr.endsWith(maxD) ? hstr : hstr + maxD;
-}
-
-} // namespace RS1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
