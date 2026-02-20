@@ -12,6 +12,28 @@ export namespace RS1 {
 
 	const DelimList='|\t\n\x0b\f\r\x0e\x0f\x10\x11\x12\x13\x14\x15';
 
+	// Spells a delimiter as a human-readable escape sequence.
+	// '|' is rendered as \x7c so it never corrupts a qList report.
+	export function hSpellDelim(ch: string): string {
+		const map: Record<string, string> = {
+			'|':    '\\x7c',
+			'\t':   '\\t',
+			'\n':   '\\n',
+			'\x0b': '\\x0b',
+			'\f':   '\\f',
+			'\r':   '\\r',
+			'\x0e': '\\x0e',
+			'\x0f': '\\x0f',
+			'\x10': '\\x10',
+			'\x11': '\\x11',
+			'\x12': '\\x12',
+			'\x13': '\\x13',
+			'\x14': '\\x14',
+			'\x15': '\\x15',
+		};
+		return map[ch] ?? ch;
+	}
+
 	type RPArgs = string|number|RSD|string[]|number[]|RSD[];
 
 	export const tNone='',tStr='$',tNum='#',tAB='(',tPack='&',tList='@',tData='^',tRSD='+', tBBI='%',
@@ -7834,6 +7856,464 @@ export namespace RS1 {
 	export function PBToRSD(newPB: PB): RSD {
 		return newRSD(newPB.bbi, newPB.RSDName);
 	}
+
+
+	//	new qList functions (freestanding)
+
+
+	// ── Helpers ──────────────────────────────────────────────────────────────────
+
+	export function zqFindName(qstr: string, name: string|number): number {
+		let str = '|' + name.toString() + ':';
+		let nPos = qstr.indexOf(str);
+		if (++nPos > 0) return nPos;
+		str = str.slice(0,-1) + '|';
+		nPos = qstr.indexOf(str);
+		return nPos >= 0 ? nPos + 1 : -1;
+	}
+
+	export function zqPrePost(qstr: string, name: string|number): strPair {
+		let nPos = zqFindName(qstr, name);
+		if (nPos >= 0) {
+			let dPos = qstr.indexOf('|', nPos);
+			if (dPos >= 0)
+				return new strPair(qstr.slice(0, nPos), qstr.slice(dPos));
+		}
+		return new strPair('', '');
+	}
+
+	// ── Read-only ─────────────────────────────────────────────────────────────────
+
+	export function zqDescByName(qstr: string, name: string|number): string {
+		let nPos = zqFindName(qstr, name);
+		if (nPos < 0) return '';
+		let endPos = qstr.indexOf('|', nPos);
+		if (endPos < 0) return '';
+		let str = qstr.slice(nPos, endPos);
+		let dPos = str.indexOf(':');
+		return (dPos >= 0) ? str.slice(dPos + 1) : str;
+	}
+
+	export function zqGetStrNull(qstr: string, s: string): string|undefined {
+		let pos = zqFindName(qstr, s);
+		if (pos < 0) return undefined;
+		let endpos = qstr.indexOf('|', pos);
+		if (endpos < 0) return undefined;
+		let str = qstr.slice(pos, endpos), colon = str.indexOf(':');
+		return (colon >= 0) ? str.slice(colon + 1) : str;
+	}
+
+	export function zqCount(qstr: string): number {
+		let i = qstr.length, count = 0;
+		while (--i >= 0)
+			if (qstr[i] === '|') ++count;
+		return (count <= 1) ? 0 : count - 1;
+	}
+
+	export function zqNum(qstr: string, name: string|number): number {
+		return Number(zqDescByName(qstr, name));
+	}
+
+	export function zqToRaw(qstr: string): string[] {
+		return qstr.split('|').slice(1, -1);
+	}
+
+	export function zqSplitNames(qstr: string): strsPair {
+		let raw = zqToRaw(qstr), names = new Array(raw.length), count = 0;
+		for (const s of raw) {
+			let dPos = s.indexOf(':');
+			names[count++] = (dPos >= 0) ? s.slice(0, dPos) : s;
+		}
+		return new strsPair(names, raw);
+	}
+
+	export function zqNames(qstr: string): string[] {
+		return zqSplitNames(qstr).a;
+	}
+
+	export function zqFindByDesc(qstr: string, Desc: string|number): number {
+		let SearchStr = ':' + Desc.toString() + '|';
+		let Pos = qstr.indexOf(SearchStr, qstr.indexOf('|'));
+		if (Pos >= 0) {
+			for (let i = Pos; --i > 0;)
+				if (qstr[i] === '|') return i + 1;
+		}
+		SearchStr = '|' + Desc.toString() + '|';
+		return qstr.indexOf(SearchStr);
+	}
+
+	export function zqNameByDesc(qstr: string, desc: string|number): string {
+		let Pos = zqFindByDesc(qstr, desc);
+		return (Pos >= 0) ? qstr.slice(Pos, qstr.indexOf(':', Pos)) : '';
+	}
+
+	export function zqGetVID(qstr: string, name: string|number): vID|undefined {
+		let nPos = zqFindName(qstr, name);
+		if (nPos < 0) return undefined;
+		let endPos = qstr.indexOf('|', nPos);
+		return (endPos >= 0) ? new vID(qstr.slice(nPos, endPos)) : undefined;
+	}
+
+	export function zqGetVIDFmt(qstr: string, name: string|number): vID|undefined {
+		let VID = zqGetVID(qstr, name);
+		if (VID && !VID.Fmt) VID.Fmt = new IFmt('');
+		return VID;
+	}
+
+	export function zqToVIDs(qstr: string): vID[] {
+		return zqToRaw(qstr).map(s => new vID(s));
+	}
+
+	export function zqRawByNames(qstr: string): string[] {
+		return qstr.split('|').slice(1, -1).sort();
+	}
+
+	export function zqRawByDesc(qstr: string): string[] {
+		let Strs = qstr.split('|').slice(1, -1);
+		Strs = Strs.map(S => {
+			let Pos = S.indexOf(':');
+			let desc = (Pos >= 0) ? (S.slice(Pos + 1) || S.slice(0, Pos)) : S;
+			return desc + '\t' + S;
+		});
+		Strs.sort();
+		return Strs.map(S => S.slice(S.indexOf('\t') + 1));
+	}
+
+	export function zqToSortedVIDs(qstr: string): vID[] {
+		return zqRawByDesc(qstr).map(s => new vID(s));
+	}
+
+	export function zqToVIDList(qstr: string, Sep = ';', Delim = ':'): string {
+		let Str = '';
+		for (const v of zqToVIDs(qstr))
+			Str += v.Name + Delim + v.Desc + Sep;
+		return Str.slice(0, -1);
+	}
+
+	// ── Mutating (return new qstr) ────────────────────────────────────────────────
+
+	export function zqSet(qstr: string, name: string|number, desc: string|number = ''): string {
+		let vStr = desc ? (name.toString() + ':' + desc.toString()) : name.toString();
+		let pair = zqPrePost(qstr, name);
+		return pair.a ? (pair.a + vStr + pair.b) : (qstr + vStr + '|');
+	}
+
+	export function zqDel(qstr: string, name: string|number): string {
+		let pair = zqPrePost(qstr, name);
+		return pair.a ? (pair.a + pair.b) : qstr;
+	}
+
+	export function zqSetVID(qstr: string, VID: vID): string {
+		let str = VID.to$;
+		if (!str) return qstr;
+		let pos = str.indexOf(':');
+		return (pos < 0) ? zqSet(qstr, str) : zqSet(qstr, str.slice(0, pos), str.slice(pos + 1));
+	}
+
+	export function zqSetFastValues(qstr: string, ValueStr = ''): string {
+		let firstDelim = qstr.indexOf('|');
+		if (firstDelim < 0) return qstr;                    // not a legal qstr
+		if (ValueStr.slice(-1) !== '|') ValueStr += '|';
+		if (ValueStr[0]  !== '|') ValueStr = '|' + ValueStr;
+		return qstr.slice(0, firstDelim) + ValueStr;
+	}
+
+	export function zqSetNameValues(qstr: string, nv: (string|number|undefined)[] = []): string {
+		let i = 0, name = 0, NVs: string[] = Array((nv.length + 1) >> 1);
+		for (const v of nv) {
+			if (++name & 1) NVs[i]  = v ? v.toString() : '';
+			else { if (v) NVs[i++] += ':' + v.toString(); else ++i; }
+		}
+		NVs.length = NVs[i] ? i + 1 : i;
+		let newValStr  = '|' + NVs.join('|') + '|';
+		let firstDelim = qstr.indexOf('|');
+		return (firstDelim >= 0) ? qstr.slice(0, firstDelim) + newValStr : newValStr;
+	}
+
+	export function zqFromRaw(qstr: string, VIDStrs: string[] = []): string {
+		let NameDesc = qstr.slice(0, qstr.indexOf('|') + 1);
+		let VIDStr   = VIDStrs.join('|');
+		return NameDesc + (VIDStr ? (VIDStr + '|') : '');
+	}
+
+	export function zqMerge(qstr: string, add1: qList|string, overlay = false): string {
+		let addStr  = (typeof add1 === 'string') ? add1 as string : (add1 as qList).to$;
+		let addSplit = zqSplitNames(addStr);
+		// fast path: no name overlap
+		let notFound = true;
+		for (const a of addSplit.a)
+			if (zqFindName(qstr, a) >= 0) { notFound = false; break; }
+		if (notFound) {
+			let s = addStr.slice(addStr.indexOf('|'));
+			return qstr + s.slice(s.indexOf('|'));
+		}
+		// slow path: entry-by-entry merge
+		let dest = zqSplitNames(qstr);
+		for (let lim = addSplit.a.length, i = 0; i < lim; ++i) {
+			let j = dest.a.indexOf(addSplit.a[i]);
+			if (j >= 0) dest.b[j] = addSplit.b[i];
+			else { dest.a.push(addSplit.a[i]); dest.b.push(addSplit.b[i]); }
+		}
+		return zqFromRaw(qstr, dest.b);
+	}
+
+	export function zqSetFast(qstr: string, Args: any[]): string {
+		if (Args.length & 1) throw 'zqSetFast requires Name:Value pairs';
+		let str = '|';
+		for (let i = 0; i < Args.length; i += 2)
+			str += Args[i].toString() + ':' + Args[i+1].toString() + '|';
+		return zqMerge(qstr, str);
+	}
+
+	/** Returns new qstr on success, false if entry could not be bubbled. */
+	export function zqBubble(qstr: string, name: string|number, dir = 0): string|false {
+		let start = zqFindName(qstr, name);
+		if (start < 0) return false;
+		let end = qstr.indexOf('|', start + 1);
+		if (end < 0) return false;
+		if (dir > 0) {
+			end = qstr.indexOf('|', end + 1);
+			if (end < 0) return false;
+		} else {
+			let i = start - 1;
+			while (--i >= 0)
+				if (qstr[i] === '|') { start = i + 1; break; }
+			if (i < 0) return false;
+		}
+		let flipstr = qstr.slice(start, end);
+		let dPos = flipstr.indexOf('|');
+		if (dPos < 0) return false;
+		flipstr = flipstr.slice(dPos + 1) + '|' + flipstr.slice(0, dPos);
+		return qstr.slice(0, start) + flipstr + qstr.slice(end);
+	}
+
+
+	// hList functions
+
+	// ─── hList accessor functions ────────────────────────────────────────────────
+	// These replace zGet/zSet/zDel and work at ANY hList level, not just qstr (|)
+
+	/**
+	 * Count primary-level elements.  hCount(qstr) = qCount.
+	 */
+	function hCount(hstr: string): number {
+		return hRaw(hstr).length;
+	}
+
+	// Works on ANY level — qList, zLine, zList, or deeper
+	function hFind(str: string, name: string) {
+		const d = str.slice(-1);
+		const search = d + name;	// save this add for both
+		let pos = str.indexOf(search + ':');
+		return (pos >= 0) ? pos : str.indexOf(search + d);
+	}
+
+	// Base primitive — undefined means NOT FOUND, '' means found with no value
+	function hGetOrNIL(str: string, name: string): string | undefined {
+		const pos = hFind(str, name);
+		if (pos < 0) return undefined;
+		const d   = str.slice(-1);
+		const end = str.indexOf(d, pos + 1);         // pos points to leading delim
+		const raw = end >= 0 ? str.slice(pos + 1, end) : str.slice(pos + 1);
+		const colon = raw.indexOf(':');
+		return colon >= 0 ? raw.slice(colon + 1) : ''; // '' for bare name
+	}
+
+	// '' for not found OR bare name — use hGetOrNIL when you need to distinguish
+	function hGet(str: string, name: string): string {
+		return hGetOrNIL(str, name) ?? '';
+	}
+
+	// NaN if not found;  0 if bare name (found, no value);  Number(val) otherwise
+	function hGetNum(str: string, name: string): number {
+		return Number(hGetOrNIL(str, name));           // Number(undefined) = NaN ✓
+	}
+
+	// undefined if not found OR if value IS numeric;  string (incl. '') otherwise
+	// Useful when a field might hold either a label or a number
+	function hGetStrNIL(str: string, name: string): string | undefined {
+		const val = hGetOrNIL(str, name);
+		if (val === undefined) return undefined;       // not found
+		if (val !== '' && !isNaN(Number(val))) return undefined;  // numeric value
+		return val;                                    // '' or non-numeric string
+	}
+
+/*
+	function hGet(str: string, name: string): string {
+		let pos = hFind(str, name);
+		if (pos < 0) return '';
+		let end = str.indexOf(str.slice(-1), ++pos);
+		const raw = end >= 0 ? str.slice(pos, end) : str.slice(pos); // 'name:value' or bare 'name'
+		const colon = raw.indexOf(':');
+		return colon >= 0 ? raw.slice(colon + 1) : '';   // value only, '' for bare name
+	}
+*/
+
+	function hSet(str: string, name: string, value: string): string {
+		const d = str.slice(-1);
+		// value may itself be a sub-list — stored as-is, delimiter self-describes it
+		const entry = name + (value ? ':' + value : '');
+		let pos = str.indexOf(d + name + ':');
+		if (pos < 0) pos = str.indexOf(d + name + d);
+		if (pos < 0) return str + entry + d;           // append new entry
+		let end = str.indexOf(d, pos + 1);
+		return str.slice(0, pos + 1) + entry + (end >= 0 ? str.slice(end) : '');
+	}
+
+	function hDel(str: string, name: string): string {
+		const d = str.slice(-1);
+		let pos = str.indexOf(d + name + ':');
+		if (pos < 0) pos = str.indexOf(d + name + d);
+		if (pos < 0) return str;
+		let end = str.indexOf(d, pos + 1);
+		return str.slice(0, pos) + (end >= 0 ? str.slice(end) : '');
+	}
+
+	function hGetSub(str: string, ...names: string[]): string {
+		// drill down through arbitrary levels: hGetSub(zstr, 'TileName', 'style', 'color')
+		let current = str;
+		for (const name of names) {
+			current = hGet(current, name);
+			if (!current) return '';
+		}
+		return current;
+	}
+
+	function hSetSub(str: string, value: string, ...names: string[]): string {
+		// set a value at arbitrary depth, rebuilding each level upward
+		if (names.length === 1) return hSet(str, names[0], value);
+		const [head, ...tail] = names;
+		let sub = hGet(str, head);
+		sub = hSetSub(sub, value, ...tail);
+		return hSet(str, head, sub);
+	}
+
+// ─── Internal helpers ────────────────────────────────────────────────────────
+
+function hIsDelim(ch: string): boolean {
+    return ch.length === 1 && DelimList.includes(ch);
+}
+
+// ─── Public functions ────────────────────────────────────────────────────────
+
+/**
+ * Returns a string containing each delimiter found in hstr,
+ * in ascending DelimList order (| first, \x15 last).
+ */
+function hDelimsAll(hstr: string): string {
+    let result = '';
+    for (const ch of DelimList) {
+        if (hstr.includes(ch)) result += ch;
+    }
+    return result;
+}
+
+/**
+ * Returns the highest-indexed delimiter (in DelimList order) present in hstr.
+ * Returns '' if hstr contains no delimiter.
+ */
+function hMaxDelim(hstr: string): string {
+    let maxDelim = '';
+    for (const ch of DelimList) {
+        if (hstr.includes(ch)) maxDelim = ch;
+    }
+    return maxDelim;
+}
+
+/**
+ * Splits hstr by its primary (max) delimiter, returning an array of raw
+ * elements — each in name:Value form, still containing their lesser delimiters.
+ * Trailing empty element from a terminated hstr is filtered out.
+ */
+function hRaw(hstr: string): string[] {
+    const delim = hMaxDelim(hstr);
+    if (!delim) return hstr.length > 0 ? [hstr] : [];
+    return hstr.split(delim).filter(s => s.length > 0);
+}
+
+/**
+ * Hard-adds Type:newstr as a new element in hstr.
+ * Does NOT search for or replace any existing element of the same Type.
+ * Uses hMaxDelim(hstr) as the separator; if hstr is empty, infers the
+ * correct primary delimiter as one level above newstr's max delimiter.
+ */
+function hAddType(hstr: string, newstr: string, Type: string): string {
+    let delim = hMaxDelim(hstr);
+    if (!delim) {
+        // hstr has no delimiter yet — infer one level above newstr's max
+        const innerMax = hMaxDelim(newstr);
+        const nextIdx  = innerMax
+            ? DelimList.indexOf(innerMax) + 1
+            : 1;                                    // default: \t (index 1)
+        delim = nextIdx < DelimList.length
+            ? DelimList[nextIdx]
+            : DelimList[DelimList.length - 1];
+    }
+    const entry = `${Type}:${newstr}`;
+    // Normalise hstr to end with its primary delimiter before appending
+    const base  = hstr.endsWith(delim) ? hstr
+                : hstr.length > 0      ? hstr + delim
+                : '';
+    return base + entry + delim;
+}
+
+/**
+ * Validates or creates a well-formed hstr.
+ *
+ * Overload A — string[]  (vType absent or ''):
+ *   Joins each element with \n; ensures the result is \n-terminated.
+ *   Each element may already contain | and \t sub-structure.
+ *
+ * Overload B — string, vType = '':
+ *   Returns hstr terminated by its own hMaxDelim (adds it if missing).
+ *
+ * Overload C — string, vType = single valid delimiter:
+ *   Returns hstr terminated by vType (adds it if missing).
+ *
+ * Overload D — string, vType = anything NOT in DelimList:
+ *   Returns a diagnostic qList report:
+ *     hList:Report|Delims:<escaped, excluding |>|maxDelim:<escaped>|
+ *   If the hstr cannot be self-corrected by hValid(hstr), appends:
+ *     Error:<reason>|
+ */
+function hValid(hstr: string | string[], vType: string = ''): string {
+
+    // ── Overload A: string[] ─────────────────────────────────────────────────
+    if (Array.isArray(hstr)) {
+        const joined = hstr.join('\n');
+        return joined.endsWith('\n') ? joined : joined + '\n';
+    }
+
+    // ── Overload D: vType present but not a valid delimiter ──────────────────
+    if (vType !== '' && !hIsDelim(vType)) {
+        const delims         = hDelimsAll(hstr);
+        const maxD           = hMaxDelim(hstr);
+        // Spell out delims, excluding | (would break the qList report)
+        const delimsSpelled  = [...delims]
+            .filter(c => c !== '|')
+            .map(hSpellDelim)
+            .join('');
+        const maxDelimSpelled = maxD ? hSpellDelim(maxD) : 'none';
+        const canFix          = maxD !== '';  // fixable iff a delimiter exists
+
+        let report = `hList:Report|Delims:${delimsSpelled}|maxDelim:${maxDelimSpelled}`;
+        if (!canFix) {
+            report += '|Error:No delimiter found — hstr cannot be auto-corrected';
+        }
+        report += '|';
+        return report;
+    }
+
+    // ── Overload C: vType is a valid delimiter ───────────────────────────────
+    if (vType !== '' && hIsDelim(vType)) {
+        return hstr.endsWith(vType) ? hstr : hstr + vType;
+    }
+
+    // ── Overload B: vType is '' — terminate with hMaxDelim ───────────────────
+    const maxD = hMaxDelim(hstr);
+    if (!maxD) return hstr;                 // no delimiter — nothing to do
+    return hstr.endsWith(maxD) ? hstr : hstr + maxD;
+}
 
 } // namespace RS1
 
